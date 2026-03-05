@@ -1,285 +1,546 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
-import '../../../core/theme/app_theme.dart';
-import '../controllers/note_controller.dart';
-import '../widgets/note_card.dart';
+import '../../../core/theme/ui_kit.dart';
+import '../../notes/controllers/note_controller.dart';
+import '../../../core/models/note_model.dart';
 import 'note_editor_screen.dart';
 
 class NotesScreen extends ConsumerStatefulWidget {
   const NotesScreen({super.key});
-
   @override
   ConsumerState<NotesScreen> createState() => _NotesScreenState();
 }
 
 class _NotesScreenState extends ConsumerState<NotesScreen> {
-  String _searchQuery = '';
+  final _searchCtrl = TextEditingController();
+  String _query = '';
   String? _selectedTag;
 
   @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final allNotes = ref.watch(noteControllerProvider);
+    final notes = ref.watch(noteControllerProvider);
 
-    // Apply filters
-    var notes = allNotes;
-    if (_searchQuery.isNotEmpty) {
-      final q = _searchQuery.toLowerCase();
-      notes = notes.where((n) {
-        return n.title.toLowerCase().contains(q) ||
-            n.content.toLowerCase().contains(q) ||
-            n.tags.any((t) => t.toLowerCase().contains(q));
-      }).toList();
-    }
-    if (_selectedTag != null) {
-      notes = notes.where((n) => n.tags.contains(_selectedTag)).toList();
-    }
+    final allTags = notes.expand((n) => n.tags).toSet().toList();
+    final filtered = notes.where((n) {
+      final matchQ =
+          _query.isEmpty ||
+          n.title.toLowerCase().contains(_query.toLowerCase()) ||
+          n.content.toLowerCase().contains(_query.toLowerCase());
+      final matchT = _selectedTag == null || n.tags.contains(_selectedTag);
+      return matchQ && matchT;
+    }).toList();
 
-    // Separate pinned and unpinned
-    final pinnedNotes = notes.where((n) => n.isPinned).toList();
-    final unpinnedNotes = notes.where((n) => !n.isPinned).toList();
-
-    // Collect all tags for filter chips
-    final allTags = <String>{};
-    for (final note in allNotes) {
-      allTags.addAll(note.tags);
-    }
+    final pinned = filtered.where((n) => n.isPinned).toList();
+    final unpinned = filtered.where((n) => !n.isPinned).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('NoteStack AI'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              showSearch(context: context, delegate: _NoteSearchDelegate(ref));
-            },
-          ),
-        ],
+      backgroundColor: Colors.transparent,
+      floatingActionButton: _GlowFab(
+        onTap: () => Navigator.push(context, _route(const NoteEditorScreen())),
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search notes...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 20),
-                        onPressed: () => setState(() => _searchQuery = ''),
-                      )
-                    : null,
-              ),
-              onChanged: (v) => setState(() => _searchQuery = v),
-            ),
-          ),
-
-          // Tag filter chips
-          if (allTags.isNotEmpty)
-            SizedBox(
-              height: 44,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: const Text('All'),
-                      selected: _selectedTag == null,
-                      onSelected: (_) => setState(() => _selectedTag = null),
-                    ),
-                  ),
-                  ...allTags.map((tag) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(tag),
-                        selected: _selectedTag == tag,
-                        onSelected: (selected) {
-                          setState(() {
-                            _selectedTag = selected ? tag : null;
-                          });
-                        },
+      body: OrbBackground(
+        subtle: true,
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // Header
+            SliverToBoxAdapter(
+              child: GradientHeader(
+                gradient: LinearGradient(
+                  colors: [kDark0, const Color(0xFF1F1035)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Notes',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
                       ),
-                    );
-                  }),
-                ],
-              ),
-            ),
-
-          // Notes list
-          Expanded(
-            child: notes.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.note_add,
-                          size: 64,
-                          color: AppTheme.textSecondary.withAlpha(80),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'No notes yet',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Capture your ideas, meeting notes,\nand thoughts with AI assistance',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: AppTheme.textSecondary),
-                        ),
-                      ],
                     ),
-                  )
-                : ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      if (pinnedNotes.isNotEmpty) ...[
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 8),
-                          child: Text(
-                            'PINNED',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.textSecondary,
-                              letterSpacing: 1.2,
+                    const SizedBox(height: 14),
+                    // search
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(18),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Colors.white.withAlpha(35),
                             ),
                           ),
-                        ),
-                        ...pinnedNotes.map(
-                          (note) => NoteCard(
-                            note: note,
-                            onTap: () => _openEditor(note.id),
-                            onPin: () => ref
-                                .read(noteControllerProvider.notifier)
-                                .togglePin(note.id),
-                            onDelete: () => ref
-                                .read(noteControllerProvider.notifier)
-                                .deleteNote(note.id),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      if (unpinnedNotes.isNotEmpty) ...[
-                        if (pinnedNotes.isNotEmpty)
-                          const Padding(
-                            padding: EdgeInsets.only(bottom: 8),
-                            child: Text(
-                              'ALL NOTES',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.textSecondary,
-                                letterSpacing: 1.2,
+                          child: TextField(
+                            controller: _searchCtrl,
+                            onChanged: (v) => setState(() => _query = v),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Search notes...',
+                              hintStyle: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 14,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.search_rounded,
+                                color: Colors.white54,
+                                size: 20,
+                              ),
+                              suffixIcon: _query.isNotEmpty
+                                  ? GestureDetector(
+                                      onTap: () {
+                                        _searchCtrl.clear();
+                                        setState(() => _query = '');
+                                      },
+                                      child: const Icon(
+                                        Icons.close_rounded,
+                                        color: Colors.white54,
+                                        size: 20,
+                                      ),
+                                    )
+                                  : null,
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 14,
                               ),
                             ),
                           ),
-                        ...unpinnedNotes.map(
-                          (note) => NoteCard(
-                            note: note,
-                            onTap: () => _openEditor(note.id),
-                            onPin: () => ref
-                                .read(noteControllerProvider.notifier)
-                                .togglePin(note.id),
-                            onDelete: () => ref
-                                .read(noteControllerProvider.notifier)
-                                .deleteNote(note.id),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Tag chips
+            if (allTags.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Stagger(
+                  index: 0,
+                  child: SizedBox(
+                    height: 44,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      children: [
+                        _TagChip(
+                          label: 'All',
+                          selected: _selectedTag == null,
+                          onTap: () => setState(() => _selectedTag = null),
+                        ),
+                        ...allTags.map(
+                          (tag) => _TagChip(
+                            label: tag,
+                            selected: _selectedTag == tag,
+                            onTap: () => setState(
+                              () => _selectedTag = _selectedTag == tag
+                                  ? null
+                                  : tag,
+                            ),
                           ),
                         ),
                       ],
-                    ],
+                    ),
                   ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openEditor(null),
-        child: const Icon(Icons.add),
+                ),
+              ),
+
+            // Pinned
+            if (pinned.isNotEmpty) ...[
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: Stagger(
+                    index: 1,
+                    child: const BodySectionHeader(title: 'Pinned'),
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverGrid(
+                  delegate: SliverChildBuilderDelegate(
+                    (ctx, i) => Stagger(
+                      index: i + 2,
+                      child: _NoteCard(
+                        note: pinned[i],
+                        onTap: () => Navigator.push(
+                          ctx,
+                          _route(NoteEditorScreen(note: pinned[i])),
+                        ),
+                      ),
+                    ),
+                    childCount: pinned.length,
+                  ),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 1.1,
+                  ),
+                ),
+              ),
+            ],
+
+            // All notes
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverToBoxAdapter(
+                child: Stagger(
+                  index: pinned.isEmpty ? 1 : pinned.length + 2,
+                  child: BodySectionHeader(
+                    title: 'All Notes',
+                    trailing: '${filtered.length}',
+                  ),
+                ),
+              ),
+            ),
+            if (filtered.isEmpty)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: Stagger(
+                    index: 99,
+                    child: EmptyState(
+                      icon: Icons.sticky_note_2_rounded,
+                      message: 'No notes found. Tap + to create your first!',
+                    ),
+                  ),
+                ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                sliver: SliverGrid(
+                  delegate: SliverChildBuilderDelegate((ctx, i) {
+                    final n = unpinned[i];
+                    return Stagger(
+                      index: i + pinned.length + 3,
+                      child: _NoteCard(
+                        note: n,
+                        onTap: () => Navigator.push(
+                          ctx,
+                          _route(NoteEditorScreen(note: n)),
+                        ),
+                      ),
+                    );
+                  }, childCount: unpinned.length),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 1.1,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  void _openEditor(String? noteId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => NoteEditorScreen(noteId: noteId)),
+  PageRoute<T> _route<T>(Widget page) => PageRouteBuilder(
+    pageBuilder: (_, a, __) => page,
+    transitionsBuilder: (_, a, __, child) =>
+        FadeTransition(opacity: a, child: child),
+  );
+}
+
+// ── Note card ───────────────────────────────────────────────────────────────
+class _NoteCard extends ConsumerWidget {
+  final NoteItem note;
+  final VoidCallback onTap;
+  const _NoteCard({required this.note, required this.onTap});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      onLongPress: () {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          builder: (_) => _NoteActions(
+            note: note,
+            onPin: () {
+              Navigator.pop(context);
+              ref.read(noteControllerProvider.notifier).togglePin(note.id);
+            },
+            onDelete: () {
+              Navigator.pop(context);
+              ref.read(noteControllerProvider.notifier).deleteNote(note.id);
+            },
+          ),
+        );
+      },
+      child: GlassCard(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (note.isPinned)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 4),
+                    child: Icon(
+                      Icons.push_pin_rounded,
+                      size: 13,
+                      color: kCoral,
+                    ),
+                  ),
+                Expanded(
+                  child: Text(
+                    note.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Expanded(
+              child: Text(
+                note.summary ?? note.content,
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.4,
+                  color: isDark ? Colors.white60 : const Color(0xFF6B6B7A),
+                ),
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (note.tags.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: note.tags
+                    .take(2)
+                    .map(
+                      (t) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: kIndigo.withAlpha(isDark ? 40 : 20),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          t,
+                          style: const TextStyle(
+                            fontSize: 9,
+                            color: kIndigo,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _NoteSearchDelegate extends SearchDelegate<String?> {
-  final WidgetRef ref;
-
-  _NoteSearchDelegate(this.ref);
+// ── Tag chip ────────────────────────────────────────────────────────────────
+class _TagChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _TagChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
-  List<Widget> buildActions(BuildContext context) {
-    return [
-      IconButton(icon: const Icon(Icons.clear), onPressed: () => query = ''),
-    ];
-  }
-
-  @override
-  Widget buildLeading(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.arrow_back),
-      onPressed: () => close(context, null),
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          gradient: selected ? kGradientMain : null,
+          color: selected
+              ? null
+              : Theme.of(context).brightness == Brightness.dark
+              ? Colors.white.withAlpha(15)
+              : Colors.black.withAlpha(8),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected
+                ? Colors.transparent
+                : Theme.of(context).brightness == Brightness.dark
+                ? Colors.white24
+                : Colors.black12,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: selected
+                ? Colors.white
+                : Theme.of(context).brightness == Brightness.dark
+                ? Colors.white70
+                : const Color(0xFF4A4A5A),
+          ),
+        ),
+      ),
     );
   }
+}
+
+// ── Note actions bottom sheet ────────────────────────────────────────────────
+class _NoteActions extends StatelessWidget {
+  final NoteItem note;
+  final VoidCallback onPin;
+  final VoidCallback onDelete;
+  const _NoteActions({
+    required this.note,
+    required this.onPin,
+    required this.onDelete,
+  });
 
   @override
-  Widget buildResults(BuildContext context) => _buildSearch();
-
-  @override
-  Widget buildSuggestions(BuildContext context) => _buildSearch();
-
-  Widget _buildSearch() {
-    final notes = ref.read(noteControllerProvider);
-    final q = query.toLowerCase();
-    final filtered = notes.where((n) {
-      return n.title.toLowerCase().contains(q) ||
-          n.content.toLowerCase().contains(q) ||
-          n.tags.any((t) => t.toLowerCase().contains(q));
-    }).toList();
-
-    return ListView.builder(
-      itemCount: filtered.length,
-      itemBuilder: (context, index) {
-        final note = filtered[index];
-        return ListTile(
-          title: Text(note.title),
-          subtitle: Text(
-            note.summary ?? note.content,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          trailing: Text(
-            DateFormat('MMM d').format(note.updatedAt),
-            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-          ),
-          onTap: () {
-            close(context, note.id);
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => NoteEditorScreen(noteId: note.id),
-              ),
-            );
-          },
-        );
-      },
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      margin: const EdgeInsets.all(16),
+      child: GlassCard(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _ActionTile(
+              icon: note.isPinned
+                  ? Icons.push_pin_outlined
+                  : Icons.push_pin_rounded,
+              label: note.isPinned ? 'Unpin' : 'Pin',
+              color: kCoral,
+              onTap: onPin,
+            ),
+            Divider(color: isDark ? Colors.white12 : Colors.black12, height: 1),
+            _ActionTile(
+              icon: Icons.delete_outline_rounded,
+              label: 'Delete',
+              color: const Color(0xFFFF4444),
+              onTap: onDelete,
+            ),
+          ],
+        ),
+      ),
     );
   }
+}
+
+class _ActionTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _ActionTile({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    leading: Icon(icon, color: color),
+    title: Text(
+      label,
+      style: TextStyle(color: color, fontWeight: FontWeight.w600),
+    ),
+    onTap: onTap,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+  );
+}
+
+// ── Glow FAB ────────────────────────────────────────────────────────────────
+class _GlowFab extends StatefulWidget {
+  final VoidCallback onTap;
+  const _GlowFab({required this.onTap});
+  @override
+  State<_GlowFab> createState() => _GlowFabState();
+}
+
+class _GlowFabState extends State<_GlowFab>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _c,
+    builder: (_, child) =>
+        Transform.scale(scale: 1.0 + 0.04 * _c.value, child: child),
+    child: GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          gradient: kGradientMain,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: kIndigo.withAlpha(120),
+              blurRadius: 20,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
+      ),
+    ),
+  );
 }

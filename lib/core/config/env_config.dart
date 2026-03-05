@@ -1,7 +1,7 @@
-/// Application environment configuration.
-///
-/// Provides dev/prod separation for API keys, base URLs,
-/// feature flags, and diagnostic settings.
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+// Application environment configuration.
+// Reads from .env at runtime via flutter_dotenv.
 enum Environment { dev, staging, prod }
 
 class EnvConfig {
@@ -25,63 +25,45 @@ class EnvConfig {
     required this.useMockAI,
   });
 
-  /// Development configuration
-  static const dev = EnvConfig._(
-    environment: Environment.dev,
-    geminiApiKey: String.fromEnvironment(
-      'GEMINI_API_KEY',
-      defaultValue: 'AIzaSyBSFhNWnsc2c8xFFXqmuR0RDsguTXX1cog',
-    ),
-    appName: 'AutoPlanner AI [DEV]',
-    enableAILogging: true,
-    enableTokenTracking: true,
-    maxTokensPerDay: 100000,
-    firestoreProjectId: 'autoplanner-ai-dev',
-    useMockAI: false,
-  );
-
-  /// Staging configuration
-  static const staging = EnvConfig._(
-    environment: Environment.staging,
-    geminiApiKey: String.fromEnvironment('GEMINI_API_KEY'),
-    appName: 'AutoPlanner AI [STAGING]',
-    enableAILogging: true,
-    enableTokenTracking: true,
-    maxTokensPerDay: 500000,
-    firestoreProjectId: 'autoplanner-ai-staging',
-    useMockAI: false,
-  );
-
-  /// Production configuration
-  static const prod = EnvConfig._(
-    environment: Environment.prod,
-    geminiApiKey: String.fromEnvironment('GEMINI_API_KEY'),
-    appName: 'AutoPlanner AI',
-    enableAILogging: false,
-    enableTokenTracking: true,
-    maxTokensPerDay: 1000000,
-    firestoreProjectId: 'autoplanner-ai-prod',
-    useMockAI: false,
-  );
-
   bool get isDev => environment == Environment.dev;
   bool get isProd => environment == Environment.prod;
   bool get isStaging => environment == Environment.staging;
 
-  /// Resolve environment from build-time dart-define
-  static EnvConfig fromEnvironment() {
-    const envName = String.fromEnvironment('ENV', defaultValue: 'dev');
-    switch (envName) {
-      case 'prod':
-        return EnvConfig.prod;
-      case 'staging':
-        return EnvConfig.staging;
-      case 'dev':
-      default:
-        return EnvConfig.dev;
-    }
+  // Reads all values from .env loaded by flutter_dotenv.
+  // Call after dotenv.load() completes in main().
+  static EnvConfig fromDotEnv() {
+    final envName = dotenv.get('ENV', fallback: 'dev');
+    final env = switch (envName) {
+      'prod' => Environment.prod,
+      'staging' => Environment.staging,
+      _ => Environment.dev,
+    };
+
+    final appName = switch (env) {
+      Environment.prod => 'AutoPlanner AI',
+      Environment.staging => 'AutoPlanner AI [STAGING]',
+      Environment.dev => 'AutoPlanner AI [DEV]',
+    };
+
+    return EnvConfig._(
+      environment: env,
+      geminiApiKey: dotenv.get('GEMINI_API_KEY', fallback: ''),
+      appName: appName,
+      enableAILogging:
+          dotenv.get('ENABLE_AI_LOGGING', fallback: 'true') == 'true',
+      enableTokenTracking:
+          dotenv.get('ENABLE_TOKEN_TRACKING', fallback: 'true') == 'true',
+      maxTokensPerDay:
+          int.tryParse(dotenv.get('MAX_TOKENS_PER_DAY', fallback: '100000')) ??
+          100000,
+      firestoreProjectId: dotenv.get(
+        'FIRESTORE_PROJECT_ID',
+        fallback: 'autoplanner-ai-dev',
+      ),
+      useMockAI: dotenv.get('USE_MOCK_AI', fallback: 'false') == 'true',
+    );
   }
 }
 
-/// Global singleton — initialized once in main.dart
+/// Global singleton — initialized once in main.dart after dotenv.load()
 late final EnvConfig appConfig;

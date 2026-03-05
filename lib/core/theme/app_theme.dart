@@ -38,7 +38,6 @@ class AppTheme {
       brightness: Brightness.light,
       colorSchemeSeed: accentIndigo,
       scaffoldBackgroundColor: surfaceLight,
-      fontFamily: 'Segoe UI',
       appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
@@ -122,7 +121,6 @@ class AppTheme {
       brightness: Brightness.dark,
       colorSchemeSeed: accentIndigo,
       scaffoldBackgroundColor: surfaceDark,
-      fontFamily: 'Segoe UI',
       appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,

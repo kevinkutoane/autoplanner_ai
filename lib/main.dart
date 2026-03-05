@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'core/providers/providers.dart';
 
 import 'core/config/env_config.dart';
 import 'core/models/task_model.dart';
@@ -9,13 +11,14 @@ import 'core/models/calendar_event_model.dart';
 import 'core/models/memory_entry_model.dart';
 import 'core/ai/token_tracker.dart';
 import 'core/theme/app_theme.dart';
-import 'app_shell.dart';
+import 'features/onboarding/screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ── Environment ──────────────────────────────────────────
-  appConfig = EnvConfig.fromEnvironment();
+  // ── Environment (.env) ───────────────────────────────────
+  await dotenv.load(fileName: '.env');
+  appConfig = EnvConfig.fromDotEnv();
 
   // ── Hive ─────────────────────────────────────────────────
   await Hive.initFlutter();
@@ -28,18 +31,19 @@ void main() async {
   runApp(const ProviderScope(child: AutoPlannerApp()));
 }
 
-class AutoPlannerApp extends StatelessWidget {
+class AutoPlannerApp extends ConsumerWidget {
   const AutoPlannerApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(settingsProvider.select((s) => s.themeMode));
     return MaterialApp(
       title: 'AutoPlanner AI',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      home: const AppShell(),
+      themeMode: themeMode,
+      home: const SplashScreen(),
     );
   }
 }

@@ -14,6 +14,8 @@ import '../models/calendar_event_model.dart';
 import '../models/memory_entry_model.dart';
 import '../../services/ai_service.dart';
 import '../../services/memory_service.dart';
+import '../../features/settings/models/app_settings_model.dart';
+import '../../features/settings/controllers/settings_controller.dart';
 
 // ── AI Layer ──────────────────────────────────────────────────────────
 
@@ -58,3 +60,8 @@ final memoryRepositoryProvider = Provider<HiveRepository<MemoryEntry>>((ref) {
 final memoryServiceProvider = Provider<MemoryService>((ref) {
   return MemoryService();
 });
+// ── Settings & Profile ────────────────────────────────────────────
+
+final settingsProvider = StateNotifierProvider<SettingsController, AppSettings>(
+  (ref) => SettingsController(),
+);

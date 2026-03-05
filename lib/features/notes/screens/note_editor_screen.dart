@@ -1,316 +1,378 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
-import '../../../core/models/note_model.dart';
-import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
-import '../../planner/controllers/task_controller.dart';
-import '../controllers/note_controller.dart';
+import '../../notes/controllers/note_controller.dart';
+import '../../../core/models/note_model.dart';
 
 class NoteEditorScreen extends ConsumerStatefulWidget {
-  final String? noteId;
-
-  const NoteEditorScreen({super.key, this.noteId});
-
+  final NoteItem? note;
+  const NoteEditorScreen({super.key, this.note});
   @override
   ConsumerState<NoteEditorScreen> createState() => _NoteEditorScreenState();
 }
 
-class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
-  late TextEditingController _titleController;
-  late TextEditingController _contentController;
+class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
+    with TickerProviderStateMixin {
+  late final TextEditingController _titleCtrl;
+  late final TextEditingController _contentCtrl;
+  late final AnimationController _entryAC;
+  late final Animation<Offset> _entrySlide;
+
   bool _isNew = true;
-  bool _processing = false;
-  String? _summary;
+  bool _summarizing = false;
+  String? _summaryText;
   List<String> _tags = [];
-  DateTime? _originalCreatedAt;
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController();
-    _contentController = TextEditingController();
+    _isNew = widget.note == null;
+    _titleCtrl = TextEditingController(text: widget.note?.title ?? '');
+    _contentCtrl = TextEditingController(text: widget.note?.content ?? '');
+    _tags = List<String>.from(widget.note?.tags ?? []);
+    _summaryText = widget.note?.summary;
 
-    if (widget.noteId != null) {
-      _isNew = false;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final notes = ref.read(noteControllerProvider);
-        final note = notes.firstWhere((n) => n.id == widget.noteId);
-        _titleController.text = note.title;
-        _contentController.text = note.content;
-        setState(() {
-          _summary = note.summary;
-          _tags = List.from(note.tags);
-          _originalCreatedAt = note.createdAt;
-        });
-      });
-    }
+    _entryAC = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _entrySlide = Tween<Offset>(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _entryAC, curve: Curves.easeOutCubic));
+    _entryAC.forward();
   }
 
   @override
   void dispose() {
-    _titleController.dispose();
-    _contentController.dispose();
+    _titleCtrl.dispose();
+    _contentCtrl.dispose();
+    _entryAC.dispose();
     super.dispose();
   }
 
-  Future<void> _saveNote() async {
-    final title = _titleController.text.trim();
-    final content = _contentController.text.trim();
-    if (title.isEmpty && content.isEmpty) return;
+  Future<void> _summarize() async {
+    final content = _contentCtrl.text.trim();
+    if (content.isEmpty) return;
+    setState(() => _summarizing = true);
+    try {
+      final ai = ref.read(aiServiceProvider);
+      final summary = await ai.summarizeNote(content);
+      final tags = await ai.generateTags(content);
+      if (mounted) {
+        setState(() {
+          _summaryText = summary;
+          _tags = tags;
+          _summarizing = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _summarizing = false);
+    }
+  }
 
-    final now = DateTime.now();
-    final note = NoteItem(
-      id: widget.noteId ?? const Uuid().v4(),
-      title: title.isEmpty ? 'Untitled Note' : title,
-      content: content,
-      summary: _summary,
-      tags: _tags,
-      createdAt: _isNew ? now : (_originalCreatedAt ?? now),
-      updatedAt: now,
-    );
+  void _save() {
+    final title = _titleCtrl.text.trim();
+    final content = _contentCtrl.text.trim();
+    if (title.isEmpty && content.isEmpty) {
+      Navigator.pop(context);
+      return;
+    }
 
     if (_isNew) {
-      await ref.read(noteControllerProvider.notifier).addNote(note);
-    } else {
-      await ref.read(noteControllerProvider.notifier).updateNote(note);
-    }
-
-    if (mounted) Navigator.pop(context);
-  }
-
-  Future<void> _summarizeWithAI() async {
-    final content = _contentController.text.trim();
-    if (content.isEmpty) return;
-
-    setState(() => _processing = true);
-    try {
-      final aiService = ref.read(aiServiceProvider);
-      final results = await Future.wait([
-        aiService.summarizeNote(content),
-        aiService.generateTags('${_titleController.text}\n$content'),
-      ]);
-
-      setState(() {
-        _summary = results[0] as String?;
-        final newTags = results[1] as List<String>;
-        if (newTags.isNotEmpty) _tags = newTags;
-        _processing = false;
-      });
-    } catch (e) {
-      setState(() => _processing = false);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('AI processing failed')));
-      }
-    }
-  }
-
-  Future<void> _extractTasks() async {
-    final content = _contentController.text.trim();
-    if (content.isEmpty) return;
-
-    setState(() => _processing = true);
-    try {
-      final aiService = ref.read(aiServiceProvider);
-      final tasks = await aiService.extractActionItems(content);
-
-      if (tasks.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No actionable items found')),
-          );
-        }
-      } else {
-        if (mounted) {
-          final confirmed = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: Text('Found ${tasks.length} action items'),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: tasks.length,
-                  itemBuilder: (context, i) {
-                    final task = tasks[i];
-                    return ListTile(
-                      dense: true,
-                      leading: Icon(
-                        Icons.task_alt,
-                        color: AppTheme.priorityColor(task.priority),
-                      ),
-                      title: Text(task.title),
-                      subtitle: Text(
-                        '${task.startTime.hour}:${task.startTime.minute.toString().padLeft(2, '0')} - ${task.priorityLabel}',
-                      ),
-                    );
-                  },
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Add to Plan'),
-                ),
-              ],
+      ref
+          .read(noteControllerProvider.notifier)
+          .addNote(
+            NoteItem(
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+              title: title.isEmpty ? 'Untitled' : title,
+              content: content,
+              summary: _summaryText,
+              tags: _tags,
+              isPinned: false,
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
             ),
           );
-
-          if (confirmed == true) {
-            for (final task in tasks) {
-              ref.read(taskControllerProvider.notifier).addTask(task);
-            }
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${tasks.length} tasks added to your plan!'),
-                ),
-              );
-            }
-          }
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Task extraction failed')));
-      }
-    } finally {
-      setState(() => _processing = false);
+    } else {
+      ref
+          .read(noteControllerProvider.notifier)
+          .updateNote(
+            widget.note!.copyWith(
+              title: title.isEmpty ? 'Untitled' : title,
+              content: content,
+              summary: _summaryText,
+              tags: _tags,
+              updatedAt: DateTime.now(),
+            ),
+          );
     }
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isNew ? 'New Note' : 'Edit Note'),
-        actions: [
-          if (_processing)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            )
-          else ...[
-            IconButton(
-              icon: const Icon(Icons.auto_awesome),
-              tooltip: 'AI Summarize & Tag',
-              onPressed: _summarizeWithAI,
-            ),
-            IconButton(
-              icon: const Icon(Icons.checklist),
-              tooltip: 'Extract Tasks',
-              onPressed: _extractTasks,
-            ),
-          ],
-          IconButton(icon: const Icon(Icons.check), onPressed: _saveNote),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Title
-            TextField(
-              controller: _titleController,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-              decoration: const InputDecoration(
-                hintText: 'Note title...',
-                border: InputBorder.none,
-                filled: false,
-              ),
-            ),
-
-            const Divider(),
-
-            // AI Summary
-            if (_summary != null) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppTheme.accentIndigo.withAlpha(15),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppTheme.accentIndigo.withAlpha(40),
+      backgroundColor: isDark ? kDark0 : kLight0,
+      body: OrbBackground(
+        subtle: true,
+        child: SlideTransition(
+          position: _entrySlide,
+          child: Column(
+            children: [
+              // ── Top bar ──────────────────────────────────────────────
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                  child: Row(
+                    children: [
+                      _IconBtn(
+                        icon: Icons.arrow_back_ios_new_rounded,
+                        onTap: () => Navigator.pop(context),
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: _titleCtrl,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? kLight0 : kDark0,
+                            letterSpacing: -0.4,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Title',
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.white38 : Colors.black26,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 20,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          textCapitalization: TextCapitalization.sentences,
+                        ),
+                      ),
+                      _IconBtn(
+                        icon: Icons.check_rounded,
+                        onTap: _save,
+                        gradient: kGradientMain,
+                      ),
+                    ],
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
-                      children: [
-                        Icon(
-                          Icons.auto_awesome,
-                          size: 16,
-                          color: AppTheme.accentIndigo,
+              ),
+
+              Divider(
+                color: isDark ? Colors.white10 : Colors.black.withAlpha(12),
+                height: 1,
+              ),
+
+              // ── Content area ─────────────────────────────────────────
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: _contentCtrl,
+                        maxLines: null,
+                        style: TextStyle(
+                          fontSize: 15,
+                          height: 1.65,
+                          color: isDark ? Colors.white.withAlpha(220) : kDark0,
                         ),
-                        SizedBox(width: 6),
-                        Text(
-                          'AI Summary',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.accentIndigo,
+                        decoration: InputDecoration(
+                          hintText: 'Write something...',
+                          hintStyle: TextStyle(
+                            color: isDark ? Colors.white38 : Colors.black26,
+                            fontSize: 15,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        textCapitalization: TextCapitalization.sentences,
+                      ),
+
+                      // ── AI Summary block ─────────────────────────────
+                      if (_summaryText != null) ...[
+                        const SizedBox(height: 20),
+                        GlassCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  ShaderMask(
+                                    shaderCallback: (b) =>
+                                        kGradientTeal.createShader(b),
+                                    child: const Icon(
+                                      Icons.auto_awesome_rounded,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'AI Summary',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  GestureDetector(
+                                    onTap: () =>
+                                        setState(() => _summaryText = null),
+                                    child: Icon(
+                                      Icons.close_rounded,
+                                      size: 16,
+                                      color: isDark
+                                          ? Colors.white38
+                                          : Colors.black38,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _summaryText!,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  height: 1.5,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : const Color(0xFF5A5A6A),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _summary!,
-                      style: const TextStyle(fontSize: 14, height: 1.5),
-                    ),
-                  ],
+
+                      // ── Tags ─────────────────────────────────────────
+                      if (_tags.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _tags
+                              .map(
+                                (t) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: kIndigo.withAlpha(isDark ? 40 : 20),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    '#$t',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: kIndigo,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ],
+
+                      const SizedBox(height: 80),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
-            ],
 
-            // Tags
-            if (_tags.isNotEmpty) ...[
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: _tags.map((tag) {
-                  return Chip(
-                    label: Text('#$tag'),
-                    deleteIcon: const Icon(Icons.close, size: 16),
-                    onDeleted: () {
-                      setState(() => _tags.remove(tag));
-                    },
-                  );
-                }).toList(),
+              // ── Bottom toolbar ───────────────────────────────────────
+              SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? kDark1.withAlpha(220)
+                        : Colors.white.withAlpha(220),
+                    border: Border(
+                      top: BorderSide(
+                        color: isDark
+                            ? Colors.white12
+                            : Colors.black.withAlpha(12),
+                      ),
+                    ),
+                  ),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Row(
+                      children: [
+                        GhostBtn(
+                          label: _summarizing ? 'Analysing...' : 'AI Summarise',
+                          icon: _summarizing
+                              ? null
+                              : Icons.auto_awesome_rounded,
+                          onTap: _summarizing ? null : _summarize,
+                        ),
+                        const Spacer(),
+                        if (_summarizing)
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: kIndigo,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(height: 12),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-            // Content
-            TextField(
-              controller: _contentController,
-              maxLines: null,
-              minLines: 15,
-              style: const TextStyle(fontSize: 16, height: 1.6),
-              decoration: const InputDecoration(
-                hintText:
-                    'Start writing...\n\nUse the AI button to auto-summarize and tag your note.',
-                border: InputBorder.none,
-                filled: false,
-              ),
-            ),
-          ],
+class _IconBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final LinearGradient? gradient;
+  const _IconBtn({required this.icon, required this.onTap, this.gradient});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42,
+        height: 42,
+        margin: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          gradient: gradient,
+          color: gradient == null
+              ? (isDark ? Colors.white12 : Colors.black.withAlpha(10))
+              : null,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: gradient != null ? Colors.white : null,
         ),
       ),
     );
