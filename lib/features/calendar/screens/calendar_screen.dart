@@ -164,9 +164,37 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                         child: _EventTile(
                           event: ev,
                           onEdit: () => _showEditDialog(context, ref, ev),
-                          onDelete: () => ref
-                              .read(calendarControllerProvider.notifier)
-                              .deleteEvent(ev.id),
+                          onDelete: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Delete event?'),
+                                content: const Text(
+                                  'This event will be permanently removed.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text(
+                                      'Delete',
+                                      style: TextStyle(
+                                        color: Color(0xFFFF4444),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm == true) {
+                              ref
+                                  .read(calendarControllerProvider.notifier)
+                                  .deleteEvent(ev.id);
+                            }
+                          },
                         ),
                       ),
                     );
@@ -617,6 +645,15 @@ class _AddEventDialogState extends State<_AddEventDialog>
             onTap: () {
               final title = _titleCtrl.text.trim();
               if (title.isEmpty) return;
+              if (!_end.isAfter(_start)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('End time must be after start time.'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
               widget.onAdd(
                 CalendarEvent(
                   id:

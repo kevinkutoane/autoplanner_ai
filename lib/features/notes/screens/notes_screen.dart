@@ -203,14 +203,14 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               ),
             ],
 
-            // All notes
+            // All notes / Other notes
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverToBoxAdapter(
                 child: Stagger(
                   index: pinned.isEmpty ? 1 : pinned.length + 2,
                   child: BodySectionHeader(
-                    title: 'All Notes',
+                    title: pinned.isEmpty ? 'All Notes' : 'Other Notes',
                     trailing: '${filtered.length}',
                   ),
                 ),
@@ -290,7 +290,30 @@ class _NoteCard extends ConsumerWidget {
             },
             onDelete: () {
               Navigator.pop(context);
-              ref.read(noteControllerProvider.notifier).deleteNote(note.id);
+              showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Delete note?'),
+                  content: const Text('This note will be permanently deleted.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text(
+                        'Delete',
+                        style: TextStyle(color: Color(0xFFFF4444)),
+                      ),
+                    ),
+                  ],
+                ),
+              ).then((confirmed) {
+                if (confirmed == true) {
+                  ref.read(noteControllerProvider.notifier).deleteNote(note.id);
+                }
+              });
             },
           ),
         );

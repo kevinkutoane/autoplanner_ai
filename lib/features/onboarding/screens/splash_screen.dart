@@ -77,7 +77,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     _entryAC.forward();
 
-    Future.delayed(const Duration(milliseconds: 2800), _navigate);
+    Future.wait([
+      Future.delayed(const Duration(milliseconds: 2800)),
+      ref.read(settingsProvider.notifier).ensureInitialized(),
+    ]).then((_) => _navigate());
   }
 
   Future<void> _navigate() async {

@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'core/theme/ui_kit.dart';
+import 'features/brain_dump/brain_dump_sheet.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
 import 'features/planner/screens/planner_screen.dart';
 import 'features/notes/screens/notes_screen.dart';
@@ -71,20 +72,26 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _currentIndex = 0;
 
-  static const _screens = [
-    DashboardScreen(),
-    PlannerScreen(),
-    NotesScreen(),
-    CalendarScreen(),
-    MemoryScreen(),
-    SettingsScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          DashboardScreen(
+            onNavigateTo: (i) => setState(() => _currentIndex = i),
+          ),
+          const PlannerScreen(),
+          const NotesScreen(),
+          const CalendarScreen(),
+          const MemoryScreen(),
+          const SettingsScreen(),
+        ],
+      ),
+      floatingActionButton: _BrainDumpFab(),
+      floatingActionButtonLocation:
+          FloatingActionButtonLocation.miniCenterFloat,
       bottomNavigationBar: _GlassNavBar(
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
@@ -302,6 +309,70 @@ class _NavButtonState extends State<_NavButton>
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// ── Brain Dump FAB ───────────────────────────────────────────────────────────
+class _BrainDumpFab extends StatefulWidget {
+  const _BrainDumpFab();
+
+  @override
+  State<_BrainDumpFab> createState() => _BrainDumpFabState();
+}
+
+class _BrainDumpFabState extends State<_BrainDumpFab>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _glow;
+  late final Animation<double> _glowAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _glow = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _glowAnim = CurvedAnimation(parent: _glow, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _glow.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _glowAnim,
+      builder: (_, __) => GestureDetector(
+        onTap: () => showBrainDump(context),
+        child: Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [kIndigo, kCyan],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: kIndigo.withAlpha((80 + 80 * _glowAnim.value).round()),
+                blurRadius: 16 + 10 * _glowAnim.value,
+                spreadRadius: 1 + _glowAnim.value,
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.electric_bolt_rounded,
+            color: Colors.white,
+            size: 24,
+          ),
+        ),
       ),
     );
   }

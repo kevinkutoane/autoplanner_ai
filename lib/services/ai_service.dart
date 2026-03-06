@@ -6,6 +6,27 @@ import '../core/ai/token_tracker.dart';
 import '../core/models/task_model.dart';
 import '../core/models/memory_entry_model.dart';
 
+// ── Brain Dump result types ───────────────────────────────────────────────
+
+class BrainNote {
+  final String title;
+  final String content;
+  const BrainNote({required this.title, required this.content});
+}
+
+class BrainDumpResult {
+  final List<TaskItem> tasks;
+  final List<BrainNote> notes;
+  final List<String> memories;
+  const BrainDumpResult({
+    required this.tasks,
+    required this.notes,
+    required this.memories,
+  });
+
+  bool get isEmpty => tasks.isEmpty && notes.isEmpty && memories.isEmpty;
+}
+
 /// Unified AI service layer.
 ///
 /// All AI-powered features flow through here. Uses [AIProvider]
@@ -204,41 +225,149 @@ $context
     return null;
   }
 
+  // ---- BRAIN DUMP (universal capture) ------------------------------------
+
+  /// Takes a stream-of-consciousness input and returns structured tasks,
+  /// notes, and memories extracted by AI.
+  Future<BrainDumpResult> brainDump(String input) async {
+    final prompt =
+        '''
+You are AutoPlanner AI. Parse this stream-of-consciousness brain dump.
+Classify every piece into tasks, notes, or memories.
+
+Respond ONLY with valid JSON (no markdown fences):
+{
+  "tasks": [{"title":"...","startTime":"HH:mm","priority":0,"tags":[]}],
+  "notes": [{"title":"...","content":"..."}],
+  "memories": ["one-sentence fact worth remembering long-term"]
+}
+
+Rules:
+- tasks = concrete actions or to-dos
+- notes = ideas, reference info, meeting context, longer thoughts
+- memories = recurring preferences, key life facts, important patterns
+- startTime = best suggested time in HH:mm (default "09:00")
+- priority = 0 low, 1 medium, 2 high, 3 urgent
+- Use [] for any category with nothing to add
+
+Brain dump:
+"""
+$input
+"""
+''';
+
+    try {
+      final response = await _provider.complete(prompt);
+      await _tracker.log(action: 'brainDump', response: response);
+      return _parseBrainDumpResult(response.text);
+    } catch (e) {
+      if (kDebugMode) print('brainDump failed: $e');
+      return const BrainDumpResult(tasks: [], notes: [], memories: []);
+    }
+  }
+
+  BrainDumpResult _parseBrainDumpResult(String text) {
+    try {
+      final jsonStr = _extractJsonObject(text);
+      if (jsonStr == null) {
+        return const BrainDumpResult(tasks: [], notes: [], memories: []);
+      }
+      final data = jsonDecode(jsonStr) as Map<String, dynamic>;
+
+      final tasks = _parseTasksFromJson(jsonEncode(data['tasks'] ?? []));
+      final notes = (data['notes'] as List<dynamic>? ?? [])
+          .map(
+            (n) => BrainNote(
+              title: (n['title'] as String?)?.trim() ?? 'Note',
+              content: (n['content'] as String?)?.trim() ?? '',
+            ),
+          )
+          .toList();
+      final memories = (data['memories'] as List<dynamic>? ?? [])
+          .map((m) => m.toString().trim())
+          .where((m) => m.isNotEmpty)
+          .toList();
+
+      return BrainDumpResult(tasks: tasks, notes: notes, memories: memories);
+    } catch (e) {
+      if (kDebugMode) debugPrint('_parseBrainDumpResult failed: $e');
+      return const BrainDumpResult(tasks: [], notes: [], memories: []);
+    }
+  }
+
   // ---- INTERNAL HELPERS ------------------------------------------------
 
   List<TaskItem> _parseTasksFromJson(String text) {
-    final match = RegExp(r'(\[.*?\])', dotAll: true).firstMatch(text);
-    final jsonStr = match != null ? match.group(0) : text;
-    final List<dynamic> jsonList = jsonDecode(jsonStr!);
-    final now = DateTime.now();
-
-    return jsonList.map((task) {
-      final timeParts = (task['startTime'] as String).split(':');
-      final scheduledTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        int.parse(timeParts[0]),
-        int.parse(timeParts[1]),
-      );
-      return TaskItem(
-        id: _uuid.v4(),
-        title: task['title'] as String,
-        startTime: scheduledTime,
-        priority: (task['priority'] as int?) ?? 1,
-        tags:
-            (task['tags'] as List<dynamic>?)
-                ?.map((e) => e.toString())
-                .toList() ??
-            [],
-      );
-    }).toList();
+    try {
+      final jsonStr = _extractJsonArray(text);
+      if (jsonStr == null) return [];
+      final List<dynamic> jsonList = jsonDecode(jsonStr);
+      final now = DateTime.now();
+      return jsonList.map((task) {
+        final timeParts = ((task['startTime'] as String?) ?? '09:00').split(
+          ':',
+        );
+        final scheduledTime = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          int.parse(timeParts[0]),
+          int.tryParse(timeParts.elementAtOrNull(1) ?? '0') ?? 0,
+        );
+        return TaskItem(
+          id: _uuid.v4(),
+          title: task['title'] as String,
+          startTime: scheduledTime,
+          priority: (task['priority'] as int?) ?? 1,
+          tags:
+              (task['tags'] as List<dynamic>?)
+                  ?.map((e) => e.toString())
+                  .toList() ??
+              [],
+        );
+      }).toList();
+    } catch (e) {
+      if (kDebugMode) debugPrint('_parseTasksFromJson failed: $e');
+      return [];
+    }
   }
 
   List<String> _parseStringList(String text) {
-    final match = RegExp(r'(\[.*?\])', dotAll: true).firstMatch(text);
-    final jsonStr = match != null ? match.group(0) : text;
-    final List<dynamic> list = jsonDecode(jsonStr!);
-    return list.map((e) => e.toString().toLowerCase()).toList();
+    try {
+      final jsonStr = _extractJsonArray(text);
+      if (jsonStr == null) return [];
+      final List<dynamic> list = jsonDecode(jsonStr);
+      return list.map((e) => e.toString().toLowerCase()).toList();
+    } catch (e) {
+      if (kDebugMode) debugPrint('_parseStringList failed: $e');
+      return [];
+    }
+  }
+
+  /// Strips markdown fences and returns the outermost JSON array substring,
+  /// or null if none is found. Uses first `[` / last `]` rather than a
+  /// non-greedy regex so nested arrays (e.g. "tags") are preserved.
+  String? _extractJsonArray(String text) {
+    // Remove markdown code fences (```json ... ``` etc.)
+    final stripped = text
+        .replaceAll(RegExp(r'```[a-zA-Z]*'), '')
+        .replaceAll('`', '')
+        .trim();
+    final start = stripped.indexOf('[');
+    final end = stripped.lastIndexOf(']');
+    if (start == -1 || end == -1 || end <= start) return null;
+    return stripped.substring(start, end + 1);
+  }
+
+  /// Same as [_extractJsonArray] but for a JSON object `{...}`.
+  String? _extractJsonObject(String text) {
+    final stripped = text
+        .replaceAll(RegExp(r'```[a-zA-Z]*'), '')
+        .replaceAll('`', '')
+        .trim();
+    final start = stripped.indexOf('{');
+    final end = stripped.lastIndexOf('}');
+    if (start == -1 || end == -1 || end <= start) return null;
+    return stripped.substring(start, end + 1);
   }
 }

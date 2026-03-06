@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -7,6 +8,7 @@ import '../models/app_settings_model.dart';
 /// The box stores individual key-value pairs — no type adapter required.
 class SettingsController extends StateNotifier<AppSettings> {
   late Box _box;
+  final Completer<void> _initCompleter = Completer<void>();
 
   SettingsController() : super(AppSettings.defaults()) {
     _init();
@@ -17,7 +19,11 @@ class SettingsController extends StateNotifier<AppSettings> {
     if (_box.isNotEmpty) {
       state = AppSettings.fromMap(_box.toMap());
     }
+    _initCompleter.complete();
   }
+
+  /// Resolves when the box has been loaded and state is ready.
+  Future<void> ensureInitialized() => _initCompleter.future;
 
   // ── Profile ──────────────────────────────────────────────────────
 

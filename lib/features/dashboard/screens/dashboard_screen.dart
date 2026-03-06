@@ -6,11 +6,13 @@ import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../planner/controllers/task_controller.dart';
 import '../../notes/controllers/note_controller.dart';
+import '../../notes/screens/note_editor_screen.dart';
 import '../../calendar/controllers/calendar_controller.dart';
 import '../../memory/controllers/memory_controller.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
-  const DashboardScreen({super.key});
+  final void Function(int tabIndex) onNavigateTo;
+  const DashboardScreen({super.key, required this.onNavigateTo});
   @override
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
@@ -233,7 +235,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     title: "Today's Tasks",
                     trailing: todayTasks.isEmpty
                         ? null
-                        : '${(completedCount / todayTasks.length * 100).toInt()}%',
+                        : '${(completedCount / todayTasks.length * 100).toInt()}% · See all',
+                    onTrailingTap: () => widget.onNavigateTo(1),
                   ),
                 ),
               ),
@@ -261,109 +264,117 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       index: i + 2,
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 8),
-                        child: GlassCard(
-                          padding: EdgeInsets.zero,
-                          child: IntrinsicHeight(
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 4,
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: _priorityGradient(task.priority),
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                    ),
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(20),
-                                      bottomLeft: Radius.circular(20),
+                        child: GestureDetector(
+                          onTap: () => widget.onNavigateTo(1),
+                          child: GlassCard(
+                            padding: EdgeInsets.zero,
+                            child: IntrinsicHeight(
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 4,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: _priorityGradient(
+                                          task.priority,
+                                        ),
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                      ),
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(20),
+                                        bottomLeft: Radius.circular(20),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 12,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                task.title,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 14,
-                                                  decoration: task.isCompleted
-                                                      ? TextDecoration
-                                                            .lineThrough
-                                                      : null,
-                                                  color: task.isCompleted
-                                                      ? (isDark
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 12,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  task.title,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 14,
+                                                    decoration: task.isCompleted
+                                                        ? TextDecoration
+                                                              .lineThrough
+                                                        : null,
+                                                    color: task.isCompleted
+                                                        ? (isDark
+                                                              ? Colors.white38
+                                                              : Colors.black38)
+                                                        : null,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 3),
+                                                Text(
+                                                  DateFormat(
+                                                    'h:mm a',
+                                                  ).format(task.startTime),
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: isDark
+                                                        ? Colors.white54
+                                                        : const Color(
+                                                            0xFF7C7C8A,
+                                                          ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          GestureDetector(
+                                            onTap: () => ref
+                                                .read(
+                                                  taskControllerProvider
+                                                      .notifier,
+                                                )
+                                                .toggleComplete(task.id),
+                                            child: AnimatedContainer(
+                                              duration: const Duration(
+                                                milliseconds: 250,
+                                              ),
+                                              width: 26,
+                                              height: 26,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                gradient: task.isCompleted
+                                                    ? kGradientTeal
+                                                    : null,
+                                                border: task.isCompleted
+                                                    ? null
+                                                    : Border.all(
+                                                        color: isDark
                                                             ? Colors.white38
-                                                            : Colors.black38)
-                                                      : null,
-                                                ),
+                                                            : Colors.black26,
+                                                        width: 1.5,
+                                                      ),
                                               ),
-                                              const SizedBox(height: 3),
-                                              Text(
-                                                DateFormat(
-                                                  'h:mm a',
-                                                ).format(task.startTime),
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: isDark
-                                                      ? Colors.white54
-                                                      : const Color(0xFF7C7C8A),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () => ref
-                                              .read(
-                                                taskControllerProvider.notifier,
-                                              )
-                                              .toggleComplete(task.id),
-                                          child: AnimatedContainer(
-                                            duration: const Duration(
-                                              milliseconds: 250,
-                                            ),
-                                            width: 26,
-                                            height: 26,
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              gradient: task.isCompleted
-                                                  ? kGradientTeal
+                                              child: task.isCompleted
+                                                  ? const Icon(
+                                                      Icons.check_rounded,
+                                                      size: 14,
+                                                      color: Colors.white,
+                                                    )
                                                   : null,
-                                              border: task.isCompleted
-                                                  ? null
-                                                  : Border.all(
-                                                      color: isDark
-                                                          ? Colors.white38
-                                                          : Colors.black26,
-                                                      width: 1.5,
-                                                    ),
                                             ),
-                                            child: task.isCompleted
-                                                ? const Icon(
-                                                    Icons.check_rounded,
-                                                    size: 14,
-                                                    color: Colors.white,
-                                                  )
-                                                : null,
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -379,7 +390,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               sliver: SliverToBoxAdapter(
                 child: Stagger(
                   index: 4,
-                  child: const BodySectionHeader(title: 'Recent Notes'),
+                  child: BodySectionHeader(
+                    title: 'Recent Notes',
+                    trailing: notes.isEmpty ? null : 'See all',
+                    onTrailingTap: notes.isEmpty
+                        ? null
+                        : () => widget.onNavigateTo(2),
+                  ),
                 ),
               ),
             ),
@@ -408,54 +425,62 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       itemCount: notes.length > 5 ? 5 : notes.length,
                       itemBuilder: (ctx, i) {
                         final note = notes[i];
-                        return Container(
-                          width: 200,
-                          margin: const EdgeInsets.only(right: 12),
-                          child: GlassCard(
-                            padding: const EdgeInsets.all(14),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    if (note.isPinned)
-                                      const Padding(
-                                        padding: EdgeInsets.only(right: 4),
-                                        child: Icon(
-                                          Icons.push_pin_rounded,
-                                          size: 13,
-                                          color: kCoral,
+                        return GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => NoteEditorScreen(note: note),
+                            ),
+                          ),
+                          child: Container(
+                            width: 200,
+                            margin: const EdgeInsets.only(right: 12),
+                            child: GlassCard(
+                              padding: const EdgeInsets.all(14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      if (note.isPinned)
+                                        const Padding(
+                                          padding: EdgeInsets.only(right: 4),
+                                          child: Icon(
+                                            Icons.push_pin_rounded,
+                                            size: 13,
+                                            color: kCoral,
+                                          ),
+                                        ),
+                                      Expanded(
+                                        child: Text(
+                                          note.title,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 13,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                    Expanded(
-                                      child: Text(
-                                        note.title,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 13,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Expanded(
-                                  child: Text(
-                                    note.summary ?? note.content,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: isDark
-                                          ? Colors.white60
-                                          : const Color(0xFF7C7C8A),
-                                      height: 1.4,
-                                    ),
-                                    maxLines: 4,
-                                    overflow: TextOverflow.ellipsis,
+                                    ],
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 6),
+                                  Expanded(
+                                    child: Text(
+                                      note.summary ?? note.content,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark
+                                            ? Colors.white60
+                                            : const Color(0xFF7C7C8A),
+                                        height: 1.4,
+                                      ),
+                                      maxLines: 4,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         );

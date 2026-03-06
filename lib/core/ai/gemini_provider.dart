@@ -9,7 +9,7 @@ class GeminiProvider implements AIProvider {
   @override
   final String modelName;
 
-  GeminiProvider({String? apiKey, this.modelName = 'gemini-2.0-flash'}) {
+  GeminiProvider({String? apiKey, this.modelName = 'gemini-2.5-flash'}) {
     _model = GenerativeModel(
       model: modelName,
       apiKey: apiKey ?? appConfig.geminiApiKey,

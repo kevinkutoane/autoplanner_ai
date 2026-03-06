@@ -4,6 +4,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import '../../../core/models/task_model.dart';
+import '../../../core/models/note_model.dart';
+import '../../../core/models/memory_entry_model.dart';
 import '../../../core/providers/providers.dart';
 import '../controllers/settings_controller.dart';
 import '../models/app_settings_model.dart';
@@ -104,10 +107,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   Future<void> _loadStats() async {
-    final tasks = await _countBox('tasksBox');
-    final completed = await _countCompleted('tasksBox');
-    final notes = await _countBox('notesBox');
-    final memories = await _countBox('memoryBox');
+    final tasks = Hive.box<TaskItem>('tasksBox').length;
+    final completed = Hive.box<TaskItem>(
+      'tasksBox',
+    ).values.where((t) => t.isCompleted).length;
+    final notes = Hive.box<NoteItem>('notesBox').length;
+    final memories = Hive.box<MemoryEntry>('memoryBox').length;
     if (mounted) {
       setState(() {
         _stats = _ProfileStats(
@@ -119,21 +124,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       });
       _countCtrl.forward(from: 0);
     }
-  }
-
-  Future<int> _countBox(String name) async {
-    final box = await Hive.openBox<dynamic>(name);
-    return box.length;
-  }
-
-  Future<int> _countCompleted(String name) async {
-    final box = await Hive.openBox<dynamic>(name);
-    int count = 0;
-    for (final v in box.values) {
-      final map = v is Map ? v : null;
-      if (map != null && map['isCompleted'] == true) count++;
-    }
-    return count;
   }
 
   Widget _stagger(int index, Widget child) {

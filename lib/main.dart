@@ -11,6 +11,7 @@ import 'core/models/calendar_event_model.dart';
 import 'core/models/memory_entry_model.dart';
 import 'core/ai/token_tracker.dart';
 import 'core/theme/app_theme.dart';
+import 'services/memory_service.dart';
 import 'features/onboarding/screens/splash_screen.dart';
 
 void main() async {
@@ -28,7 +29,27 @@ void main() async {
   Hive.registerAdapter(MemoryEntryAdapter());
   Hive.registerAdapter(AILogEntryAdapter());
 
-  runApp(const ProviderScope(child: AutoPlannerApp()));
+  // ── Services (must be initialized after Hive is ready) ───
+  final tokenTracker = TokenTracker();
+  await tokenTracker.init();
+
+  final memoryService = MemoryService();
+  await memoryService.init();
+
+  // Pre-open data boxes so they're available synchronously via Hive.box()
+  await Hive.openBox<TaskItem>('tasksBox');
+  await Hive.openBox<NoteItem>('notesBox');
+  await Hive.openBox<CalendarEvent>('calendarBox');
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        tokenTrackerProvider.overrideWithValue(tokenTracker),
+        memoryServiceProvider.overrideWithValue(memoryService),
+      ],
+      child: const AutoPlannerApp(),
+    ),
+  );
 }
 
 class AutoPlannerApp extends ConsumerWidget {

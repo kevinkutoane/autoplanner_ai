@@ -764,7 +764,13 @@ class GlassField extends StatelessWidget {
 class BodySectionHeader extends StatelessWidget {
   final String title;
   final String? trailing;
-  const BodySectionHeader({super.key, required this.title, this.trailing});
+  final VoidCallback? onTrailingTap;
+  const BodySectionHeader({
+    super.key,
+    required this.title,
+    this.trailing,
+    this.onTrailingTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -784,18 +790,24 @@ class BodySectionHeader extends StatelessWidget {
           ),
           const Spacer(),
           if (trailing != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: kCyan.withAlpha(30),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                trailing!,
-                style: const TextStyle(
-                  color: kCyan,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
+            GestureDetector(
+              onTap: onTrailingTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: kCyan.withAlpha(30),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  trailing!,
+                  style: const TextStyle(
+                    color: kCyan,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),

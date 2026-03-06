@@ -6,20 +6,20 @@ import '../../../core/models/note_model.dart';
 import '../../../core/models/memory_entry_model.dart';
 import '../../../core/providers/providers.dart';
 import '../../../services/ai_service.dart';
-import '../../../services/memory_service.dart';
+import '../../memory/controllers/memory_controller.dart';
 
 const _uuid = Uuid();
 
 class NoteController extends StateNotifier<List<NoteItem>> {
   Box<NoteItem>? _box;
   final AIService _aiService;
-  final MemoryService _memoryService;
+  final MemoryController _memoryCtrl;
 
   NoteController({
     required AIService aiService,
-    required MemoryService memoryService,
+    required MemoryController memoryCtrl,
   }) : _aiService = aiService,
-       _memoryService = memoryService,
+       _memoryCtrl = memoryCtrl,
        super([]) {
     _init();
   }
@@ -48,7 +48,10 @@ class NoteController extends StateNotifier<List<NoteItem>> {
     if (_box == null) return;
     await _box!.put(note.id, note);
     _refreshState();
-    _processNoteWithAI(note);
+    // Only run background AI if the editor didn't already produce a summary
+    if (note.summary == null || note.summary!.isEmpty) {
+      _processNoteWithAI(note);
+    }
   }
 
   Future<void> updateNote(NoteItem note) async {
@@ -95,7 +98,7 @@ class NoteController extends StateNotifier<List<NoteItem>> {
         'note',
       );
       if (memoryContent != null) {
-        await _memoryService.addMemory(
+        _memoryCtrl.addMemory(
           MemoryEntry(
             id: _uuid.v4(),
             content: memoryContent,
@@ -126,6 +129,6 @@ final noteControllerProvider =
     StateNotifierProvider<NoteController, List<NoteItem>>((ref) {
       return NoteController(
         aiService: ref.watch(aiServiceProvider),
-        memoryService: ref.watch(memoryServiceProvider),
+        memoryCtrl: ref.watch(memoryControllerProvider.notifier),
       );
     });

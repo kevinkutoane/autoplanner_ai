@@ -28,6 +28,7 @@ class _MemoryScreenState extends ConsumerState<MemoryScreen> {
     'note': 'Notes',
     'calendar': 'Calendar',
     'insight': 'Insights',
+    'brain_dump': 'Brain Dump',
   };
 
   IconData _sourceIcon(String t) {
@@ -38,6 +39,8 @@ class _MemoryScreenState extends ConsumerState<MemoryScreen> {
         return Icons.sticky_note_2_rounded;
       case 'calendar':
         return Icons.calendar_month_rounded;
+      case 'brain_dump':
+        return Icons.bolt_rounded;
       default:
         return Icons.psychology_rounded;
     }
@@ -51,6 +54,8 @@ class _MemoryScreenState extends ConsumerState<MemoryScreen> {
         return kCoral;
       case 'calendar':
         return kCyan;
+      case 'brain_dump':
+        return const Color(0xFF9B59B6);
       default:
         return kAmber;
     }
@@ -397,9 +402,37 @@ class _MemoryTile extends ConsumerWidget {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => ref
-                              .read(memoryControllerProvider.notifier)
-                              .deleteMemory(memory.id),
+                          onTap: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Delete memory?'),
+                                content: const Text(
+                                  'This memory will be permanently removed.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text(
+                                      'Delete',
+                                      style: TextStyle(
+                                        color: Color(0xFFFF4444),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm == true) {
+                              ref
+                                  .read(memoryControllerProvider.notifier)
+                                  .deleteMemory(memory.id);
+                            }
+                          },
                           child: Icon(
                             Icons.delete_outline_rounded,
                             size: 16,

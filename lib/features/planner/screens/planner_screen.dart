@@ -12,7 +12,18 @@ class PlannerScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tasks = ref.watch(taskControllerProvider);
+    final allTasks = ref.watch(taskControllerProvider);
+    final now = DateTime.now();
+    final tasks =
+        allTasks
+            .where(
+              (t) =>
+                  t.startTime.year == now.year &&
+                  t.startTime.month == now.month &&
+                  t.startTime.day == now.day,
+            )
+            .toList()
+          ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -102,33 +113,35 @@ class PlannerScreen extends ConsumerWidget {
                       itemCount: tasks.length,
                       onReorder: (oldIndex, newIndex) {
                         if (oldIndex < newIndex) newIndex -= 1;
+                        // Just swap the two tasks' times with each other
                         final reordered = List<TaskItem>.from(tasks)
                           ..removeAt(oldIndex)
                           ..insert(newIndex, tasks[oldIndex]);
-                        // recalc start times from 06:00
-                        final base = DateTime(
-                          DateTime.now().year,
-                          DateTime.now().month,
-                          DateTime.now().day,
-                          6,
-                          0,
-                        );
-                        var runningTime = base;
-                        final ctrl = ref.read(taskControllerProvider.notifier);
-                        ctrl.clearAll();
+                        // Swap only the start/end times of affected items
+                        // keeping original durations and relative offsets
+                        final updated = <TaskItem>[];
                         for (var i = 0; i < reordered.length; i++) {
                           final t = reordered[i];
                           final dur = t.endTime != null
                               ? t.endTime!.difference(t.startTime)
                               : const Duration(hours: 1);
-                          final updated = t.copyWith(
-                            startTime: runningTime,
-                            endTime: runningTime.add(dur),
+                          // Find the slot time from the original position
+                          final slotTime = i < tasks.length
+                              ? tasks[i].startTime
+                              : tasks.last.endTime ??
+                                    tasks.last.startTime.add(
+                                      const Duration(hours: 1),
+                                    );
+                          updated.add(
+                            t.copyWith(
+                              startTime: slotTime,
+                              endTime: slotTime.add(dur),
+                            ),
                           );
-                          reordered[i] = updated;
-                          ctrl.addTask(updated);
-                          runningTime = updated.endTime!;
                         }
+                        ref
+                            .read(taskControllerProvider.notifier)
+                            .reorderTasks(updated);
                       },
                       itemBuilder: (ctx, i) {
                         final task = tasks[i];
@@ -348,9 +361,33 @@ class _TaskRow extends ConsumerWidget {
                   ),
                   // delete
                   GestureDetector(
-                    onTap: () => ref
-                        .read(taskControllerProvider.notifier)
-                        .removeTask(task.id),
+                    onTap: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Delete task?'),
+                          content: Text('"${task.title}"'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text(
+                                'Delete',
+                                style: TextStyle(color: kCoral),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed == true) {
+                        ref
+                            .read(taskControllerProvider.notifier)
+                            .removeTask(task.id);
+                      }
+                    },
                     child: Padding(
                       padding: const EdgeInsets.all(10),
                       child: Icon(

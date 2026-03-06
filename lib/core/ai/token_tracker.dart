@@ -76,13 +76,11 @@ class TokenTracker {
     await _box?.put(entry.id, entry);
 
     if (appConfig.enableAILogging && kDebugMode) {
-      if (kDebugMode) {
-        print(
+      debugPrint(
         '🔢 Token usage: ${response.totalTokens} '
         '(${response.promptTokens}→${response.completionTokens}) '
         '| ${response.latencyMs}ms | ${response.model} | $action',
       );
-      }
     }
   }
 
