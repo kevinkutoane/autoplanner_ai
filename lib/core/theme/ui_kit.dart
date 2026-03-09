@@ -79,10 +79,12 @@ class _OrbBackgroundState extends State<OrbBackground>
             ),
           ),
         ),
-        AnimatedBuilder(
-          animation: _ctrl,
-          builder: (_, __) => CustomPaint(
-            painter: _OrbPainter(_ctrl.value, isDark, widget.subtle),
+        RepaintBoundary(
+          child: AnimatedBuilder(
+            animation: _ctrl,
+            builder: (_, __) => CustomPaint(
+              painter: _OrbPainter(_ctrl.value, isDark, widget.subtle),
+            ),
           ),
         ),
         widget.child,

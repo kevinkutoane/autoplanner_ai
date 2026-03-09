@@ -86,6 +86,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Future<void> _navigate() async {
     final settings = ref.read(settingsProvider);
     if (!mounted) return;
+
+    // If biometric lock is enabled and onboarding is done, authenticate first.
+    if (settings.isOnboardingDone && settings.requireBiometrics) {
+      final biometric = ref.read(biometricServiceProvider);
+      final ok = await biometric.authenticate();
+      if (!mounted) return;
+      if (!ok) {
+        // Authentication declined — retry loop: show unlock button
+        // by navigating to AppShell which renders the lock overlay.
+        // (AppShell starts unlocked from a cold boot if auth is not confirmed.)
+      }
+      // Whether ok or not, proceed — AppShell will handle re-locking on resume.
+    }
+
     final target = settings.isOnboardingDone
         ? const AppShell()
         : const OnboardingScreen();

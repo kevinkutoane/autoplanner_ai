@@ -21,11 +21,8 @@ class NoteController extends StateNotifier<List<NoteItem>> {
   }) : _aiService = aiService,
        _memoryCtrl = memoryCtrl,
        super([]) {
-    _init();
-  }
-
-  Future<void> _init() async {
-    _box = await Hive.openBox<NoteItem>('notesBox');
+    // Box is pre-opened in main() before runApp — grab it synchronously.
+    _box = Hive.box<NoteItem>('notesBox');
     state = _box!.values.toList()
       ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
   }
@@ -71,6 +68,25 @@ class NoteController extends StateNotifier<List<NoteItem>> {
     final note = state.firstWhere((n) => n.id == noteId);
     final updated = note.copyWith(isPinned: !note.isPinned);
     await updateNote(updated);
+  }
+
+  /// Links a task ID to this note (bidirectional — caller should also link note
+  /// from task side via TaskController.linkNote).
+  Future<void> linkTask(String noteId, String taskId) async {
+    final note = state.firstWhere((n) => n.id == noteId);
+    if (note.linkedTaskIds.contains(taskId)) return;
+    await updateNote(
+      note.copyWith(linkedTaskIds: [...note.linkedTaskIds, taskId]),
+    );
+  }
+
+  Future<void> unlinkTask(String noteId, String taskId) async {
+    final note = state.firstWhere((n) => n.id == noteId);
+    await updateNote(
+      note.copyWith(
+        linkedTaskIds: note.linkedTaskIds.where((id) => id != taskId).toList(),
+      ),
+    );
   }
 
   Future<void> _processNoteWithAI(NoteItem note) async {

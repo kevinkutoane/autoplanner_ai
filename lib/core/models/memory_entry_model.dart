@@ -25,6 +25,10 @@ class MemoryEntry extends HiveObject {
   @HiveField(6)
   double relevanceScore;
 
+  /// How many times this memory has been retrieved for AI context injection.
+  @HiveField(7)
+  int accessCount;
+
   MemoryEntry({
     required this.id,
     required this.content,
@@ -33,6 +37,7 @@ class MemoryEntry extends HiveObject {
     this.tags = const [],
     required this.createdAt,
     this.relevanceScore = 0.5,
+    this.accessCount = 0,
   });
 
   MemoryEntry copyWith({
@@ -43,6 +48,7 @@ class MemoryEntry extends HiveObject {
     List<String>? tags,
     DateTime? createdAt,
     double? relevanceScore,
+    int? accessCount,
   }) {
     return MemoryEntry(
       id: id ?? this.id,
@@ -52,6 +58,7 @@ class MemoryEntry extends HiveObject {
       tags: tags ?? this.tags,
       createdAt: createdAt ?? this.createdAt,
       relevanceScore: relevanceScore ?? this.relevanceScore,
+      accessCount: accessCount ?? this.accessCount,
     );
   }
 }

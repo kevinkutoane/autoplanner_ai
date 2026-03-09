@@ -11,7 +11,6 @@ class EnvConfig {
   final bool enableAILogging;
   final bool enableTokenTracking;
   final int maxTokensPerDay;
-  final String firestoreProjectId;
   final bool useMockAI;
 
   const EnvConfig._({
@@ -21,7 +20,7 @@ class EnvConfig {
     required this.enableAILogging,
     required this.enableTokenTracking,
     required this.maxTokensPerDay,
-    required this.firestoreProjectId,
+
     required this.useMockAI,
   });
 
@@ -56,10 +55,6 @@ class EnvConfig {
       maxTokensPerDay:
           int.tryParse(dotenv.get('MAX_TOKENS_PER_DAY', fallback: '100000')) ??
           100000,
-      firestoreProjectId: dotenv.get(
-        'FIRESTORE_PROJECT_ID',
-        fallback: 'autoplanner-ai-dev',
-      ),
       useMockAI: dotenv.get('USE_MOCK_AI', fallback: 'false') == 'true',
     );
   }

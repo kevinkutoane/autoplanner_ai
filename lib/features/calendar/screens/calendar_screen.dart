@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/ui_kit.dart';
 import '../../calendar/controllers/calendar_controller.dart';
 import '../../../core/models/calendar_event_model.dart';
+import '../../../core/providers/providers.dart';
+import '../widgets/timeline_view.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -15,6 +17,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
     with TickerProviderStateMixin {
   DateTime _selectedDate = DateTime.now();
   DateTime _focusedMonth = DateTime.now();
+  bool _showTimeline = false;
+  bool _syncing = false;
   late final AnimationController _monthAC;
   late final Animation<double> _monthFade;
 
@@ -50,6 +54,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
   @override
   Widget build(BuildContext context) {
     final events = ref.watch(calendarControllerProvider);
+    final calCtrl = ref.read(calendarControllerProvider.notifier);
+    final syncConflicts = calCtrl.syncConflicts;
 
     final dayEvents =
         events.where((e) => _isSameDay(e.startTime, _selectedDate)).toList()
@@ -109,6 +115,41 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                             });
                           },
                         ),
+                        const SizedBox(width: 4),
+                        // Timeline / grid toggle
+                        _IconBtn(
+                          icon: _showTimeline
+                              ? Icons.calendar_view_month_rounded
+                              : Icons.view_timeline_rounded,
+                          onTap: () =>
+                              setState(() => _showTimeline = !_showTimeline),
+                        ),
+                        const SizedBox(width: 4),
+                        // Sync button with conflict badge
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            _IconBtn(
+                              icon: _syncing
+                                  ? Icons.sync_rounded
+                                  : Icons.cloud_sync_outlined,
+                              onTap: _syncing ? null : () => _triggerSync(),
+                            ),
+                            if (syncConflicts.isNotEmpty)
+                              Positioned(
+                                top: -2,
+                                right: -2,
+                                child: Container(
+                                  width: 9,
+                                  height: 9,
+                                  decoration: const BoxDecoration(
+                                    color: kCoral,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                     const SizedBox(height: 14),
@@ -137,8 +178,25 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
               ),
             ),
 
-            // Events
-            if (dayEvents.isEmpty)
+            // Events — timeline or list
+            if (_showTimeline)
+              SliverFillRemaining(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                  child: TimelineView(
+                    selectedDate: _selectedDate,
+                    events: dayEvents,
+                    onEventTap: (ev) {
+                      if (ev.syncStatus == 'conflict') {
+                        _showConflictDialog(context, ref, ev);
+                      } else {
+                        _showEditDialog(context, ref, ev);
+                      }
+                    },
+                  ),
+                ),
+              )
+            else if (dayEvents.isEmpty)
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverToBoxAdapter(
@@ -151,7 +209,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                   ),
                 ),
               )
-            else
+            else if (!_showTimeline)
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
                 sliver: SliverList(
@@ -163,7 +221,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                         padding: const EdgeInsets.only(bottom: 10),
                         child: _EventTile(
                           event: ev,
-                          onEdit: () => _showEditDialog(context, ref, ev),
+                          onEdit: () => ev.syncStatus == 'conflict'
+                              ? _showConflictDialog(context, ref, ev)
+                              : _showEditDialog(context, ref, ev),
                           onDelete: () async {
                             final confirm = await showDialog<bool>(
                               context: context,
@@ -246,6 +306,90 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
             ref.read(calendarControllerProvider.notifier).updateEvent(ev),
       ),
     );
+  }
+
+  void _showConflictDialog(
+    BuildContext context,
+    WidgetRef ref,
+    CalendarEvent event,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1C1C3A) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: kCoral, size: 22),
+              const SizedBox(width: 8),
+              const Text(
+                'Sync Conflict',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          content: Text(
+            '"${event.title}" was modified both locally and in Google Calendar.\n\nWhich version do you want to keep?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                ref
+                    .read(calendarControllerProvider.notifier)
+                    .resolveConflictKeepRemote(event);
+              },
+              child: const Text('Keep Remote', style: TextStyle(color: kCyan)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kCoral,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () async {
+                Navigator.pop(ctx);
+                await ref
+                    .read(calendarControllerProvider.notifier)
+                    .resolveConflictKeepLocal(event);
+              },
+              child: const Text('Keep Local'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _triggerSync() async {
+    final settings = ref.read(settingsProvider);
+    if (!settings.isGoogleCalendarConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Connect Google Calendar in Settings first.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _syncing = true);
+    final syncSvc = ref.read(calendarSyncServiceProvider);
+    final result = await syncSvc.incrementalSync();
+    if (!mounted) return;
+    setState(() => _syncing = false);
+    final msg = result.hasError
+        ? 'Sync failed: ${result.error}'
+        : 'Synced — ↓${result.pulled} pulled, ↑${result.pushed} pushed';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ref.invalidate(calendarControllerProvider);
   }
 }
 
@@ -390,6 +534,7 @@ class _EventTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isConflict = event.syncStatus == 'conflict';
     return GestureDetector(
       onTap: onEdit,
       child: GlassCard(
@@ -400,7 +545,8 @@ class _EventTile extends StatelessWidget {
               Container(
                 width: 4,
                 decoration: BoxDecoration(
-                  gradient: kGradientTeal,
+                  gradient: isConflict ? null : kGradientTeal,
+                  color: isConflict ? kCoral : null,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(20),
                     bottomLeft: Radius.circular(20),
@@ -416,12 +562,26 @@ class _EventTile extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              event.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
+                            Row(
+                              children: [
+                                if (isConflict) ...[
+                                  const Icon(
+                                    Icons.warning_amber_rounded,
+                                    size: 14,
+                                    color: kCoral,
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                                Expanded(
+                                  child: Text(
+                                    event.title,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 3),
                             Row(
@@ -730,7 +890,7 @@ class _TimeBox extends StatelessWidget {
 // ── Icon button ───────────────────────────────────────────────────────────────
 class _IconBtn extends StatelessWidget {
   final IconData icon;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   const _IconBtn({required this.icon, required this.onTap});
   @override
   Widget build(BuildContext _) => GestureDetector(

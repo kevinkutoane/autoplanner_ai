@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/app_settings_model.dart';
+import '../../../services/secure_key_service.dart';
 
 /// Manages all user-adjustable settings with Hive persistence.
 /// The box stores individual key-value pairs — no type adapter required.
@@ -18,6 +19,11 @@ class SettingsController extends StateNotifier<AppSettings> {
     _box = await Hive.openBox<dynamic>(AppSettings.boxName);
     if (_box.isNotEmpty) {
       state = AppSettings.fromMap(_box.toMap());
+    }
+    // Load the user's Gemini API key from secure storage.
+    final savedKey = await SecureKeyService.getGeminiApiKey();
+    if (savedKey != null && savedKey.isNotEmpty) {
+      state = state.copyWith(geminiApiKey: savedKey);
     }
     _initCompleter.complete();
   }
@@ -93,6 +99,21 @@ class SettingsController extends StateNotifier<AppSettings> {
     state = state.copyWith(maxTokensPerDay: v);
   }
 
+  Future<void> updateRequireBiometrics(bool v) async {
+    await _box.put(AppSettings.kRequireBiometrics, v);
+    state = state.copyWith(requireBiometrics: v);
+  }
+
+  Future<void> updateGeminiApiKey(String key) async {
+    if (key.trim().isEmpty) {
+      await SecureKeyService.deleteGeminiApiKey();
+      state = state.copyWith(geminiApiKey: '');
+    } else {
+      await SecureKeyService.saveGeminiApiKey(key.trim());
+      state = state.copyWith(geminiApiKey: key.trim());
+    }
+  }
+
   // ── Bulk profile update (edit dialog) ────────────────────────────
 
   Future<void> saveProfile({
@@ -120,6 +141,25 @@ class SettingsController extends StateNotifier<AppSettings> {
   Future<void> completeOnboarding() async {
     await _box.put(AppSettings.kOnboardingSeen, true);
     state = state.copyWith(isOnboardingDone: true);
+  }
+
+  // ── Calendar integrations ────────────────────────────────────────
+
+  Future<void> updateGoogleCalendarConnection({
+    required bool connected,
+    String email = '',
+  }) async {
+    await _box.put(AppSettings.kIsGoogleCalendarConnected, connected);
+    await _box.put(AppSettings.kGoogleAccountEmail, email);
+    state = state.copyWith(
+      isGoogleCalendarConnected: connected,
+      googleAccountEmail: connected ? email : '',
+    );
+  }
+
+  Future<void> updateOutlookConnection(bool connected) async {
+    await _box.put(AppSettings.kIsOutlookConnected, connected);
+    state = state.copyWith(isOutlookConnected: connected);
   }
 
   // ── Reset ────────────────────────────────────────────────────────

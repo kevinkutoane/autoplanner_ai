@@ -2,6 +2,10 @@
 
 part of 'note_model.dart';
 
+// **************************************************************************
+// TypeAdapterGenerator
+// **************************************************************************
+
 class NoteItemAdapter extends TypeAdapter<NoteItem> {
   @override
   final int typeId = 1;
@@ -17,11 +21,11 @@ class NoteItemAdapter extends TypeAdapter<NoteItem> {
       title: fields[1] as String,
       content: fields[2] as String,
       summary: fields[3] as String?,
-      tags: (fields[4] as List?)?.cast<String>() ?? [],
+      tags: (fields[4] as List).cast<String>(),
       createdAt: fields[5] as DateTime,
       updatedAt: fields[6] as DateTime,
-      linkedTaskIds: (fields[7] as List?)?.cast<String>() ?? [],
-      isPinned: fields[8] as bool? ?? false,
+      linkedTaskIds: (fields[7] as List).cast<String>(),
+      isPinned: fields[8] as bool,
     );
   }
 

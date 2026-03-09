@@ -2,6 +2,10 @@
 
 part of 'memory_entry_model.dart';
 
+// **************************************************************************
+// TypeAdapterGenerator
+// **************************************************************************
+
 class MemoryEntryAdapter extends TypeAdapter<MemoryEntry> {
   @override
   final int typeId = 3;
@@ -17,16 +21,17 @@ class MemoryEntryAdapter extends TypeAdapter<MemoryEntry> {
       content: fields[1] as String,
       sourceType: fields[2] as String,
       sourceId: fields[3] as String?,
-      tags: (fields[4] as List?)?.cast<String>() ?? [],
+      tags: (fields[4] as List).cast<String>(),
       createdAt: fields[5] as DateTime,
-      relevanceScore: (fields[6] as double?) ?? 0.5,
+      relevanceScore: fields[6] as double,
+      accessCount: fields[7] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, MemoryEntry obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -40,7 +45,9 @@ class MemoryEntryAdapter extends TypeAdapter<MemoryEntry> {
       ..writeByte(5)
       ..write(obj.createdAt)
       ..writeByte(6)
-      ..write(obj.relevanceScore);
+      ..write(obj.relevanceScore)
+      ..writeByte(7)
+      ..write(obj.accessCount);
   }
 
   @override

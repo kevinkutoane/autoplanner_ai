@@ -50,8 +50,11 @@ class AILogEntry extends HiveObject {
 class TokenTracker {
   Box<AILogEntry>? _box;
 
-  Future<void> init() async {
-    _box = await Hive.openBox<AILogEntry>('aiLogsBox');
+  Future<void> init({HiveAesCipher? cipher}) async {
+    _box = await Hive.openBox<AILogEntry>(
+      'aiLogsBox',
+      encryptionCipher: cipher,
+    );
   }
 
   /// Log an AI response

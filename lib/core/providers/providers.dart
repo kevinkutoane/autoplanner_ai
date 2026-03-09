@@ -8,6 +8,13 @@ import '../ai/mock_ai_provider.dart';
 import '../ai/token_tracker.dart';
 import '../../services/ai_service.dart';
 import '../../services/memory_service.dart';
+import '../../services/scheduler_service.dart';
+import '../../services/biometric_service.dart';
+import '../../services/notification_service.dart';
+import '../../services/google_auth_service.dart';
+import '../../services/calendar_sync_service.dart';
+import '../../services/conflict_detector.dart';
+import '../../services/outlook_auth_service.dart';
 import '../../features/settings/models/app_settings_model.dart';
 import '../../features/settings/controllers/settings_controller.dart';
 
@@ -21,9 +28,11 @@ final settingsProvider = StateNotifierProvider<SettingsController, AppSettings>(
 // ── AI Layer ──────────────────────────────────────────────────────────
 
 final aiProviderProvider = Provider<AIProvider>((ref) {
-  final useMock = ref.watch(settingsProvider.select((s) => s.useMockAI));
-  if (useMock) return MockAIProvider();
-  return GeminiProvider();
+  final settings = ref.watch(settingsProvider);
+  if (settings.useMockAI) return MockAIProvider();
+  // Prefer the user-supplied key from secure storage; fall back to .env.
+  final key = settings.geminiApiKey.isNotEmpty ? settings.geminiApiKey : null;
+  return GeminiProvider(apiKey: key);
 });
 
 /// Overridden in main() with an already-initialized TokenTracker instance.
@@ -40,3 +49,37 @@ final aiServiceProvider = Provider<AIService>((ref) {
 
 /// Overridden in main() with an already-initialized MemoryService instance.
 final memoryServiceProvider = Provider<MemoryService>((_) => MemoryService());
+
+final schedulerServiceProvider = Provider<SchedulerService>(
+  (_) => SchedulerService(),
+);
+
+final biometricServiceProvider = Provider<BiometricService>(
+  (_) => BiometricService(),
+);
+
+/// Overridden in main() with the initialized NotificationService instance.
+final notificationServiceProvider = Provider<NotificationService>(
+  (_) => NotificationService(),
+);
+
+// ── Calendar integrations ─────────────────────────────────────────
+
+/// Overridden in main() with the initialized GoogleAuthService instance.
+final googleAuthServiceProvider = Provider<GoogleAuthService>(
+  (_) => GoogleAuthService(),
+);
+
+/// Overridden in main() with the initialized CalendarSyncService instance.
+final calendarSyncServiceProvider = Provider<CalendarSyncService>(
+  (_) => CalendarSyncService(googleAuth: GoogleAuthService()),
+);
+
+final conflictDetectorProvider = Provider<ConflictDetector>(
+  (_) => ConflictDetector(),
+);
+
+/// Overridden in main() with the initialized OutlookAuthService instance.
+final outlookAuthServiceProvider = Provider<OutlookAuthService>(
+  (_) => OutlookAuthService(),
+);

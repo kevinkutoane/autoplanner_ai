@@ -5,8 +5,11 @@ import '../core/models/memory_entry_model.dart';
 class MemoryService {
   Box<MemoryEntry>? _box;
 
-  Future<void> init() async {
-    _box = await Hive.openBox<MemoryEntry>('memoryBox');
+  Future<void> init({HiveAesCipher? cipher}) async {
+    _box = await Hive.openBox<MemoryEntry>(
+      'memoryBox',
+      encryptionCipher: cipher,
+    );
   }
 
   List<MemoryEntry> get allMemories {

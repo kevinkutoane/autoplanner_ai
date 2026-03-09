@@ -15,11 +15,14 @@ class MockAIProvider implements AIProvider {
     final lower = prompt.toLowerCase();
 
     String text;
-    if (lower.contains('task') || lower.contains('plan')) {
+    if (lower.contains('task') ||
+        lower.contains('plan') ||
+        lower.contains('schedule') ||
+        lower.contains('enrich')) {
       text = '''[
-  {"title": "Morning review", "startTime": "08:00", "priority": 1, "tags": ["work"]},
-  {"title": "Deep work block", "startTime": "09:00", "priority": 2, "tags": ["focus"]},
-  {"title": "Lunch break", "startTime": "12:00", "priority": 0, "tags": ["personal"]}
+  {"id": null, "title": "Morning review", "startTime": "08:00", "estimatedMinutes": 30, "priority": 1, "tags": ["work"]},
+  {"id": null, "title": "Deep work block", "startTime": "09:00", "estimatedMinutes": 120, "priority": 2, "tags": ["focus"]},
+  {"id": null, "title": "Lunch break", "startTime": "12:00", "estimatedMinutes": 60, "priority": 0, "tags": ["personal"]}
 ]''';
     } else if (lower.contains('summarize') || lower.contains('summary')) {
       text =
@@ -43,6 +46,19 @@ class MockAIProvider implements AIProvider {
       latencyMs: 300,
       model: modelName,
     );
+  }
+
+  /// Emit in small chunks with a tiny delay —
+  /// gives a realistic streaming feel during development.
+  @override
+  Stream<String> streamComplete(String prompt) async* {
+    final response = await complete(prompt);
+    const chunkSize = 4;
+    final text = response.text;
+    for (var i = 0; i < text.length; i += chunkSize) {
+      yield text.substring(i, (i + chunkSize).clamp(0, text.length));
+      await Future.delayed(const Duration(milliseconds: 20));
+    }
   }
 
   @override

@@ -2,16 +2,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import '../../../core/models/calendar_event_model.dart';
 import '../../../core/models/task_model.dart';
+import '../../../core/providers/providers.dart';
+import '../../../services/conflict_detector.dart';
+import '../../../services/calendar_sync_service.dart';
 
 class CalendarController extends StateNotifier<List<CalendarEvent>> {
   Box<CalendarEvent>? _box;
+  final ConflictDetector _conflictDetector;
+  final CalendarSyncService _syncService;
 
-  CalendarController() : super([]) {
-    _init();
-  }
-
-  Future<void> _init() async {
-    _box = await Hive.openBox<CalendarEvent>('calendarBox');
+  CalendarController({
+    required ConflictDetector conflictDetector,
+    required CalendarSyncService syncService,
+  }) : _conflictDetector = conflictDetector,
+       _syncService = syncService,
+       super([]) {
+    // Box is pre-opened in main() before runApp — grab it synchronously.
+    _box = Hive.box<CalendarEvent>('calendarBox');
     _refreshState();
   }
 
@@ -21,6 +28,35 @@ class CalendarController extends StateNotifier<List<CalendarEvent>> {
           event.startTime.month == day.month &&
           event.startTime.day == day.day;
     }).toList()..sort((a, b) => a.startTime.compareTo(b.startTime));
+  }
+
+  /// All overlapping-time conflict pairs across all events.
+  List<ConflictPair> get conflicts =>
+      _conflictDetector.detectTimeOverlaps(state);
+
+  /// All events that have a sync conflict with the remote provider.
+  List<CalendarEvent> get syncConflicts =>
+      _conflictDetector.detectSyncConflicts(state);
+
+  /// Resolve a sync conflict by accepting the local version and pushing it.
+  Future<void> resolveConflictKeepLocal(CalendarEvent event) async {
+    if (_box == null) return;
+    event
+      ..syncStatus = 'pending_push'
+      ..save();
+    _refreshState();
+    await _syncService.pushEvent(event);
+    _refreshState();
+  }
+
+  /// Resolve a sync conflict by discarding the local version (re-pull happens
+  /// on next sync).  Simply mark as synced so the UI badge clears.
+  void resolveConflictKeepRemote(CalendarEvent event) {
+    if (_box == null) return;
+    event
+      ..syncStatus = 'synced'
+      ..save();
+    _refreshState();
   }
 
   List<CalendarEvent> getUpcomingEvents({int days = 7}) {
@@ -49,7 +85,7 @@ class CalendarController extends StateNotifier<List<CalendarEvent>> {
     _refreshState();
   }
 
-  /// Sync tasks to calendar as events
+  /// Sync tasks to calendar as events (full rebuild — retained for batch imports).
   void syncTasksToCalendar(List<TaskItem> tasks) {
     if (_box == null) return;
 
@@ -64,21 +100,36 @@ class CalendarController extends StateNotifier<List<CalendarEvent>> {
 
     // Add current tasks as events
     for (final task in tasks) {
-      final event = CalendarEvent(
-        id: 'task_${task.id}',
-        title: task.title,
-        description: task.note,
-        startTime: task.startTime,
-        endTime: task.endTime ?? task.startTime.add(const Duration(hours: 1)),
-        source: 'local',
-        linkedTaskId: task.id,
-        colorValue: _priorityToColor(task.priority),
-      );
-      _box!.put(event.id, event);
+      _box!.put('task_${task.id}', _taskToEvent(task));
     }
 
     _refreshState();
   }
+
+  /// Insert or update a single task's calendar mirror — O(1) Hive writes.
+  void upsertTaskEvent(TaskItem task) {
+    if (_box == null) return;
+    _box!.put('task_${task.id}', _taskToEvent(task));
+    _refreshState();
+  }
+
+  /// Remove a single task's calendar mirror — O(1) Hive writes.
+  void removeTaskEvent(String taskId) {
+    if (_box == null) return;
+    _box!.delete('task_$taskId');
+    _refreshState();
+  }
+
+  CalendarEvent _taskToEvent(TaskItem task) => CalendarEvent(
+    id: 'task_${task.id}',
+    title: task.title,
+    description: task.note,
+    startTime: task.startTime,
+    endTime: task.endTime ?? task.startTime.add(const Duration(hours: 1)),
+    source: 'local',
+    linkedTaskId: task.id,
+    colorValue: _priorityToColor(task.priority),
+  );
 
   int _priorityToColor(int priority) {
     switch (priority) {
@@ -103,5 +154,8 @@ class CalendarController extends StateNotifier<List<CalendarEvent>> {
 
 final calendarControllerProvider =
     StateNotifierProvider<CalendarController, List<CalendarEvent>>(
-      (ref) => CalendarController(),
+      (ref) => CalendarController(
+        conflictDetector: ref.read(conflictDetectorProvider),
+        syncService: ref.read(calendarSyncServiceProvider),
+      ),
     );

@@ -72,7 +72,13 @@ class MemoryController extends StateNotifier<List<MemoryEntry>> {
 
   void _refreshState() {
     state = _box!.values.toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      ..sort((a, b) {
+        // Primary: highest relevance score first.
+        final scoreDiff = b.relevanceScore.compareTo(a.relevanceScore);
+        if (scoreDiff != 0) return scoreDiff;
+        // Secondary: most recent first as tiebreaker.
+        return b.createdAt.compareTo(a.createdAt);
+      });
   }
 }
 

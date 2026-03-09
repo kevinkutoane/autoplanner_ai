@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:uuid/uuid.dart';
 import '../../core/theme/ui_kit.dart';
 import '../../core/providers/providers.dart';
@@ -36,10 +37,14 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
     with TickerProviderStateMixin {
   final _ctrl = TextEditingController();
   final _focus = FocusNode();
+  final _speech = stt.SpeechToText();
 
   BrainDumpResult? _result;
   bool _processing = false;
   bool _saved = false;
+  String _streamPreview = '';
+  bool _listening = false;
+  bool _speechAvailable = false;
 
   late final AnimationController _pulseAC;
   late final Animation<double> _pulse;
@@ -77,6 +82,38 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
       parent: _successAC,
       curve: Curves.elasticOut,
     );
+    _initSpeech();
+  }
+
+  Future<void> _initSpeech() async {
+    final available = await _speech.initialize(
+      onError: (_) => setState(() => _listening = false),
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          if (mounted) setState(() => _listening = false);
+        }
+      },
+    );
+    if (mounted) setState(() => _speechAvailable = available);
+  }
+
+  Future<void> _toggleListen() async {
+    if (_listening) {
+      await _speech.stop();
+      setState(() => _listening = false);
+      return;
+    }
+    setState(() => _listening = true);
+    await _speech.listen(
+      onResult: (result) {
+        if (mounted) {
+          setState(() => _ctrl.text = result.recognizedWords);
+        }
+      },
+      listenFor: const Duration(seconds: 60),
+      pauseFor: const Duration(seconds: 4),
+      listenOptions: stt.SpeechListenOptions(partialResults: true),
+    );
   }
 
   @override
@@ -85,6 +122,7 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
     _focus.dispose();
     _pulseAC.dispose();
     _successAC.dispose();
+    _speech.stop();
     super.dispose();
   }
 
@@ -104,7 +142,12 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
     });
 
     final ai = ref.read(aiServiceProvider);
-    final result = await ai.brainDump(text);
+    final result = await ai.brainDump(
+      text,
+      onChunk: (accumulated) {
+        if (mounted) setState(() => _streamPreview = accumulated);
+      },
+    );
 
     if (mounted) {
       setState(() {
@@ -332,38 +375,99 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
   // ── Input area ────────────────────────────────────────────────────────────
 
   Widget _buildInputArea(bool isDark) {
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.white.withAlpha(20) : kIndigo.withAlpha(50),
-        ),
-      ),
-      child: TextField(
-        controller: _ctrl,
-        focusNode: _focus,
-        minLines: 5,
-        maxLines: 10,
-        autofocus: true,
-        style: TextStyle(
-          fontSize: 15,
-          height: 1.55,
-          color: isDark ? Colors.white.withAlpha(222) : Colors.black87,
-        ),
-        decoration: InputDecoration(
-          hintText:
-              'Type or paste anything on your mind...\n\nTasks, ideas, reminders, meeting notes — all at once.',
-          hintStyle: TextStyle(
-            color: isDark ? Colors.white30 : Colors.black26,
-            fontSize: 14,
-            height: 1.55,
+    return Column(
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: 16),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withAlpha(10)
+                : Colors.black.withAlpha(5),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _listening
+                  ? kCyan.withAlpha(180)
+                  : (isDark
+                        ? Colors.white.withAlpha(20)
+                        : kIndigo.withAlpha(50)),
+              width: _listening ? 1.5 : 1,
+            ),
           ),
-          contentPadding: const EdgeInsets.all(16),
-          border: InputBorder.none,
+          child: TextField(
+            controller: _ctrl,
+            focusNode: _focus,
+            minLines: 5,
+            maxLines: 10,
+            autofocus: true,
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.55,
+              color: isDark ? Colors.white.withAlpha(222) : Colors.black87,
+            ),
+            decoration: InputDecoration(
+              hintText:
+                  'Type or paste anything on your mind...\n\nTasks, ideas, reminders, meeting notes — all at once.',
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white30 : Colors.black26,
+                fontSize: 14,
+                height: 1.55,
+              ),
+              contentPadding: const EdgeInsets.all(16),
+              border: InputBorder.none,
+            ),
+          ),
         ),
-      ),
+        if (_speechAvailable) ...[
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: _toggleListen,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: _listening ? kGradientTeal : null,
+                color: _listening
+                    ? null
+                    : (isDark
+                          ? Colors.white.withAlpha(15)
+                          : Colors.black.withAlpha(8)),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: _listening
+                      ? Colors.transparent
+                      : (isDark
+                            ? Colors.white.withAlpha(25)
+                            : kCyan.withAlpha(80)),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _listening ? Icons.stop_rounded : Icons.mic_rounded,
+                    size: 18,
+                    color: _listening
+                        ? Colors.white
+                        : (isDark ? kCyan : kIndigo),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _listening ? 'Tap to stop' : 'Speak',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _listening
+                          ? Colors.white
+                          : (isDark ? kCyan : kIndigo),
+                    ),
+                  ),
+                  if (_listening) ...[const SizedBox(width: 8), _VoicePulse()],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -484,7 +588,7 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
 
   Widget _buildProcessingIndicator(bool isDark) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 48),
+      padding: const EdgeInsets.symmetric(vertical: 32),
       child: Column(
         children: [
           _SpinningOrb(isDark: isDark),
@@ -505,6 +609,39 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
               color: isDark ? Colors.white38 : Colors.black38,
             ),
           ),
+          if (_streamPreview.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withAlpha(12)
+                        : Colors.black.withAlpha(6),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: kIndigo.withAlpha(isDark ? 60 : 40),
+                    ),
+                  ),
+                  child: Text(
+                    _streamPreview,
+                    maxLines: 8,
+                    overflow: TextOverflow.fade,
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 11,
+                      color: isDark ? Colors.white54 : Colors.black45,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1005,6 +1142,55 @@ class _SpinningOrbState extends State<_SpinningOrb>
               color: kIndigo,
               size: 28,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Pulsing dot for voice recording indicator ─────────────────────────────────
+class _VoicePulse extends StatefulWidget {
+  @override
+  State<_VoicePulse> createState() => _VoicePulseState();
+}
+
+class _VoicePulseState extends State<_VoicePulse>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ac;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ac = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+    _scale = Tween(
+      begin: 0.6,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _ac, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ac.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _scale,
+      builder: (_, __) => Transform.scale(
+        scale: _scale.value,
+        child: Container(
+          width: 8,
+          height: 8,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
           ),
         ),
       ),

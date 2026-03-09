@@ -11,6 +11,13 @@ abstract class AIProvider {
   /// Send a prompt and receive raw text back.
   Future<AIResponse> complete(String prompt);
 
+  /// Stream tokens as they arrive. Override for real streaming; the default
+  /// implementation falls back to a single [complete] call.
+  Stream<String> streamComplete(String prompt) async* {
+    final response = await complete(prompt);
+    yield response.text;
+  }
+
   /// Dispose any cached resources.
   void dispose() {}
 }

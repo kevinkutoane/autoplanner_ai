@@ -17,6 +17,22 @@ class AppSettings {
   final int maxTokensPerDay;
   final bool isOnboardingDone;
 
+  /// The Gemini API key entered by the user.
+  /// Loaded from secure storage at startup; never persisted to Hive.
+  final String geminiApiKey;
+
+  /// Whether to require biometric / device-credential unlock on resume.
+  final bool requireBiometrics;
+
+  /// Whether Google Calendar is currently connected.
+  final bool isGoogleCalendarConnected;
+
+  /// Email of the connected Google account (empty when not connected).
+  final String googleAccountEmail;
+
+  /// Whether Microsoft Outlook Calendar is currently connected.
+  final bool isOutlookConnected;
+
   const AppSettings({
     required this.userName,
     required this.userEmail,
@@ -30,6 +46,11 @@ class AppSettings {
     required this.enableAILogging,
     required this.maxTokensPerDay,
     this.isOnboardingDone = false,
+    this.geminiApiKey = '',
+    this.requireBiometrics = false,
+    this.isGoogleCalendarConnected = false,
+    this.googleAccountEmail = '',
+    this.isOutlookConnected = false,
   });
 
   factory AppSettings.defaults() => AppSettings(
@@ -45,6 +66,11 @@ class AppSettings {
     enableAILogging: true,
     maxTokensPerDay: 100000,
     isOnboardingDone: false,
+    geminiApiKey: '',
+    requireBiometrics: false,
+    isGoogleCalendarConnected: false,
+    googleAccountEmail: '',
+    isOutlookConnected: false,
   );
 
   AppSettings copyWith({
@@ -60,6 +86,11 @@ class AppSettings {
     bool? enableAILogging,
     int? maxTokensPerDay,
     bool? isOnboardingDone,
+    String? geminiApiKey,
+    bool? requireBiometrics,
+    bool? isGoogleCalendarConnected,
+    String? googleAccountEmail,
+    bool? isOutlookConnected,
   }) {
     return AppSettings(
       userName: userName ?? this.userName,
@@ -74,6 +105,12 @@ class AppSettings {
       enableAILogging: enableAILogging ?? this.enableAILogging,
       maxTokensPerDay: maxTokensPerDay ?? this.maxTokensPerDay,
       isOnboardingDone: isOnboardingDone ?? this.isOnboardingDone,
+      geminiApiKey: geminiApiKey ?? this.geminiApiKey,
+      requireBiometrics: requireBiometrics ?? this.requireBiometrics,
+      isGoogleCalendarConnected:
+          isGoogleCalendarConnected ?? this.isGoogleCalendarConnected,
+      googleAccountEmail: googleAccountEmail ?? this.googleAccountEmail,
+      isOutlookConnected: isOutlookConnected ?? this.isOutlookConnected,
     );
   }
 
@@ -91,6 +128,10 @@ class AppSettings {
   static const String kUseMockAI = 'useMockAI';
   static const String kEnableAILogging = 'enableAILogging';
   static const String kMaxTokensPerDay = 'maxTokensPerDay';
+  static const String kRequireBiometrics = 'requireBiometrics';
+  static const String kIsGoogleCalendarConnected = 'isGoogleCalendarConnected';
+  static const String kGoogleAccountEmail = 'googleAccountEmail';
+  static const String kIsOutlookConnected = 'isOutlookConnected';
 
   // ── Serialization helpers ──────────────────────────────────────────
   static ThemeMode _parseThemeMode(String? v) => switch (v) {
@@ -125,6 +166,10 @@ class AppSettings {
     kEnableAILogging: enableAILogging,
     kMaxTokensPerDay: maxTokensPerDay,
     kOnboardingSeen: isOnboardingDone,
+    kRequireBiometrics: requireBiometrics,
+    kIsGoogleCalendarConnected: isGoogleCalendarConnected,
+    kGoogleAccountEmail: googleAccountEmail,
+    kIsOutlookConnected: isOutlookConnected,
   };
 
   factory AppSettings.fromMap(Map<dynamic, dynamic> map) => AppSettings(
@@ -140,6 +185,11 @@ class AppSettings {
     enableAILogging: (map[kEnableAILogging] as bool?) ?? true,
     maxTokensPerDay: (map[kMaxTokensPerDay] as int?) ?? 100000,
     isOnboardingDone: (map[kOnboardingSeen] as bool?) ?? false,
+    requireBiometrics: (map[kRequireBiometrics] as bool?) ?? false,
+    isGoogleCalendarConnected:
+        (map[kIsGoogleCalendarConnected] as bool?) ?? false,
+    googleAccountEmail: (map[kGoogleAccountEmail] as String?) ?? '',
+    isOutlookConnected: (map[kIsOutlookConnected] as bool?) ?? false,
   );
 
   /// Convenience: human-friendly display name (falls back to 'You').

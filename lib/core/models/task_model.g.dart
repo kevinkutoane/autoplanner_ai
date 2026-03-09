@@ -22,17 +22,19 @@ class TaskItemAdapter extends TypeAdapter<TaskItem> {
       startTime: fields[2] as DateTime,
       endTime: fields[3] as DateTime?,
       note: fields[4] as String?,
-      isCompleted: fields[5] as bool? ?? false,
-      priority: (fields[6] as int?) ?? 1,
-      tags: (fields[7] as List?)?.cast<String>() ?? [],
-      linkedNoteIds: (fields[8] as List?)?.cast<String>() ?? [],
+      isCompleted: fields[5] as bool,
+      priority: fields[6] as int,
+      tags: (fields[7] as List).cast<String>(),
+      linkedNoteIds: (fields[8] as List).cast<String>(),
+      recurrence: fields[9] as String?,
+      recurrenceDays: (fields[10] as List).cast<int>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, TaskItem obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -50,7 +52,11 @@ class TaskItemAdapter extends TypeAdapter<TaskItem> {
       ..writeByte(7)
       ..write(obj.tags)
       ..writeByte(8)
-      ..write(obj.linkedNoteIds);
+      ..write(obj.linkedNoteIds)
+      ..writeByte(9)
+      ..write(obj.recurrence)
+      ..writeByte(10)
+      ..write(obj.recurrenceDays);
   }
 
   @override

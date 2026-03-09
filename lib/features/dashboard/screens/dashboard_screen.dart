@@ -10,40 +10,21 @@ import '../../notes/screens/note_editor_screen.dart';
 import '../../calendar/controllers/calendar_controller.dart';
 import '../../memory/controllers/memory_controller.dart';
 
-class DashboardScreen extends ConsumerStatefulWidget {
+// ── Daily insight provider ───────────────────────────────────────────────────
+// keepAlive() ensures the insight is fetched exactly once per app session and
+// survives hot-reloads. Invalidate via ref.invalidate(dailyInsightProvider)
+// to trigger a manual refresh.
+final dailyInsightProvider = FutureProvider.autoDispose<String?>((ref) async {
+  ref.keepAlive();
+  final tasks = ref.read(taskControllerProvider);
+  final memories = ref.read(memoryControllerProvider);
+  final ai = ref.read(aiServiceProvider);
+  return ai.generateDailyInsight(tasks, memories);
+});
+
+class DashboardScreen extends ConsumerWidget {
   final void Function(int tabIndex) onNavigateTo;
   const DashboardScreen({super.key, required this.onNavigateTo});
-  @override
-  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
-}
-
-class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  String? _dailyInsight;
-  bool _loadingInsight = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadDailyInsight();
-  }
-
-  Future<void> _loadDailyInsight() async {
-    setState(() => _loadingInsight = true);
-    try {
-      final tasks = ref.read(taskControllerProvider);
-      final memories = ref.read(memoryControllerProvider);
-      final ai = ref.read(aiServiceProvider);
-      final insight = await ai.generateDailyInsight(tasks, memories);
-      if (mounted) {
-        setState(() {
-          _dailyInsight = insight;
-          _loadingInsight = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _loadingInsight = false);
-    }
-  }
 
   String _getGreeting() {
     final h = DateTime.now().hour;
@@ -66,11 +47,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(taskControllerProvider);
     final notes = ref.watch(noteControllerProvider);
     final events = ref.watch(calendarControllerProvider);
     final memories = ref.watch(memoryControllerProvider);
+    final insightAsync = ref.watch(dailyInsightProvider);
     final now = DateTime.now();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -118,8 +100,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ),
                         ),
                         _AIPulseIcon(
-                          loading: _loadingInsight,
-                          onTap: _loadDailyInsight,
+                          loading: insightAsync.isLoading,
+                          onTap: () => ref.invalidate(dailyInsightProvider),
                         ),
                       ],
                     ),
@@ -154,18 +136,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               ),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: _loadingInsight
-                                    ? Column(
+                                child: insightAsync.isLoading
+                                    ? const Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
-                                        children: const [
+                                        children: [
                                           _ShimmerLine(width: 200),
                                           SizedBox(height: 6),
                                           _ShimmerLine(width: 140),
                                         ],
                                       )
                                     : Text(
-                                        _dailyInsight ??
+                                        insightAsync.value ??
                                             'Start adding tasks to get personalised insights!',
                                         style: const TextStyle(
                                           color: Colors.white,
@@ -236,7 +218,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     trailing: todayTasks.isEmpty
                         ? null
                         : '${(completedCount / todayTasks.length * 100).toInt()}% · See all',
-                    onTrailingTap: () => widget.onNavigateTo(1),
+                    onTrailingTap: () => onNavigateTo(1),
                   ),
                 ),
               ),
@@ -265,7 +247,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: GestureDetector(
-                          onTap: () => widget.onNavigateTo(1),
+                          onTap: () => onNavigateTo(1),
                           child: GlassCard(
                             padding: EdgeInsets.zero,
                             child: IntrinsicHeight(
@@ -393,9 +375,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: BodySectionHeader(
                     title: 'Recent Notes',
                     trailing: notes.isEmpty ? null : 'See all',
-                    onTrailingTap: notes.isEmpty
-                        ? null
-                        : () => widget.onNavigateTo(2),
+                    onTrailingTap: notes.isEmpty ? null : () => onNavigateTo(2),
                   ),
                 ),
               ),

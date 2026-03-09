@@ -160,32 +160,39 @@ class SettingsScreen extends ConsumerWidget {
                                 color: isDark ? Colors.white : kDark0,
                               ),
                             ),
-                            const SizedBox(height: 10),
-                            SegmentedButton<ThemeMode>(
-                              segments: const [
-                                ButtonSegment(
-                                  value: ThemeMode.system,
-                                  label: Text('System'),
-                                  icon: Icon(Icons.brightness_auto_outlined),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                _ThemeOption(
+                                  icon: Icons.brightness_auto_rounded,
+                                  label: 'System',
+                                  mode: ThemeMode.system,
+                                  selected: settings.themeMode,
+                                  onTap: () =>
+                                      ctrl.updateThemeMode(ThemeMode.system),
+                                  isDark: isDark,
                                 ),
-                                ButtonSegment(
-                                  value: ThemeMode.light,
-                                  label: Text('Light'),
-                                  icon: Icon(Icons.light_mode_outlined),
+                                const SizedBox(width: 10),
+                                _ThemeOption(
+                                  icon: Icons.light_mode_rounded,
+                                  label: 'Light',
+                                  mode: ThemeMode.light,
+                                  selected: settings.themeMode,
+                                  onTap: () =>
+                                      ctrl.updateThemeMode(ThemeMode.light),
+                                  isDark: isDark,
                                 ),
-                                ButtonSegment(
-                                  value: ThemeMode.dark,
-                                  label: Text('Dark'),
-                                  icon: Icon(Icons.dark_mode_outlined),
+                                const SizedBox(width: 10),
+                                _ThemeOption(
+                                  icon: Icons.dark_mode_rounded,
+                                  label: 'Dark',
+                                  mode: ThemeMode.dark,
+                                  selected: settings.themeMode,
+                                  onTap: () =>
+                                      ctrl.updateThemeMode(ThemeMode.dark),
+                                  isDark: isDark,
                                 ),
                               ],
-                              selected: {settings.themeMode},
-                              onSelectionChanged: (v) {
-                                if (v.isNotEmpty) ctrl.updateThemeMode(v.first);
-                              },
-                              style: const ButtonStyle(
-                                visualDensity: VisualDensity.compact,
-                              ),
                             ),
                           ],
                         ),
@@ -379,6 +386,65 @@ class SettingsScreen extends ConsumerWidget {
                             onTap: () =>
                                 _showTokenPicker(context, settings, ctrl),
                           ),
+                          _GlassDivider(),
+                          _ListTile(
+                            icon: Icons.key_rounded,
+                            title: 'Gemini API key',
+                            subtitle: settings.geminiApiKey.isNotEmpty
+                                ? '••••••••${settings.geminiApiKey.length > 8 ? settings.geminiApiKey.substring(settings.geminiApiKey.length - 4) : '••••'}'
+                                : 'Not set — using bundled key',
+                            trailing: settings.geminiApiKey.isNotEmpty
+                                ? const Icon(
+                                    Icons.check_circle_outline,
+                                    color: kCyan,
+                                    size: 18,
+                                  )
+                                : const Icon(Icons.chevron_right, size: 18),
+                            onTap: () =>
+                                _showApiKeySheet(context, settings, ctrl),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ── Security ──────────────────────────────────────────
+                  Stagger(
+                    index: 6,
+                    child: SectionLabel(
+                      icon: Icons.lock_outline_rounded,
+                      label: 'Security',
+                      color: kIndigo,
+                    ),
+                  ),
+                  Stagger(
+                    index: 7,
+                    child: GlassCard(
+                      child: _SecurityTile(settings: settings, ctrl: ctrl),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ── Integrations ──────────────────────────────────────
+                  Stagger(
+                    index: 8,
+                    child: SectionLabel(
+                      icon: Icons.sync_alt_rounded,
+                      label: 'Integrations',
+                      color: kCyan,
+                    ),
+                  ),
+                  Stagger(
+                    index: 9,
+                    child: GlassCard(
+                      child: Column(
+                        children: [
+                          _GoogleCalendarTile(settings: settings, ctrl: ctrl),
+                          _GlassDivider(),
+                          _OutlookTile(settings: settings, ctrl: ctrl),
                         ],
                       ),
                     ),
@@ -388,7 +454,7 @@ class SettingsScreen extends ConsumerWidget {
 
                   // ── About ─────────────────────────────────────────────
                   Stagger(
-                    index: 6,
+                    index: 10,
                     child: SectionLabel(
                       icon: Icons.info_outline,
                       label: 'About',
@@ -396,7 +462,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ),
                   Stagger(
-                    index: 7,
+                    index: 11,
                     child: GlassCard(
                       child: Column(
                         children: [
@@ -458,7 +524,7 @@ class SettingsScreen extends ConsumerWidget {
 
                   // ── Danger zone ───────────────────────────────────────
                   Stagger(
-                    index: 8,
+                    index: 12,
                     child: SectionLabel(
                       icon: Icons.warning_amber_rounded,
                       label: 'Data',
@@ -466,7 +532,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ),
                   Stagger(
-                    index: 9,
+                    index: 13,
                     child: GlassCard(
                       child: _ListTile(
                         icon: Icons.restart_alt_rounded,
@@ -495,6 +561,102 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   static const _tokenOptions = [10000, 50000, 100000, 250000, 500000];
+
+  static void _showApiKeySheet(
+    BuildContext context,
+    AppSettings settings,
+    SettingsController ctrl,
+  ) {
+    final keyCtrl = TextEditingController(text: settings.geminiApiKey);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Container(
+            margin: const EdgeInsets.all(16),
+            child: GlassCard(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        ShaderMask(
+                          shaderCallback: (b) => kGradientMain.createShader(b),
+                          child: const Icon(
+                            Icons.key_rounded,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Gemini API Key',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Your key is stored in the device keychain and never leaves your phone.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white38 : Colors.black38,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    GlassField(
+                      controller: keyCtrl,
+                      label: 'API Key',
+                      icon: Icons.vpn_key_outlined,
+                      hintText: 'AIza...',
+                      keyboardType: TextInputType.visiblePassword,
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        if (settings.geminiApiKey.isNotEmpty) ...[
+                          GhostBtn(
+                            label: 'Clear',
+                            onTap: () async {
+                              await ctrl.updateGeminiApiKey('');
+                              if (ctx.mounted) Navigator.pop(ctx);
+                            },
+                          ),
+                          const SizedBox(width: 10),
+                        ],
+                        Expanded(
+                          child: GradBtn(
+                            label: 'Save',
+                            icon: Icons.check_rounded,
+                            gradient: kGradientMain,
+                            onTap: () async {
+                              await ctrl.updateGeminiApiKey(keyCtrl.text);
+                              if (ctx.mounted) Navigator.pop(ctx);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   static Future<void> _pickStartTime(
     BuildContext context,
@@ -803,4 +965,366 @@ class _GlassDivider extends StatelessWidget {
         ? Colors.white12
         : Colors.black.withAlpha(12),
   );
+}
+
+// ── Theme mode card ───────────────────────────────────────────────────────────
+
+class _ThemeOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final ThemeMode mode;
+  final ThemeMode selected;
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _ThemeOption({
+    required this.icon,
+    required this.label,
+    required this.mode,
+    required this.selected,
+    required this.onTap,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = mode == selected;
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            gradient: isSelected ? kGradientMain : null,
+            color: isSelected
+                ? null
+                : (isDark
+                      ? Colors.white.withAlpha(12)
+                      : Colors.black.withAlpha(6)),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected
+                  ? Colors.transparent
+                  : (isDark ? Colors.white.withAlpha(25) : Colors.black12),
+              width: 1.2,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 24,
+                color: isSelected
+                    ? Colors.white
+                    : (isDark ? Colors.white60 : Colors.black54),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected
+                      ? Colors.white
+                      : (isDark ? Colors.white70 : const Color(0xFF4A4A5A)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Security tile ─────────────────────────────────────────────────────────────
+
+class _SecurityTile extends ConsumerStatefulWidget {
+  final AppSettings settings;
+  final SettingsController ctrl;
+
+  const _SecurityTile({required this.settings, required this.ctrl});
+
+  @override
+  ConsumerState<_SecurityTile> createState() => _SecurityTileState();
+}
+
+class _SecurityTileState extends ConsumerState<_SecurityTile> {
+  bool _checking = false;
+
+  Future<void> _toggle(bool enable) async {
+    if (_checking) return;
+    if (enable) {
+      // Verify the device actually supports biometrics before enabling.
+      setState(() => _checking = true);
+      final svc = ref.read(biometricServiceProvider);
+      final available = await svc.isAvailable();
+      setState(() => _checking = false);
+      if (!available) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No biometrics or device lock found. Set one up in device settings first.',
+            ),
+          ),
+        );
+        return;
+      }
+      // Do a test authenticate so the user confirms it works.
+      final ok = await svc.authenticate();
+      if (!ok) return; // user cancelled — leave toggle off
+    }
+    await widget.ctrl.updateRequireBiometrics(enable);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return SwitchListTile(
+      secondary: _checking
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              Icons.fingerprint_rounded,
+              size: 20,
+              color: isDark ? Colors.white60 : Colors.black54,
+            ),
+      title: Text(
+        'Biometric lock',
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: isDark ? Colors.white : kDark0,
+        ),
+      ),
+      subtitle: Text(
+        'Require fingerprint / Face ID when reopening the app',
+        style: TextStyle(
+          fontSize: 12,
+          color: isDark ? Colors.white38 : Colors.black38,
+        ),
+      ),
+      value: widget.settings.requireBiometrics,
+      onChanged: _checking ? null : _toggle,
+      activeThumbColor: kIndigo,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    );
+  }
+}
+// ── Google Calendar tile ───────────────────────────────────────────
+
+class _GoogleCalendarTile extends ConsumerStatefulWidget {
+  final AppSettings settings;
+  final SettingsController ctrl;
+
+  const _GoogleCalendarTile({required this.settings, required this.ctrl});
+
+  @override
+  ConsumerState<_GoogleCalendarTile> createState() =>
+      _GoogleCalendarTileState();
+}
+
+class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
+  bool _loading = false;
+
+  Future<void> _connect() async {
+    setState(() => _loading = true);
+    final googleAuth = ref.read(googleAuthServiceProvider);
+    final email = await googleAuth.signIn();
+    setState(() => _loading = false);
+    if (email != null) {
+      await widget.ctrl.updateGoogleCalendarConnection(
+        connected: true,
+        email: email,
+      );
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Google sign-in cancelled.')),
+      );
+    }
+  }
+
+  Future<void> _disconnect() async {
+    setState(() => _loading = true);
+    final googleAuth = ref.read(googleAuthServiceProvider);
+    await googleAuth.signOut();
+    await widget.ctrl.updateGoogleCalendarConnection(connected: false);
+    setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final connected = widget.settings.isGoogleCalendarConnected;
+    final email = widget.settings.googleAccountEmail;
+
+    return ListTile(
+      leading: _loading
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              Icons.calendar_month_rounded,
+              size: 20,
+              color: connected
+                  ? kCyan
+                  : (isDark ? Colors.white60 : Colors.black54),
+            ),
+      title: Text(
+        'Google Calendar',
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: isDark ? Colors.white : kDark0,
+        ),
+      ),
+      subtitle: Text(
+        connected ? email : 'Sync events with Google Calendar',
+        style: TextStyle(
+          fontSize: 12,
+          color: connected ? kCyan : (isDark ? Colors.white38 : Colors.black38),
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: _loading
+          ? null
+          : connected
+          ? TextButton(
+              onPressed: _disconnect,
+              child: const Text(
+                'Disconnect',
+                style: TextStyle(color: kCoral, fontSize: 12),
+              ),
+            )
+          : TextButton(
+              onPressed: _connect,
+              child: ShaderMask(
+                shaderCallback: (b) => kGradientMain.createShader(b),
+                child: const Text(
+                  'Connect',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    );
+  }
+}
+
+// ── Outlook tile ──────────────────────────────────────────────────────────────
+
+class _OutlookTile extends ConsumerStatefulWidget {
+  final AppSettings settings;
+  final SettingsController ctrl;
+
+  const _OutlookTile({required this.settings, required this.ctrl});
+
+  @override
+  ConsumerState<_OutlookTile> createState() => _OutlookTileState();
+}
+
+class _OutlookTileState extends ConsumerState<_OutlookTile> {
+  bool _loading = false;
+
+  Future<void> _connect() async {
+    setState(() => _loading = true);
+    final outlookAuth = ref.read(outlookAuthServiceProvider);
+    final account = await outlookAuth.signIn();
+    setState(() => _loading = false);
+    if (account != null) {
+      await widget.ctrl.updateOutlookConnection(true);
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Outlook sign-in cancelled or failed.')),
+      );
+    }
+  }
+
+  Future<void> _disconnect() async {
+    setState(() => _loading = true);
+    final outlookAuth = ref.read(outlookAuthServiceProvider);
+    await outlookAuth.signOut();
+    await widget.ctrl.updateOutlookConnection(false);
+    setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final connected = widget.settings.isOutlookConnected;
+
+    return ListTile(
+      leading: _loading
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              Icons.email_rounded,
+              size: 20,
+              color: connected
+                  ? kAmber
+                  : (isDark ? Colors.white60 : Colors.black54),
+            ),
+      title: Text(
+        'Microsoft Outlook',
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: isDark ? Colors.white : kDark0,
+        ),
+      ),
+      subtitle: Text(
+        connected ? 'Connected' : 'Sync events with Outlook Calendar',
+        style: TextStyle(
+          fontSize: 12,
+          color: connected
+              ? kAmber
+              : (isDark ? Colors.white38 : Colors.black38),
+        ),
+      ),
+      trailing: _loading
+          ? null
+          : connected
+          ? TextButton(
+              onPressed: _disconnect,
+              child: const Text(
+                'Disconnect',
+                style: TextStyle(color: kCoral, fontSize: 12),
+              ),
+            )
+          : TextButton(
+              onPressed: _connect,
+              child: ShaderMask(
+                shaderCallback: (b) => kGradientWarm.createShader(b),
+                child: const Text(
+                  'Connect',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    );
+  }
 }

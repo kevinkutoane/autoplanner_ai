@@ -24,10 +24,13 @@ class GeminiProvider implements AIProvider {
     stopwatch.stop();
 
     final text = response.text ?? '';
-
-    // Estimate tokens (~4 chars per token for English text)
-    final promptTokens = (prompt.length / 4).ceil();
-    final completionTokens = (text.length / 4).ceil();
+    // Use real token counts from the API response when available;
+    // fall back to the character-based heuristic only if metadata is absent.
+    final promptTokens =
+        response.usageMetadata?.promptTokenCount ?? (prompt.length / 4).ceil();
+    final completionTokens =
+        response.usageMetadata?.candidatesTokenCount ??
+        (text.length / 4).ceil();
 
     return AIResponse(
       text: text,
@@ -36,6 +39,16 @@ class GeminiProvider implements AIProvider {
       latencyMs: stopwatch.elapsedMilliseconds,
       model: modelName,
     );
+  }
+
+  @override
+  Stream<String> streamComplete(String prompt) async* {
+    final content = [Content.text(prompt)];
+    final stream = _model.generateContentStream(content);
+    await for (final chunk in stream) {
+      final text = chunk.text;
+      if (text != null && text.isNotEmpty) yield text;
+    }
   }
 
   @override

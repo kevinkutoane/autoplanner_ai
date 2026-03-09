@@ -2,6 +2,9 @@ import 'package:hive/hive.dart';
 
 part 'task_model.g.dart';
 
+// Sentinel for nullable copyWith fields
+const _sentinel = Object();
+
 @HiveType(typeId: 0)
 class TaskItem extends HiveObject {
   @HiveField(0)
@@ -31,6 +34,14 @@ class TaskItem extends HiveObject {
   @HiveField(8)
   List<String> linkedNoteIds;
 
+  /// Recurrence pattern: null | 'daily' | 'weekly' | 'weekdays' | 'custom'
+  @HiveField(9)
+  String? recurrence;
+
+  /// For 'custom': list of weekday indices (1=Mon … 7=Sun).
+  @HiveField(10)
+  List<int> recurrenceDays;
+
   TaskItem({
     required this.id,
     required this.title,
@@ -41,6 +52,8 @@ class TaskItem extends HiveObject {
     this.priority = 1,
     this.tags = const [],
     this.linkedNoteIds = const [],
+    this.recurrence,
+    this.recurrenceDays = const [],
   });
 
   TaskItem copyWith({
@@ -53,6 +66,8 @@ class TaskItem extends HiveObject {
     int? priority,
     List<String>? tags,
     List<String>? linkedNoteIds,
+    Object? recurrence = _sentinel,
+    List<int>? recurrenceDays,
   }) {
     return TaskItem(
       id: id ?? this.id,
@@ -64,6 +79,10 @@ class TaskItem extends HiveObject {
       priority: priority ?? this.priority,
       tags: tags ?? this.tags,
       linkedNoteIds: linkedNoteIds ?? this.linkedNoteIds,
+      recurrence: recurrence == _sentinel
+          ? this.recurrence
+          : recurrence as String?,
+      recurrenceDays: recurrenceDays ?? this.recurrenceDays,
     );
   }
 

@@ -2,6 +2,10 @@
 
 part of 'token_tracker.dart';
 
+// **************************************************************************
+// TypeAdapterGenerator
+// **************************************************************************
+
 class AILogEntryAdapter extends TypeAdapter<AILogEntry> {
   @override
   final int typeId = 10;
@@ -20,7 +24,7 @@ class AILogEntryAdapter extends TypeAdapter<AILogEntry> {
       completionTokens: fields[4] as int,
       latencyMs: fields[5] as int,
       timestamp: fields[6] as DateTime,
-      success: fields[7] as bool? ?? true,
+      success: fields[7] as bool,
     );
   }
 
