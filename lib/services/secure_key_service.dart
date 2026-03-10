@@ -13,7 +13,6 @@ class SecureKeyService {
   static const _kGeminiKey = 'gemini_api_key';
   static const _kHiveKey = 'hive_encryption_key';
   static const _kGoogleTokens = 'google_oauth_tokens';
-  static const _kOutlookTokens = 'outlook_oauth_tokens';
 
   // ── Gemini API key ──────────────────────────────────────────────────
 
@@ -58,23 +57,4 @@ class SecureKeyService {
 
   static Future<void> deleteGoogleTokens() =>
       _storage.delete(key: _kGoogleTokens);
-
-  // ── Outlook OAuth tokens ────────────────────────────────────────────
-
-  static Future<void> saveOutlookTokens(Map<String, String> tokens) =>
-      _storage.write(key: _kOutlookTokens, value: jsonEncode(tokens));
-
-  static Future<Map<String, String>?> getOutlookTokens() async {
-    final raw = await _storage.read(key: _kOutlookTokens);
-    if (raw == null) return null;
-    try {
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      return map.map((k, v) => MapEntry(k, v.toString()));
-    } catch (_) {
-      return null;
-    }
-  }
-
-  static Future<void> deleteOutlookTokens() =>
-      _storage.delete(key: _kOutlookTokens);
 }

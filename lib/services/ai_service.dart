@@ -210,27 +210,6 @@ ${_sanitize(content)}
     });
   }
 
-  // ── Extract action items from notes ──────────────────────────────────────
-
-  Future<List<TaskItem>> extractActionItems(String noteContent) async {
-    final prompt =
-        '''
-Extract actionable tasks from this note with suggested time, duration, and priority.
-Respond ONLY with a valid JSON array:
-[{"title":"...","startTime":"09:00","estimatedMinutes":30,"priority":1,"tags":["from-note"]}]
-If none found, return [].
-
-"""
-${_sanitize(noteContent)}
-"""
-''';
-    return await _withRetry(() async {
-      final response = await _provider.complete(prompt);
-      await _tracker.log(action: 'extractActionItems', response: response);
-      return _parseTasksFromJson(response.text);
-    });
-  }
-
   // ── Daily insight ────────────────────────────────────────────────────────
 
   Future<String?> generateDailyInsight(
@@ -412,47 +391,6 @@ Respond ONLY with a valid JSON array — no markdown, no explanation:
       } catch (_) {
         return [];
       }
-    });
-  }
-
-  // ── Note AI actions ────────────────────────────────────────────────────────
-
-  /// Adds headings, bullets, and clean formatting to unstructured note text.
-  Future<String?> structureNote(String content) async {
-    if (content.trim().length < 30) return null;
-    final prompt =
-        '''
-Restructure this note with clear headings (##), bullet points, and logical sections.
-Preserve all original information — only improve formatting.
-Respond with ONLY the formatted note text (no extra commentary).
-
-"""
-${_sanitize(content)}
-"""
-''';
-    return await _withRetry(() async {
-      final response = await _provider.complete(prompt);
-      await _tracker.log(action: 'structureNote', response: response);
-      return response.text.trim();
-    });
-  }
-
-  /// Rewrites text to be more clear and concise.
-  Future<String?> rephraseText(String content) async {
-    if (content.trim().length < 10) return null;
-    final prompt =
-        '''
-Rephrase this text to be clearer and more concise while preserving meaning.
-Respond with ONLY the rephrased text.
-
-"""
-${_sanitize(content)}
-"""
-''';
-    return await _withRetry(() async {
-      final response = await _provider.complete(prompt);
-      await _tracker.log(action: 'rephraseText', response: response);
-      return response.text.trim();
     });
   }
 

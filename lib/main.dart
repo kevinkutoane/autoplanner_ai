@@ -41,7 +41,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // ── Environment (.env) ───────────────────────────────────
-  await dotenv.load(fileName: '.env');
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (e) {
+    if (kDebugMode) debugPrint('.env load failed: $e');
+  }
   appConfig = EnvConfig.fromDotEnv();
 
   // ── Firebase (optional — requires google-services.json / GoogleService-Info.plist) ──
@@ -51,23 +55,31 @@ void main() async {
     if (kDebugMode) debugPrint('Firebase init skipped: $e');
   }
 
-  // ── Workmanager (background tasks) ───────────────────────
-  await Workmanager().initialize(callbackDispatcher, isInDebugMode: kDebugMode);
-  await Workmanager().registerPeriodicTask(
-    'calendarSyncTask',
-    'calendarSync',
-    frequency: const Duration(hours: 1),
-    existingWorkPolicy: ExistingWorkPolicy.keep,
-    constraints: Constraints(networkType: NetworkType.connected),
-  );
+  // ── Workmanager (background tasks — Android/iOS only) ────
+  try {
+    await Workmanager().initialize(
+      callbackDispatcher,
+      isInDebugMode: kDebugMode,
+    );
+    await Workmanager().registerPeriodicTask(
+      'calendarSyncTask',
+      'calendarSync',
+      frequency: const Duration(hours: 1),
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+      constraints: Constraints(networkType: NetworkType.connected),
+    );
+  } catch (e) {
+    if (kDebugMode) debugPrint('Workmanager init skipped: $e');
+  }
 
   // ── Hive ─────────────────────────────────────────────────
   await Hive.initFlutter();
-  Hive.registerAdapter(TaskItemAdapter());
-  Hive.registerAdapter(NoteItemAdapter());
-  Hive.registerAdapter(CalendarEventAdapter());
-  Hive.registerAdapter(MemoryEntryAdapter());
-  Hive.registerAdapter(AILogEntryAdapter());
+  if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(TaskItemAdapter());
+  if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(NoteItemAdapter());
+  if (!Hive.isAdapterRegistered(2))
+  if(!Hive.registerAdapter(CalendarEventAdapter()));
+  if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(MemoryEntryAdapter());
+  if (!Hive.isAdapterRegistered(10)) Hive.registerAdapter(AILogEntryAdapter());
 
   // Derive a device-unique encryption key stored in the OS keychain.
   final hiveKeyBytes = await SecureKeyService.getOrCreateHiveEncryptionKey();
@@ -78,11 +90,19 @@ void main() async {
   await tokenTracker.init(cipher: hiveCipher);
 
   final memoryService = MemoryService();
-  await memoryService.init(cipher: hiveCipher);
+  try {
+    await memoryService.init(cipher: hiveCipher);
+  } catch (e) {
+    if (kDebugMode) debugPrint('MemoryService init failed: $e');
+  }
 
   // ── Notifications ─────────────────────────────────────────────────
   final notificationService = NotificationService();
-  await notificationService.init();
+  try {
+    await notificationService.init();
+  } catch (e) {
+    if (kDebugMode) debugPrint('Notification init skipped: $e');
+  }
 
   // ── Google Calendar Auth + Sync ───────────────────────────
   final googleAuthService = GoogleAuthService();

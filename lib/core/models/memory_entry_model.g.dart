@@ -21,10 +21,10 @@ class MemoryEntryAdapter extends TypeAdapter<MemoryEntry> {
       content: fields[1] as String,
       sourceType: fields[2] as String,
       sourceId: fields[3] as String?,
-      tags: (fields[4] as List).cast<String>(),
+      tags: (fields[4] as List?)?.cast<String>() ?? [],
       createdAt: fields[5] as DateTime,
-      relevanceScore: fields[6] as double,
-      accessCount: fields[7] as int,
+      relevanceScore: (fields[6] as double?) ?? 0.5,
+      accessCount: (fields[7] as int?) ?? 0,
     );
   }
 

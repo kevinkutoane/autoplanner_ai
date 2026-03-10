@@ -14,7 +14,6 @@ import '../../services/notification_service.dart';
 import '../../services/google_auth_service.dart';
 import '../../services/calendar_sync_service.dart';
 import '../../services/conflict_detector.dart';
-import '../../services/outlook_auth_service.dart';
 import '../../features/settings/models/app_settings_model.dart';
 import '../../features/settings/controllers/settings_controller.dart';
 
@@ -77,9 +76,4 @@ final calendarSyncServiceProvider = Provider<CalendarSyncService>(
 
 final conflictDetectorProvider = Provider<ConflictDetector>(
   (_) => ConflictDetector(),
-);
-
-/// Overridden in main() with the initialized OutlookAuthService instance.
-final outlookAuthServiceProvider = Provider<OutlookAuthService>(
-  (_) => OutlookAuthService(),
 );

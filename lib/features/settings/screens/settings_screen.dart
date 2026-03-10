@@ -443,8 +443,6 @@ class SettingsScreen extends ConsumerWidget {
                       child: Column(
                         children: [
                           _GoogleCalendarTile(settings: settings, ctrl: ctrl),
-                          _GlassDivider(),
-                          _OutlookTile(settings: settings, ctrl: ctrl),
                         ],
                       ),
                     ),
@@ -1211,109 +1209,6 @@ class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
               onPressed: _connect,
               child: ShaderMask(
                 shaderCallback: (b) => kGradientMain.createShader(b),
-                child: const Text(
-                  'Connect',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-    );
-  }
-}
-
-// ── Outlook tile ──────────────────────────────────────────────────────────────
-
-class _OutlookTile extends ConsumerStatefulWidget {
-  final AppSettings settings;
-  final SettingsController ctrl;
-
-  const _OutlookTile({required this.settings, required this.ctrl});
-
-  @override
-  ConsumerState<_OutlookTile> createState() => _OutlookTileState();
-}
-
-class _OutlookTileState extends ConsumerState<_OutlookTile> {
-  bool _loading = false;
-
-  Future<void> _connect() async {
-    setState(() => _loading = true);
-    final outlookAuth = ref.read(outlookAuthServiceProvider);
-    final account = await outlookAuth.signIn();
-    setState(() => _loading = false);
-    if (account != null) {
-      await widget.ctrl.updateOutlookConnection(true);
-    } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Outlook sign-in cancelled or failed.')),
-      );
-    }
-  }
-
-  Future<void> _disconnect() async {
-    setState(() => _loading = true);
-    final outlookAuth = ref.read(outlookAuthServiceProvider);
-    await outlookAuth.signOut();
-    await widget.ctrl.updateOutlookConnection(false);
-    setState(() => _loading = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final connected = widget.settings.isOutlookConnected;
-
-    return ListTile(
-      leading: _loading
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(
-              Icons.email_rounded,
-              size: 20,
-              color: connected
-                  ? kAmber
-                  : (isDark ? Colors.white60 : Colors.black54),
-            ),
-      title: Text(
-        'Microsoft Outlook',
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white : kDark0,
-        ),
-      ),
-      subtitle: Text(
-        connected ? 'Connected' : 'Sync events with Outlook Calendar',
-        style: TextStyle(
-          fontSize: 12,
-          color: connected
-              ? kAmber
-              : (isDark ? Colors.white38 : Colors.black38),
-        ),
-      ),
-      trailing: _loading
-          ? null
-          : connected
-          ? TextButton(
-              onPressed: _disconnect,
-              child: const Text(
-                'Disconnect',
-                style: TextStyle(color: kCoral, fontSize: 12),
-              ),
-            )
-          : TextButton(
-              onPressed: _connect,
-              child: ShaderMask(
-                shaderCallback: (b) => kGradientWarm.createShader(b),
                 child: const Text(
                   'Connect',
                   style: TextStyle(

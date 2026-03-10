@@ -67,23 +67,6 @@ class MemoryService {
     return tagList;
   }
 
-  /// Build a context string for AI prompts from relevant memories
-  String buildContextString({String? query, int maxEntries = 10}) {
-    List<MemoryEntry> relevant;
-    if (query != null && query.isNotEmpty) {
-      relevant = searchMemories(query);
-    } else {
-      relevant = recentMemories;
-    }
-
-    if (relevant.isEmpty) return '';
-
-    return relevant
-        .take(maxEntries)
-        .map((m) => '[${m.sourceType}] ${m.content} (${m.tags.join(", ")})')
-        .join('\n');
-  }
-
   /// Clear all memories
   Future<void> clearAll() async {
     await _box?.clear();
