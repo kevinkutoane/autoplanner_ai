@@ -23,6 +23,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     super.dispose();
   }
 
+  Future<void> _onRefresh() =>
+      Future.delayed(const Duration(milliseconds: 400));
+
   @override
   Widget build(BuildContext context) {
     final notes = ref.watch(noteControllerProvider);
@@ -47,214 +50,221 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       ),
       body: OrbBackground(
         subtle: true,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // Header
-            SliverToBoxAdapter(
-              child: GradientHeader(
-                gradient: LinearGradient(
-                  colors: [kDark0, const Color(0xFF1F1035)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Notes',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
+        child: RefreshIndicator(
+          onRefresh: _onRefresh,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: [
+              // Header
+              SliverToBoxAdapter(
+                child: GradientHeader(
+                  gradient: LinearGradient(
+                    colors: [kDark0, const Color(0xFF1F1035)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Notes',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    // search
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(18),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: Colors.white.withAlpha(35),
+                      const SizedBox(height: 14),
+                      // search
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(18),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: Colors.white.withAlpha(35),
+                              ),
                             ),
-                          ),
-                          child: TextField(
-                            controller: _searchCtrl,
-                            onChanged: (v) => setState(() => _query = v),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Search notes...',
-                              hintStyle: const TextStyle(
-                                color: Colors.white54,
+                            child: TextField(
+                              controller: _searchCtrl,
+                              onChanged: (v) => setState(() => _query = v),
+                              style: const TextStyle(
+                                color: Colors.white,
                                 fontSize: 14,
                               ),
-                              prefixIcon: const Icon(
-                                Icons.search_rounded,
-                                color: Colors.white54,
-                                size: 20,
-                              ),
-                              suffixIcon: _query.isNotEmpty
-                                  ? GestureDetector(
-                                      onTap: () {
-                                        _searchCtrl.clear();
-                                        setState(() => _query = '');
-                                      },
-                                      child: const Icon(
-                                        Icons.close_rounded,
-                                        color: Colors.white54,
-                                        size: 20,
-                                      ),
-                                    )
-                                  : null,
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 14,
+                              decoration: InputDecoration(
+                                hintText: 'Search notes...',
+                                hintStyle: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 14,
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.search_rounded,
+                                  color: Colors.white54,
+                                  size: 20,
+                                ),
+                                suffixIcon: _query.isNotEmpty
+                                    ? GestureDetector(
+                                        onTap: () {
+                                          _searchCtrl.clear();
+                                          setState(() => _query = '');
+                                        },
+                                        child: const Icon(
+                                          Icons.close_rounded,
+                                          color: Colors.white54,
+                                          size: 20,
+                                        ),
+                                      )
+                                    : null,
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 14,
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Tag chips
-            if (allTags.isNotEmpty)
-              SliverToBoxAdapter(
-                child: Stagger(
-                  index: 0,
-                  child: SizedBox(
-                    height: 44,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      children: [
-                        _TagChip(
-                          label: 'All',
-                          selected: _selectedTag == null,
-                          onTap: () => setState(() => _selectedTag = null),
-                        ),
-                        ...allTags.map(
-                          (tag) => _TagChip(
-                            label: tag,
-                            selected: _selectedTag == tag,
-                            onTap: () => setState(
-                              () => _selectedTag = _selectedTag == tag
-                                  ? null
-                                  : tag,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
                 ),
               ),
 
-            // Pinned
-            if (pinned.isNotEmpty) ...[
+              // Tag chips
+              if (allTags.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Stagger(
+                    index: 0,
+                    child: SizedBox(
+                      height: 44,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        children: [
+                          _TagChip(
+                            label: 'All',
+                            selected: _selectedTag == null,
+                            onTap: () => setState(() => _selectedTag = null),
+                          ),
+                          ...allTags.map(
+                            (tag) => _TagChip(
+                              label: tag,
+                              selected: _selectedTag == tag,
+                              onTap: () => setState(
+                                () => _selectedTag = _selectedTag == tag
+                                    ? null
+                                    : tag,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Pinned
+              if (pinned.isNotEmpty) ...[
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: Stagger(
+                      index: 1,
+                      child: const BodySectionHeader(title: 'Pinned'),
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverGrid(
+                    delegate: SliverChildBuilderDelegate(
+                      (ctx, i) => Stagger(
+                        index: i + 2,
+                        child: _NoteCard(
+                          note: pinned[i],
+                          onTap: () => Navigator.push(
+                            ctx,
+                            _route(NoteEditorScreen(note: pinned[i])),
+                          ),
+                        ),
+                      ),
+                      childCount: pinned.length,
+                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: 1.1,
+                        ),
+                  ),
+                ),
+              ],
+
+              // All notes / Other notes
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverToBoxAdapter(
                   child: Stagger(
-                    index: 1,
-                    child: const BodySectionHeader(title: 'Pinned'),
+                    index: pinned.isEmpty ? 1 : pinned.length + 2,
+                    child: BodySectionHeader(
+                      title: pinned.isEmpty ? 'All Notes' : 'Other Notes',
+                      trailing: '${filtered.length}',
+                    ),
                   ),
                 ),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverGrid(
-                  delegate: SliverChildBuilderDelegate(
-                    (ctx, i) => Stagger(
-                      index: i + 2,
-                      child: _NoteCard(
-                        note: pinned[i],
-                        onTap: () => Navigator.push(
-                          ctx,
-                          _route(NoteEditorScreen(note: pinned[i])),
-                        ),
+              if (filtered.isEmpty)
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: Stagger(
+                      index: 99,
+                      child: EmptyState(
+                        icon: Icons.sticky_note_2_rounded,
+                        message: 'No notes found. Tap + to create your first!',
                       ),
                     ),
-                    childCount: pinned.length,
                   ),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 1.1,
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                  sliver: SliverGrid(
+                    delegate: SliverChildBuilderDelegate((ctx, i) {
+                      final n = unpinned[i];
+                      return Stagger(
+                        index: i + pinned.length + 3,
+                        child: _NoteCard(
+                          note: n,
+                          onTap: () => Navigator.push(
+                            ctx,
+                            _route(NoteEditorScreen(note: n)),
+                          ),
+                        ),
+                      );
+                    }, childCount: unpinned.length),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: 1.1,
+                        ),
                   ),
                 ),
-              ),
             ],
-
-            // All notes / Other notes
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(
-                child: Stagger(
-                  index: pinned.isEmpty ? 1 : pinned.length + 2,
-                  child: BodySectionHeader(
-                    title: pinned.isEmpty ? 'All Notes' : 'Other Notes',
-                    trailing: '${filtered.length}',
-                  ),
-                ),
-              ),
-            ),
-            if (filtered.isEmpty)
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverToBoxAdapter(
-                  child: Stagger(
-                    index: 99,
-                    child: EmptyState(
-                      icon: Icons.sticky_note_2_rounded,
-                      message: 'No notes found. Tap + to create your first!',
-                    ),
-                  ),
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
-                sliver: SliverGrid(
-                  delegate: SliverChildBuilderDelegate((ctx, i) {
-                    final n = unpinned[i];
-                    return Stagger(
-                      index: i + pinned.length + 3,
-                      child: _NoteCard(
-                        note: n,
-                        onTap: () => Navigator.push(
-                          ctx,
-                          _route(NoteEditorScreen(note: n)),
-                        ),
-                      ),
-                    );
-                  }, childCount: unpinned.length),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 1.1,
-                  ),
-                ),
-              ),
-          ],
+          ),
         ),
       ),
     );

@@ -126,7 +126,7 @@ class NoteController extends StateNotifier<List<NoteItem>> {
         );
       }
     } catch (e) {
-      if (kDebugMode) print('Note AI processing failed: $e');
+      if (kDebugMode) debugPrint('NoteController: AI processing failed: $e');
     }
   }
 

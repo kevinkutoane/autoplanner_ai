@@ -32,6 +32,7 @@ class TaskController extends StateNotifier<List<TaskItem>> {
     // Box is pre-opened in main() before runApp — grab it synchronously.
     _box = Hive.box<TaskItem>('tasksBox');
     _refreshState();
+    _seedMissingRecurrences();
   }
 
   List<TaskItem> get todayTasks {
@@ -86,12 +87,30 @@ class TaskController extends StateNotifier<List<TaskItem>> {
   }
 
   void toggleComplete(String taskId) {
-    final task = state.firstWhere((t) => t.id == taskId);
+    final matches = state.where((t) => t.id == taskId);
+    if (matches.isEmpty) return;
+    final task = matches.first;
     final updated = task.copyWith(isCompleted: !task.isCompleted);
     updateTask(updated);
     // Spawn next occurrence if task has a recurrence and is being completed.
     if (updated.isCompleted && task.recurrence != null) {
       _spawnNextRecurrence(task);
+    }
+    // Reinforce memories whose tags overlap with this completed task —
+    // they likely contributed context when the task was created or planned.
+    if (updated.isCompleted && task.tags.isNotEmpty) {
+      _reinforceRelatedMemories(task.tags);
+    }
+  }
+
+  void _reinforceRelatedMemories(List<String> taskTags) {
+    final tagSet = taskTags.map((t) => t.toLowerCase()).toSet();
+    final related = _memoryCtrl.state
+        .where((m) => m.tags.any((t) => tagSet.contains(t.toLowerCase())))
+        .take(3)
+        .toList();
+    for (final m in related) {
+      _memoryCtrl.reinforceMemory(m.id);
     }
   }
 
@@ -143,6 +162,77 @@ class TaskController extends StateNotifier<List<TaskItem>> {
       default:
         return null;
     }
+  }
+
+  /// On startup, check each recurring task group and spawn a pending occurrence
+  /// for today if the most recent completed instance has no future sibling yet.
+  void _seedMissingRecurrences() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final recurring = state.where((t) => t.recurrence != null).toList();
+
+    // Group by title+recurrence as the template key.
+    final groups = <String, List<TaskItem>>{};
+    for (final t in recurring) {
+      groups.putIfAbsent('${t.title}|${t.recurrence}', () => []).add(t);
+    }
+
+    for (final group in groups.values) {
+      group.sort((a, b) => b.startTime.compareTo(a.startTime));
+      final latest = group.first;
+
+      // Skip if there is already a pending (uncompleted) future occurrence.
+      final hasPending = group.any(
+        (t) =>
+            !t.isCompleted &&
+            !DateTime(
+              t.startTime.year,
+              t.startTime.month,
+              t.startTime.day,
+            ).isBefore(today),
+      );
+      if (hasPending) continue;
+
+      // Only seed if the latest completed instance is overdue for a recurrence.
+      if (!latest.isCompleted) continue;
+      final next = _nextOccurrenceDate(latest);
+      if (next == null) continue;
+      final nextDay = DateTime(next.year, next.month, next.day);
+      if (nextDay.isAfter(today)) continue;
+
+      // Spawn using today's date but keep the original time-of-day.
+      _spawnOccurrenceOnDay(latest, today);
+    }
+  }
+
+  /// Spawns a new occurrence of [template] scheduled on [day], preserving
+  /// the original time-of-day and duration.
+  void _spawnOccurrenceOnDay(TaskItem template, DateTime day) {
+    final orig = template.startTime;
+    final newStart = DateTime(
+      day.year,
+      day.month,
+      day.day,
+      orig.hour,
+      orig.minute,
+    );
+    final duration = template.endTime != null
+        ? template.endTime!.difference(template.startTime)
+        : const Duration(hours: 1);
+    final newTask = TaskItem(
+      id: _uuid.v4(),
+      title: template.title,
+      startTime: newStart,
+      endTime: newStart.add(duration),
+      note: template.note,
+      priority: template.priority,
+      tags: List.from(template.tags),
+      linkedNoteIds: List.from(template.linkedNoteIds),
+      recurrence: template.recurrence,
+      recurrenceDays: List.from(template.recurrenceDays),
+    );
+    addTask(newTask);
   }
 
   void clearAll() {
@@ -210,7 +300,7 @@ class TaskController extends StateNotifier<List<TaskItem>> {
         );
       }
     } catch (e) {
-      if (kDebugMode) print('Memory creation failed: $e');
+      if (kDebugMode) debugPrint('TaskController: memory creation failed: $e');
     }
   }
 }

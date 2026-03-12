@@ -12,6 +12,7 @@ class EnvConfig {
   final bool enableTokenTracking;
   final int maxTokensPerDay;
   final bool useMockAI;
+  final String azureClientId;
 
   const EnvConfig._({
     required this.environment,
@@ -20,8 +21,8 @@ class EnvConfig {
     required this.enableAILogging,
     required this.enableTokenTracking,
     required this.maxTokensPerDay,
-
     required this.useMockAI,
+    required this.azureClientId,
   });
 
   bool get isDev => environment == Environment.dev;
@@ -56,6 +57,7 @@ class EnvConfig {
           int.tryParse(dotenv.get('MAX_TOKENS_PER_DAY', fallback: '100000')) ??
           100000,
       useMockAI: dotenv.get('USE_MOCK_AI', fallback: 'false') == 'true',
+      azureClientId: dotenv.get('AZURE_CLIENT_ID', fallback: ''),
     );
   }
 }

@@ -348,11 +348,11 @@ class _ApiKeyPageState extends ConsumerState<_ApiKeyPage>
                 ),
                 const SizedBox(height: 14),
                 const Text(
-                  'Paste your Google AI Studio key to unlock AI features. Free tier works great — you can always add it later in Settings.',
+                  'AutoPlanner\'s AI features — Brain Dump, smart scheduling, daily insights, and proactive rescheduling — run on Google\'s Gemini AI. Gemini is a cloud service (not on-device), so the app needs a key to call the API on your behalf.\n\nThe free tier is genuinely free: no credit card, no expiry. Your key is stored only on this device and never shared.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white60,
-                    fontSize: 15.5,
+                    fontSize: 14.5,
                     height: 1.55,
                   ),
                 ),

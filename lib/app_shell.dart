@@ -1,6 +1,11 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive/hive.dart';
+import 'core/models/calendar_event_model.dart';
 import 'core/theme/ui_kit.dart';
 import 'core/providers/providers.dart';
 import 'features/brain_dump/brain_dump_sheet.dart';
@@ -11,6 +16,7 @@ import 'features/calendar/screens/calendar_screen.dart';
 import 'features/memory/screens/memory_screen.dart';
 import 'features/analytics/screens/analytics_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
+import 'features/planner/controllers/task_controller.dart';
 
 // ── Nav item descriptor ──────────────────────────────────────────────────────
 class _NavItem {
@@ -95,6 +101,9 @@ class _AppShellState extends ConsumerState<AppShell>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Run the first overdue check after the first frame so all providers
+    // are fully initialised.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkReschedule());
   }
 
   @override
@@ -106,14 +115,40 @@ class _AppShellState extends ConsumerState<AppShell>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final requireBiometrics = ref.read(settingsProvider).requireBiometrics;
-    if (!requireBiometrics) return;
 
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
       // App going to background — arm the lock.
-      if (mounted) setState(() => _locked = true);
-    } else if (state == AppLifecycleState.resumed && _locked) {
-      _triggerUnlock();
+      if (requireBiometrics && mounted) setState(() => _locked = true);
+    } else if (state == AppLifecycleState.resumed) {
+      if (requireBiometrics && _locked) _triggerUnlock();
+      // Check for overdue tasks whenever the user returns to the app.
+      _checkReschedule();
+    }
+  }
+
+  Future<void> _checkReschedule() async {
+    // Skip if a suggestion is already showing.
+    if (ref.read(rescheduleSuggestionProvider) != null) return;
+    try {
+      final service = ref.read(rescheduleServiceProvider);
+      final tasks = ref.read(taskControllerProvider);
+      final calendarEvents = Hive.isBoxOpen('calendarBox')
+          ? Hive.box<CalendarEvent>('calendarBox').values.toList()
+          : <CalendarEvent>[];
+      final memories = ref.read(memoryServiceProvider).contextMemories();
+      final settings = ref.read(settingsProvider);
+      final suggestion = await service.checkOverdue(
+        tasks: tasks,
+        calendarEvents: calendarEvents,
+        memories: memories,
+        settings: settings,
+      );
+      if (mounted && suggestion != null) {
+        ref.read(rescheduleSuggestionProvider.notifier).state = suggestion;
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('RescheduleService: checkOverdue failed — $e');
     }
   }
 
@@ -155,29 +190,45 @@ class _AppShellState extends ConsumerState<AppShell>
     }
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: IndexedStack(
-        index: _currentIndex,
+      body: Column(
         children: [
-          TickerMode(
-            enabled: _currentIndex == 0,
-            child: DashboardScreen(
-              onNavigateTo: (i) => setState(() => _currentIndex = i),
+          const _ConnectivityBanner(),
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: [
+                TickerMode(
+                  enabled: _currentIndex == 0,
+                  child: DashboardScreen(
+                    onNavigateTo: (i) => setState(() => _currentIndex = i),
+                  ),
+                ),
+                TickerMode(
+                  enabled: _currentIndex == 1,
+                  child: const PlannerScreen(),
+                ),
+                TickerMode(
+                  enabled: _currentIndex == 2,
+                  child: const NotesScreen(),
+                ),
+                TickerMode(
+                  enabled: _currentIndex == 3,
+                  child: const CalendarScreen(),
+                ),
+                TickerMode(
+                  enabled: _currentIndex == 4,
+                  child: const MemoryScreen(),
+                ),
+                TickerMode(
+                  enabled: _currentIndex == 5,
+                  child: const AnalyticsScreen(),
+                ),
+                TickerMode(
+                  enabled: _currentIndex == 6,
+                  child: const SettingsScreen(),
+                ),
+              ],
             ),
-          ),
-          TickerMode(enabled: _currentIndex == 1, child: const PlannerScreen()),
-          TickerMode(enabled: _currentIndex == 2, child: const NotesScreen()),
-          TickerMode(
-            enabled: _currentIndex == 3,
-            child: const CalendarScreen(),
-          ),
-          TickerMode(enabled: _currentIndex == 4, child: const MemoryScreen()),
-          TickerMode(
-            enabled: _currentIndex == 5,
-            child: const AnalyticsScreen(),
-          ),
-          TickerMode(
-            enabled: _currentIndex == 6,
-            child: const SettingsScreen(),
           ),
         ],
       ),
@@ -885,6 +936,58 @@ class _MoreSheetItem extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Connectivity banner ─────────────────────────────────────────────────────
+class _ConnectivityBanner extends StatefulWidget {
+  const _ConnectivityBanner();
+
+  @override
+  State<_ConnectivityBanner> createState() => _ConnectivityBannerState();
+}
+
+class _ConnectivityBannerState extends State<_ConnectivityBanner> {
+  bool _offline = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _check();
+    _timer = Timer.periodic(const Duration(seconds: 10), (_) => _check());
+  }
+
+  Future<void> _check() async {
+    try {
+      final result = await InternetAddress.lookup(
+        'google.com',
+      ).timeout(const Duration(seconds: 5));
+      if (mounted) setState(() => _offline = result.isEmpty);
+    } catch (_) {
+      if (mounted) setState(() => _offline = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_offline) return const SizedBox.shrink();
+    return MaterialBanner(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      content: const Text(
+        'You are offline — some features may be unavailable.',
+        style: TextStyle(fontSize: 13),
+      ),
+      leading: const Icon(Icons.wifi_off_rounded, color: kCoral),
+      backgroundColor: kCoral.withAlpha(30),
+      actions: [TextButton(onPressed: _check, child: const Text('RETRY'))],
     );
   }
 }

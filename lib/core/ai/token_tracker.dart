@@ -99,6 +99,15 @@ class TokenTracker {
   /// Check if daily limit is exceeded
   bool get isOverLimit => todayTokens >= appConfig.maxTokensPerDay;
 
+  /// Throws [RateLimitException] if today's token budget is exhausted.
+  void guardRateLimit() {
+    if (isOverLimit) {
+      throw RateLimitException(
+        'Daily token limit reached ($todayTokens / ${appConfig.maxTokensPerDay})',
+      );
+    }
+  }
+
   /// Remaining tokens for today
   int get remainingTokens => (appConfig.maxTokensPerDay - todayTokens).clamp(
     0,
@@ -162,4 +171,12 @@ class TokenTracker {
         .map((e) => e.key);
     await _box?.deleteAll(oldKeys);
   }
+}
+
+/// Thrown when the daily AI token budget has been exhausted.
+class RateLimitException implements Exception {
+  final String message;
+  const RateLimitException(this.message);
+  @override
+  String toString() => 'RateLimitException: $message';
 }

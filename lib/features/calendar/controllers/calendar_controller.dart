@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import '../../../core/models/calendar_event_model.dart';
@@ -45,7 +46,15 @@ class CalendarController extends StateNotifier<List<CalendarEvent>> {
       ..syncStatus = 'pending_push'
       ..save();
     _refreshState();
-    await _syncService.pushEvent(event);
+    try {
+      await _syncService.pushEvent(event);
+    } catch (e) {
+      if (kDebugMode) debugPrint('resolveConflictKeepLocal: push failed: $e');
+      // Revert to synced so the conflict badge clears — re-sync will pick it up.
+      event
+        ..syncStatus = 'sync_error'
+        ..save();
+    }
     _refreshState();
   }
 

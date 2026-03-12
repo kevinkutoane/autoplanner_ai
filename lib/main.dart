@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:workmanager/workmanager.dart';
 import 'core/providers/providers.dart';
 
@@ -25,13 +24,32 @@ import 'features/onboarding/screens/splash_screen.dart';
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
-    // Background tasks run in an isolate — heavy work (API calls, Hive I/O)
-    // should be re-initialised here when needed.
     switch (task) {
       case 'calendarSync':
-        // Incremental calendar sync handled by CalendarSyncService.
-        // Full initialisation omitted for brevity; extend as needed.
-        break;
+        try {
+          // Background isolate: re-initialise Hive + services independently.
+          await Hive.initFlutter();
+          if (!Hive.isAdapterRegistered(2)) {
+            Hive.registerAdapter(CalendarEventAdapter());
+          }
+          final hiveKeyBytes =
+              await SecureKeyService.getOrCreateHiveEncryptionKey();
+          final hiveCipher = HiveAesCipher(hiveKeyBytes);
+          if (!Hive.isBoxOpen('calendarBox')) {
+            await Hive.openBox<CalendarEvent>(
+              'calendarBox',
+              encryptionCipher: hiveCipher,
+            );
+          }
+          final googleAuth = GoogleAuthService();
+          await googleAuth.tryRestoreSession();
+          if (googleAuth.isConnected) {
+            final syncSvc = CalendarSyncService(googleAuth: googleAuth);
+            await syncSvc.incrementalSync();
+          }
+        } catch (e) {
+          if (kDebugMode) debugPrint('Background calendarSync failed: $e');
+        }
     }
     return true;
   });
@@ -48,19 +66,9 @@ void main() async {
   }
   appConfig = EnvConfig.fromDotEnv();
 
-  // ── Firebase (optional — requires google-services.json / GoogleService-Info.plist) ──
-  try {
-    await Firebase.initializeApp();
-  } catch (e) {
-    if (kDebugMode) debugPrint('Firebase init skipped: $e');
-  }
-
   // ── Workmanager (background tasks — Android/iOS only) ────
   try {
-    await Workmanager().initialize(
-      callbackDispatcher,
-      isInDebugMode: kDebugMode,
-    );
+    await Workmanager().initialize(callbackDispatcher);
     await Workmanager().registerPeriodicTask(
       'calendarSyncTask',
       'calendarSync',
@@ -76,8 +84,9 @@ void main() async {
   await Hive.initFlutter();
   if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(TaskItemAdapter());
   if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(NoteItemAdapter());
-  if (!Hive.isAdapterRegistered(2))
-  if(!Hive.registerAdapter(CalendarEventAdapter()));
+  if (!Hive.isAdapterRegistered(2)) {
+    Hive.registerAdapter(CalendarEventAdapter());
+  }
   if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(MemoryEntryAdapter());
   if (!Hive.isAdapterRegistered(10)) Hive.registerAdapter(AILogEntryAdapter());
 
@@ -87,11 +96,18 @@ void main() async {
 
   // ── Services (must be initialized after Hive is ready) ───
   final tokenTracker = TokenTracker();
-  await tokenTracker.init(cipher: hiveCipher);
+  try {
+    await tokenTracker.init(cipher: hiveCipher);
+  } catch (e) {
+    if (kDebugMode) debugPrint('TokenTracker init failed: $e');
+  }
 
   final memoryService = MemoryService();
   try {
     await memoryService.init(cipher: hiveCipher);
+    // Prune memories that haven't been accessed and have decayed below
+    // the relevance threshold — keeps context lean on every app start.
+    await memoryService.decayStaleMemories();
   } catch (e) {
     if (kDebugMode) debugPrint('MemoryService init failed: $e');
   }
@@ -104,6 +120,28 @@ void main() async {
     if (kDebugMode) debugPrint('Notification init skipped: $e');
   }
 
+  // Restore morning briefing alarm on every app launch (survives app kill).
+  // We peek at settingsBox before SettingsController fully loads.
+  try {
+    final settingsBox = await Hive.openBox<dynamic>(
+      'settingsBox',
+      encryptionCipher: hiveCipher,
+    );
+    final briefingEnabled =
+        settingsBox.get('morningBriefingEnabled', defaultValue: false) as bool;
+    final briefingHour =
+        settingsBox.get('morningBriefingHour', defaultValue: 7) as int;
+    if (briefingEnabled) {
+      await notificationService.scheduleMorningBriefing(
+        hour: briefingHour,
+        minute: 0,
+        body: 'Good morning! Tap to review your plan for the day.',
+      );
+    }
+  } catch (e) {
+    if (kDebugMode) debugPrint('Morning briefing restore failed: $e');
+  }
+
   // ── Google Calendar Auth + Sync ───────────────────────────
   final googleAuthService = GoogleAuthService();
   await googleAuthService.tryRestoreSession();
@@ -112,14 +150,11 @@ void main() async {
   );
 
   // Pre-open data boxes with encryption so they're available via Hive.box().
-  await Hive.openBox<TaskItem>('tasksBox', encryptionCipher: hiveCipher);
-  await Hive.openBox<NoteItem>('notesBox', encryptionCipher: hiveCipher);
-  await Hive.openBox<CalendarEvent>(
-    'calendarBox',
-    encryptionCipher: hiveCipher,
-  );
+  await _openBoxSafe<TaskItem>('tasksBox', hiveCipher);
+  await _openBoxSafe<NoteItem>('notesBox', hiveCipher);
+  await _openBoxSafe<CalendarEvent>('calendarBox', hiveCipher);
   // settingsBox: pre-open with cipher so SettingsController._init() inherits it.
-  await Hive.openBox<dynamic>('settingsBox', encryptionCipher: hiveCipher);
+  await _openBoxSafe<dynamic>('settingsBox', hiveCipher);
 
   runApp(
     ProviderScope(
@@ -133,6 +168,17 @@ void main() async {
       child: const AutoPlannerApp(),
     ),
   );
+}
+
+/// Opens a Hive box; if the file is corrupt, deletes it and retries once.
+Future<Box<T>> _openBoxSafe<T>(String name, HiveAesCipher cipher) async {
+  try {
+    return await Hive.openBox<T>(name, encryptionCipher: cipher);
+  } catch (e) {
+    if (kDebugMode) debugPrint('Hive box "$name" corrupt — resetting: $e');
+    await Hive.deleteBoxFromDisk(name);
+    return await Hive.openBox<T>(name, encryptionCipher: cipher);
+  }
 }
 
 class AutoPlannerApp extends ConsumerWidget {

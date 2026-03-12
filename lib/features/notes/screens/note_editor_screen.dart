@@ -6,6 +6,8 @@ import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../notes/controllers/note_controller.dart';
 import '../../../core/models/note_model.dart';
+import '../../planner/controllers/task_controller.dart';
+import '../../../core/models/task_model.dart';
 
 const _uuid = Uuid();
 
@@ -333,6 +335,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                           ),
                         ],
 
+                        // ── Linked Tasks ─────────────────────────────
+                        if (widget.note != null) ...[
+                          const SizedBox(height: 16),
+                          _LinkedTasksSection(note: widget.note!),
+                        ],
+
                         const SizedBox(height: 80),
                       ],
                     ),
@@ -366,8 +374,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                           children: [
                             GhostBtn(
                               label: _summarizing
-                                  ? 'Analysing...'
-                                  : 'AI Summarise',
+                                  ? 'Analyzing...'
+                                  : 'AI Summarize',
                               icon: _summarizing
                                   ? null
                                   : Icons.auto_awesome_rounded,
@@ -426,6 +434,135 @@ class _IconBtn extends StatelessWidget {
           color: gradient != null ? Colors.white : null,
         ),
       ),
+    );
+  }
+}
+
+// ── Linked Tasks section ──────────────────────────────────────────────────────
+
+class _LinkedTasksSection extends ConsumerWidget {
+  final NoteItem note;
+  const _LinkedTasksSection({required this.note});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final allTasks = ref.watch(taskControllerProvider);
+    final linkedIds = note.linkedTaskIds;
+
+    void _unlink(String taskId) {
+      ref.read(noteControllerProvider.notifier).unlinkTask(note.id, taskId);
+      ref.read(taskControllerProvider.notifier).unlinkNote(taskId, note.id);
+    }
+
+    Future<void> _showAddDialog() async {
+      final available = allTasks
+          .where((t) => !linkedIds.contains(t.id) && !t.isCompleted)
+          .toList();
+      if (available.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No unlinked tasks available.')),
+        );
+        return;
+      }
+      final chosen = await showDialog<TaskItem>(
+        context: context,
+        builder: (ctx) => SimpleDialog(
+          title: const Text('Link a task'),
+          children: available
+              .map(
+                (t) => SimpleDialogOption(
+                  onPressed: () => Navigator.pop(ctx, t),
+                  child: Text(t.title, style: const TextStyle(fontSize: 14)),
+                ),
+              )
+              .toList(),
+        ),
+      );
+      if (chosen != null) {
+        ref.read(noteControllerProvider.notifier).linkTask(note.id, chosen.id);
+        ref.read(taskControllerProvider.notifier).linkNote(chosen.id, note.id);
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Linked Tasks',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white70 : kDark0,
+              ),
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: _showAddDialog,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? Colors.white24 : Colors.black12,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add,
+                      size: 14,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Add',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (linkedIds.isEmpty)
+          Text(
+            'No linked tasks',
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? Colors.white38 : Colors.black38,
+            ),
+          )
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: linkedIds.map((id) {
+              final task = allTasks.where((t) => t.id == id).firstOrNull;
+              final label = task?.title ?? 'Unknown';
+              return Chip(
+                label: Text(label, style: const TextStyle(fontSize: 12)),
+                deleteIcon: const Icon(Icons.close, size: 14),
+                onDeleted: () => _unlink(id),
+                backgroundColor: kCyan.withAlpha(isDark ? 40 : 20),
+                side: BorderSide(color: kCyan.withAlpha(80)),
+                labelStyle: const TextStyle(color: kCyan),
+                deleteIconColor: kCyan,
+                visualDensity: VisualDensity.compact,
+              );
+            }).toList(),
+          ),
+      ],
     );
   }
 }

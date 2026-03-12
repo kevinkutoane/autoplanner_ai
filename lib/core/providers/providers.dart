@@ -2,6 +2,7 @@
 // Single source of truth for all shared services and controllers.
 // Every feature imports from here — no more duplicate providers.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../config/env_config.dart';
 import '../ai/ai_provider.dart';
 import '../ai/gemini_provider.dart';
 import '../ai/mock_ai_provider.dart';
@@ -14,8 +15,11 @@ import '../../services/notification_service.dart';
 import '../../services/google_auth_service.dart';
 import '../../services/calendar_sync_service.dart';
 import '../../services/conflict_detector.dart';
+import '../../services/msal_auth_service.dart';
+import '../../services/reschedule_service.dart';
 import '../../features/settings/models/app_settings_model.dart';
 import '../../features/settings/controllers/settings_controller.dart';
+import '../../features/planner/controllers/task_controller.dart';
 
 // ── Settings & Profile ────────────────────────────────────────────
 // Declared first so other providers can watch it without forward-reference issues.
@@ -77,3 +81,54 @@ final calendarSyncServiceProvider = Provider<CalendarSyncService>(
 final conflictDetectorProvider = Provider<ConflictDetector>(
   (_) => ConflictDetector(),
 );
+
+/// Overridden in main() with the initialized MsalAuthService instance.
+final msalAuthServiceProvider = Provider<MsalAuthService>(
+  (_) => MsalAuthService(clientId: appConfig.azureClientId),
+);
+
+// ── Proactive re-scheduling ───────────────────────────────────────────────
+
+final rescheduleServiceProvider = Provider<RescheduleService>((ref) {
+  return RescheduleService(
+    ai: ref.watch(aiServiceProvider),
+    scheduler: ref.watch(schedulerServiceProvider),
+  );
+});
+
+/// Holds the current reschedule suggestion (null = nothing to show).
+/// Set by [RescheduleService.checkOverdue] and cleared when accepted/dismissed.
+final rescheduleSuggestionProvider = StateProvider<RescheduleSuggestion?>(
+  (ref) => null,
+);
+
+/// Search query for filtering tasks in the planner screen.
+final plannerSearchProvider = StateProvider<String>((_) => '');
+
+/// Proactive task suggestions for an empty planner day.
+/// Auto-disposes and refetches when memory or task state changes.
+/// Returns [] when today already has tasks (no suggestions needed).
+final taskSuggestionsProvider = FutureProvider.autoDispose<List<String>>((
+  ref,
+) async {
+  final ai = ref.watch(aiServiceProvider);
+  final memoryService = ref.watch(memoryServiceProvider);
+  final tasks = ref.watch(taskControllerProvider);
+
+  final today = DateTime.now();
+  final todayTasks = tasks.where(
+    (t) =>
+        t.startTime.year == today.year &&
+        t.startTime.month == today.month &&
+        t.startTime.day == today.day,
+  );
+  // Only suggest when the day is empty — no point cluttering a busy planner.
+  if (todayTasks.isNotEmpty) return [];
+
+  final memories = memoryService.contextMemories(limit: 15);
+  return ai.suggestTasks(
+    memories: memories,
+    date: today,
+    recentHistory: tasks.take(20).toList(),
+  );
+});

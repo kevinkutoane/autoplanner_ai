@@ -60,15 +60,27 @@ class GoogleAuthService {
     await SecureKeyService.deleteGoogleTokens();
   }
 
-  /// Returns a valid Bearer access token, refreshing silently if needed.
+  /// Returns a valid Bearer access token, using cached token if not expired.
   Future<String?> getAccessToken() async {
     try {
+      // Check cached token expiry before triggering a network call.
+      final stored = await SecureKeyService.getGoogleTokens();
+      if (stored != null) {
+        final expiry = DateTime.tryParse(stored['expiry'] ?? '');
+        final token = stored['accessToken'];
+        if (expiry != null &&
+            token != null &&
+            token.isNotEmpty &&
+            expiry.isAfter(DateTime.now().add(const Duration(minutes: 2)))) {
+          return token;
+        }
+      }
+      // Token missing or near expiry — refresh silently.
       final account = await _googleSignIn.signInSilently();
       if (account == null) return null;
       final auth = await account.authentication;
       final token = auth.accessToken;
       if (token != null) {
-        // Re-persist with fresh expiry (GoogleSignIn handles refresh internally).
         await _persistTokens(account);
       }
       return token;

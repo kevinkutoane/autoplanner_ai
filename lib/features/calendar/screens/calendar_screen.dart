@@ -66,202 +66,209 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
       floatingActionButton: _GlowFab(onTap: () => _showAddDialog(context, ref)),
       body: OrbBackground(
         subtle: true,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // Header
-            SliverToBoxAdapter(
-              child: GradientHeader(
-                gradient: LinearGradient(
-                  colors: [kDark0, Color(0xFF0E1535)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        _IconBtn(
-                          icon: Icons.chevron_left_rounded,
-                          onTap: () => _changeMonth(-1),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: FadeTransition(
-                            opacity: _monthFade,
-                            child: Text(
-                              DateFormat('MMMM yyyy').format(_focusedMonth),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.3,
+        child: RefreshIndicator(
+          onRefresh: _onRefresh,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: [
+              // Header
+              SliverToBoxAdapter(
+                child: GradientHeader(
+                  gradient: LinearGradient(
+                    colors: [kDark0, Color(0xFF0E1535)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          _IconBtn(
+                            icon: Icons.chevron_left_rounded,
+                            onTap: () => _changeMonth(-1),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: FadeTransition(
+                              opacity: _monthFade,
+                              child: Text(
+                                DateFormat('MMMM yyyy').format(_focusedMonth),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.3,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        _IconBtn(
-                          icon: Icons.chevron_right_rounded,
-                          onTap: () => _changeMonth(1),
-                        ),
-                        const SizedBox(width: 8),
-                        _IconBtn(
-                          icon: Icons.today_rounded,
-                          onTap: () {
-                            setState(() {
-                              _selectedDate = DateTime.now();
-                              _focusedMonth = DateTime.now();
-                            });
-                          },
-                        ),
-                        const SizedBox(width: 4),
-                        // Timeline / grid toggle
-                        _IconBtn(
-                          icon: _showTimeline
-                              ? Icons.calendar_view_month_rounded
-                              : Icons.view_timeline_rounded,
-                          onTap: () =>
-                              setState(() => _showTimeline = !_showTimeline),
-                        ),
-                        const SizedBox(width: 4),
-                        // Sync button with conflict badge
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            _IconBtn(
-                              icon: _syncing
-                                  ? Icons.sync_rounded
-                                  : Icons.cloud_sync_outlined,
-                              onTap: _syncing ? null : () => _triggerSync(),
-                            ),
-                            if (syncConflicts.isNotEmpty)
-                              Positioned(
-                                top: -2,
-                                right: -2,
-                                child: Container(
-                                  width: 9,
-                                  height: 9,
-                                  decoration: const BoxDecoration(
-                                    color: kCoral,
-                                    shape: BoxShape.circle,
+                          _IconBtn(
+                            icon: Icons.chevron_right_rounded,
+                            onTap: () => _changeMonth(1),
+                          ),
+                          const SizedBox(width: 8),
+                          _IconBtn(
+                            icon: Icons.today_rounded,
+                            onTap: () {
+                              setState(() {
+                                _selectedDate = DateTime.now();
+                                _focusedMonth = DateTime.now();
+                              });
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                          // Timeline / grid toggle
+                          _IconBtn(
+                            icon: _showTimeline
+                                ? Icons.calendar_view_month_rounded
+                                : Icons.view_timeline_rounded,
+                            onTap: () =>
+                                setState(() => _showTimeline = !_showTimeline),
+                          ),
+                          const SizedBox(width: 4),
+                          // Sync button with conflict badge
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              _IconBtn(
+                                icon: _syncing
+                                    ? Icons.sync_rounded
+                                    : Icons.cloud_sync_outlined,
+                                onTap: _syncing ? null : () => _triggerSync(),
+                              ),
+                              if (syncConflicts.isNotEmpty)
+                                Positioned(
+                                  top: -2,
+                                  right: -2,
+                                  child: Container(
+                                    width: 9,
+                                    height: 9,
+                                    decoration: const BoxDecoration(
+                                      color: kCoral,
+                                      shape: BoxShape.circle,
+                                    ),
                                   ),
                                 ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    _MiniCalendar(
-                      focusedMonth: _focusedMonth,
-                      selectedDate: _selectedDate,
-                      events: events,
-                      onDateSelected: (d) => setState(() => _selectedDate = d),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Selected date label
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(
-                child: Stagger(
-                  index: 0,
-                  child: BodySectionHeader(
-                    title: _formatDayLabel(_selectedDate),
-                    trailing: '${dayEvents.length}',
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      _MiniCalendar(
+                        focusedMonth: _focusedMonth,
+                        selectedDate: _selectedDate,
+                        events: events,
+                        onDateSelected: (d) =>
+                            setState(() => _selectedDate = d),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
 
-            // Events — timeline or list
-            if (_showTimeline)
-              SliverFillRemaining(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                  child: TimelineView(
-                    selectedDate: _selectedDate,
-                    events: dayEvents,
-                    onEventTap: (ev) {
-                      if (ev.syncStatus == 'conflict') {
-                        _showConflictDialog(context, ref, ev);
-                      } else {
-                        _showEditDialog(context, ref, ev);
-                      }
-                    },
-                  ),
-                ),
-              )
-            else if (dayEvents.isEmpty)
+              // Selected date label
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverToBoxAdapter(
                   child: Stagger(
-                    index: 1,
-                    child: EmptyState(
-                      icon: Icons.calendar_today_rounded,
-                      message: 'Nothing scheduled. Tap + to add an event!',
+                    index: 0,
+                    child: BodySectionHeader(
+                      title: _formatDayLabel(_selectedDate),
+                      trailing: '${dayEvents.length}',
                     ),
                   ),
                 ),
-              )
-            else if (!_showTimeline)
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((ctx, i) {
-                    final ev = dayEvents[i];
-                    return Stagger(
-                      index: i + 1,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _EventTile(
-                          event: ev,
-                          onEdit: () => ev.syncStatus == 'conflict'
-                              ? _showConflictDialog(context, ref, ev)
-                              : _showEditDialog(context, ref, ev),
-                          onDelete: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('Delete event?'),
-                                content: const Text(
-                                  'This event will be permanently removed.',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx, false),
-                                    child: const Text('Cancel'),
+              ),
+
+              // Events — timeline or list
+              if (_showTimeline)
+                SliverFillRemaining(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                    child: TimelineView(
+                      selectedDate: _selectedDate,
+                      events: dayEvents,
+                      onEventTap: (ev) {
+                        if (ev.syncStatus == 'conflict') {
+                          _showConflictDialog(context, ref, ev);
+                        } else {
+                          _showEditDialog(context, ref, ev);
+                        }
+                      },
+                    ),
+                  ),
+                )
+              else if (dayEvents.isEmpty)
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: Stagger(
+                      index: 1,
+                      child: EmptyState(
+                        icon: Icons.calendar_today_rounded,
+                        message: 'Nothing scheduled. Tap + to add an event!',
+                      ),
+                    ),
+                  ),
+                )
+              else if (!_showTimeline)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate((ctx, i) {
+                      final ev = dayEvents[i];
+                      return Stagger(
+                        index: i + 1,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _EventTile(
+                            event: ev,
+                            onEdit: () => ev.syncStatus == 'conflict'
+                                ? _showConflictDialog(context, ref, ev)
+                                : _showEditDialog(context, ref, ev),
+                            onDelete: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Delete event?'),
+                                  content: const Text(
+                                    'This event will be permanently removed.',
                                   ),
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx, true),
-                                    child: const Text(
-                                      'Delete',
-                                      style: TextStyle(
-                                        color: Color(0xFFFF4444),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(ctx, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text(
+                                        'Delete',
+                                        style: TextStyle(
+                                          color: Color(0xFFFF4444),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirm == true) {
-                              ref
-                                  .read(calendarControllerProvider.notifier)
-                                  .deleteEvent(ev.id);
-                            }
-                          },
+                                  ],
+                                ),
+                              );
+                              if (confirm == true) {
+                                ref
+                                    .read(calendarControllerProvider.notifier)
+                                    .deleteEvent(ev.id);
+                              }
+                            },
+                          ),
                         ),
-                      ),
-                    );
-                  }, childCount: dayEvents.length),
+                      );
+                    }, childCount: dayEvents.length),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -369,6 +376,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
       },
     );
   }
+
+  Future<void> _onRefresh() => _triggerSync();
 
   Future<void> _triggerSync() async {
     final settings = ref.read(settingsProvider);

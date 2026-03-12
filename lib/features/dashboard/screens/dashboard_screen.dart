@@ -59,481 +59,529 @@ class DashboardScreen extends ConsumerWidget {
     final todayTasks = tasks.where((t) => isSameDay(t.startTime, now)).toList();
     final completedCount = todayTasks.where((t) => t.isCompleted).length;
 
+    // ── Streak: consecutive days with ≥1 completed task ─────────────────────
+    int streak = 0;
+    for (var i = 0; i < 60; i++) {
+      final d = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(Duration(days: i));
+      final hasCompleted = tasks.any(
+        (t) =>
+            t.isCompleted &&
+            t.startTime.year == d.year &&
+            t.startTime.month == d.month &&
+            t.startTime.day == d.day,
+      );
+      if (!hasCompleted) break;
+      streak++;
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: OrbBackground(
         subtle: true,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // ── Hero header ─────────────────────────────────────
-            SliverToBoxAdapter(
-              child: GradientHeader(
-                gradient: kGradientHero,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _getGreeting(),
-                                style: const TextStyle(
-                                  color: Colors.white60,
-                                  fontSize: 15,
+        child: RefreshIndicator(
+          onRefresh: () => Future.delayed(const Duration(milliseconds: 400)),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: [
+              // ── Hero header ─────────────────────────────────────
+              SliverToBoxAdapter(
+                child: GradientHeader(
+                  gradient: kGradientHero,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _getGreeting(),
+                                  style: const TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 15,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                DateFormat('EEEE, MMM d').format(now),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.5,
+                                const SizedBox(height: 4),
+                                Text(
+                                  DateFormat('EEEE, MMM d').format(now),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.5,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        _AIPulseIcon(
-                          loading: insightAsync.isLoading,
-                          onTap: () => ref.invalidate(dailyInsightProvider),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    // AI insight glass card
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(22),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Colors.white.withAlpha(40),
-                              width: 1,
+                              ],
                             ),
                           ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ShaderMask(
-                                shaderCallback: (b) =>
-                                    kGradientTeal.createShader(b),
-                                child: const Icon(
-                                  Icons.auto_awesome_rounded,
-                                  color: Colors.white,
-                                  size: 22,
+                          _AIPulseIcon(
+                            loading: insightAsync.isLoading,
+                            onTap: () => ref.invalidate(dailyInsightProvider),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // AI insight glass card
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(22),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Colors.white.withAlpha(40),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ShaderMask(
+                                  shaderCallback: (b) =>
+                                      kGradientTeal.createShader(b),
+                                  child: const Icon(
+                                    Icons.auto_awesome_rounded,
+                                    color: Colors.white,
+                                    size: 22,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: insightAsync.isLoading
-                                    ? const Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          _ShimmerLine(width: 200),
-                                          SizedBox(height: 6),
-                                          _ShimmerLine(width: 140),
-                                        ],
-                                      )
-                                    : Text(
-                                        insightAsync.value ??
-                                            'Start adding tasks to get personalised insights!',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                          height: 1.45,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: insightAsync.isLoading
+                                      ? const Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            _ShimmerLine(width: 200),
+                                            SizedBox(height: 6),
+                                            _ShimmerLine(width: 140),
+                                          ],
+                                        )
+                                      : Text(
+                                          insightAsync.value ??
+                                              'Start adding tasks to get personalised insights!',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            height: 1.45,
+                                          ),
                                         ),
-                                      ),
-                              ),
-                            ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // ── Stats row ────────────────────────────────────────
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              sliver: SliverToBoxAdapter(
-                child: Stagger(
-                  index: 0,
-                  child: Row(
-                    children: [
-                      GradStatCard(
-                        icon: Icons.task_alt_rounded,
-                        label: 'Tasks',
-                        value: '$completedCount/${todayTasks.length}',
-                        gradient: const [kIndigo, Color(0xFF9D97FF)],
-                      ),
-                      const SizedBox(width: 10),
-                      GradStatCard(
-                        icon: Icons.sticky_note_2_rounded,
-                        label: 'Notes',
-                        value: '${notes.length}',
-                        gradient: const [kCoral, Color(0xFFFF8E8E)],
-                      ),
-                      const SizedBox(width: 10),
-                      GradStatCard(
-                        icon: Icons.calendar_month_rounded,
-                        label: 'Events',
-                        value: '${events.length}',
-                        gradient: const [kCyan, Color(0xFF00B894)],
-                      ),
-                      const SizedBox(width: 10),
-                      GradStatCard(
-                        icon: Icons.psychology_rounded,
-                        label: 'Memories',
-                        value: '${memories.length}',
-                        gradient: const [kAmber, Color(0xFFFFB347)],
                       ),
                     ],
                   ),
                 ),
               ),
-            ),
 
-            // ── Today's tasks ────────────────────────────────────
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(
-                child: Stagger(
-                  index: 1,
-                  child: BodySectionHeader(
-                    title: "Today's Tasks",
-                    trailing: todayTasks.isEmpty
-                        ? null
-                        : '${(completedCount / todayTasks.length * 100).toInt()}% · See all',
-                    onTrailingTap: () => onNavigateTo(1),
+              // ── Stats row ────────────────────────────────────────
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                sliver: SliverToBoxAdapter(
+                  child: Stagger(
+                    index: 0,
+                    child: Row(
+                      children: [
+                        GradStatCard(
+                          icon: Icons.task_alt_rounded,
+                          label: 'Tasks',
+                          value: '$completedCount/${todayTasks.length}',
+                          gradient: const [kIndigo, Color(0xFF9D97FF)],
+                        ),
+                        const SizedBox(width: 10),
+                        GradStatCard(
+                          icon: Icons.sticky_note_2_rounded,
+                          label: 'Notes',
+                          value: '${notes.length}',
+                          gradient: const [kCoral, Color(0xFFFF8E8E)],
+                        ),
+                        const SizedBox(width: 10),
+                        GradStatCard(
+                          icon: Icons.calendar_month_rounded,
+                          label: 'Events',
+                          value: '${events.length}',
+                          gradient: const [kCyan, Color(0xFF00B894)],
+                        ),
+                        const SizedBox(width: 10),
+                        GradStatCard(
+                          icon: Icons.psychology_rounded,
+                          label: 'Memories',
+                          value: '${memories.length}',
+                          gradient: const [kAmber, Color(0xFFFFB347)],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            if (todayTasks.isEmpty)
+
+              // ── Streak motivator ───────────────────────────────
+              if (streak > 0)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  sliver: SliverToBoxAdapter(
+                    child: Stagger(
+                      index: 1,
+                      child: _StreakBadge(streak: streak),
+                    ),
+                  ),
+                ),
+
+              // ── Today's tasks ────────────────────────────────────
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverToBoxAdapter(
                   child: Stagger(
-                    index: 2,
-                    child: EmptyState(
-                      icon: Icons.task_alt_rounded,
-                      message: 'No tasks yet. Tap + on the Plan tab to start!',
+                    index: 1,
+                    child: BodySectionHeader(
+                      title: "Today's Tasks",
+                      trailing: todayTasks.isEmpty
+                          ? null
+                          : '${(completedCount / todayTasks.length * 100).toInt()}% · See all',
+                      onTrailingTap: () => onNavigateTo(1),
                     ),
                   ),
                 ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((ctx, i) {
-                    final task = todayTasks[i];
-                    return Stagger(
-                      index: i + 2,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: GestureDetector(
-                          onTap: () => onNavigateTo(1),
-                          child: GlassCard(
-                            padding: EdgeInsets.zero,
-                            child: IntrinsicHeight(
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 4,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: _priorityGradient(
-                                          task.priority,
+              ),
+              if (todayTasks.isEmpty)
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: Stagger(
+                      index: 2,
+                      child: EmptyState(
+                        icon: Icons.task_alt_rounded,
+                        message:
+                            'No tasks yet. Tap + on the Plan tab to start!',
+                      ),
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (ctx, i) {
+                        final task = todayTasks[i];
+                        return Stagger(
+                          index: i + 2,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: GestureDetector(
+                              onTap: () => onNavigateTo(1),
+                              child: GlassCard(
+                                padding: EdgeInsets.zero,
+                                child: IntrinsicHeight(
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 4,
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: _priorityGradient(
+                                              task.priority,
+                                            ),
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                          ),
+                                          borderRadius: const BorderRadius.only(
+                                            topLeft: Radius.circular(20),
+                                            bottomLeft: Radius.circular(20),
+                                          ),
                                         ),
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
                                       ),
-                                      borderRadius: const BorderRadius.only(
-                                        topLeft: Radius.circular(20),
-                                        bottomLeft: Radius.circular(20),
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 12,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  task.title,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 14,
-                                                    decoration: task.isCompleted
-                                                        ? TextDecoration
-                                                              .lineThrough
-                                                        : null,
-                                                    color: task.isCompleted
-                                                        ? (isDark
-                                                              ? Colors.white38
-                                                              : Colors.black38)
-                                                        : null,
-                                                  ),
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 12,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      task.title,
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        fontSize: 14,
+                                                        decoration:
+                                                            task.isCompleted
+                                                            ? TextDecoration
+                                                                  .lineThrough
+                                                            : null,
+                                                        color: task.isCompleted
+                                                            ? (isDark
+                                                                  ? Colors
+                                                                        .white38
+                                                                  : Colors
+                                                                        .black38)
+                                                            : null,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 3),
+                                                    Text(
+                                                      DateFormat(
+                                                        'h:mm a',
+                                                      ).format(task.startTime),
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: isDark
+                                                            ? Colors.white54
+                                                            : const Color(
+                                                                0xFF7C7C8A,
+                                                              ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                                const SizedBox(height: 3),
-                                                Text(
-                                                  DateFormat(
-                                                    'h:mm a',
-                                                  ).format(task.startTime),
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: isDark
-                                                        ? Colors.white54
-                                                        : const Color(
-                                                            0xFF7C7C8A,
+                                              ),
+                                              GestureDetector(
+                                                onTap: () => ref
+                                                    .read(
+                                                      taskControllerProvider
+                                                          .notifier,
+                                                    )
+                                                    .toggleComplete(task.id),
+                                                child: AnimatedContainer(
+                                                  duration: const Duration(
+                                                    milliseconds: 250,
+                                                  ),
+                                                  width: 26,
+                                                  height: 26,
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    gradient: task.isCompleted
+                                                        ? kGradientTeal
+                                                        : null,
+                                                    border: task.isCompleted
+                                                        ? null
+                                                        : Border.all(
+                                                            color: isDark
+                                                                ? Colors.white38
+                                                                : Colors
+                                                                      .black26,
+                                                            width: 1.5,
                                                           ),
                                                   ),
+                                                  child: task.isCompleted
+                                                      ? const Icon(
+                                                          Icons.check_rounded,
+                                                          size: 14,
+                                                          color: Colors.white,
+                                                        )
+                                                      : null,
                                                 ),
-                                              ],
-                                            ),
-                                          ),
-                                          GestureDetector(
-                                            onTap: () => ref
-                                                .read(
-                                                  taskControllerProvider
-                                                      .notifier,
-                                                )
-                                                .toggleComplete(task.id),
-                                            child: AnimatedContainer(
-                                              duration: const Duration(
-                                                milliseconds: 250,
                                               ),
-                                              width: 26,
-                                              height: 26,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                gradient: task.isCompleted
-                                                    ? kGradientTeal
-                                                    : null,
-                                                border: task.isCompleted
-                                                    ? null
-                                                    : Border.all(
-                                                        color: isDark
-                                                            ? Colors.white38
-                                                            : Colors.black26,
-                                                        width: 1.5,
-                                                      ),
-                                              ),
-                                              child: task.isCompleted
-                                                  ? const Icon(
-                                                      Icons.check_rounded,
-                                                      size: 14,
-                                                      color: Colors.white,
-                                                    )
-                                                  : null,
-                                            ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }, childCount: todayTasks.length > 5 ? 5 : todayTasks.length),
-                ),
-              ),
-
-            // ── Recent notes ────────────────────────────────────
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverToBoxAdapter(
-                child: Stagger(
-                  index: 4,
-                  child: BodySectionHeader(
-                    title: 'Recent Notes',
-                    trailing: notes.isEmpty ? null : 'See all',
-                    onTrailingTap: notes.isEmpty ? null : () => onNavigateTo(2),
-                  ),
-                ),
-              ),
-            ),
-            if (notes.isEmpty)
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverToBoxAdapter(
-                  child: Stagger(
-                    index: 5,
-                    child: EmptyState(
-                      icon: Icons.sticky_note_2_rounded,
-                      message: 'No notes yet. Capture your first idea!',
-                    ),
-                  ),
-                ),
-              )
-            else
-              SliverToBoxAdapter(
-                child: Stagger(
-                  index: 5,
-                  child: SizedBox(
-                    height: 150,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: notes.length > 5 ? 5 : notes.length,
-                      itemBuilder: (ctx, i) {
-                        final note = notes[i];
-                        return GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => NoteEditorScreen(note: note),
-                            ),
-                          ),
-                          child: Container(
-                            width: 200,
-                            margin: const EdgeInsets.only(right: 12),
-                            child: GlassCard(
-                              padding: const EdgeInsets.all(14),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      if (note.isPinned)
-                                        const Padding(
-                                          padding: EdgeInsets.only(right: 4),
-                                          child: Icon(
-                                            Icons.push_pin_rounded,
-                                            size: 13,
-                                            color: kCoral,
-                                          ),
-                                        ),
-                                      Expanded(
-                                        child: Text(
-                                          note.title,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 13,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 6),
-                                  Expanded(
-                                    child: Text(
-                                      note.summary ?? note.content,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: isDark
-                                            ? Colors.white60
-                                            : const Color(0xFF7C7C8A),
-                                        height: 1.4,
-                                      ),
-                                      maxLines: 4,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
                         );
                       },
+                      childCount: todayTasks.length > 5 ? 5 : todayTasks.length,
+                    ),
+                  ),
+                ),
+
+              // ── Recent notes ────────────────────────────────────
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverToBoxAdapter(
+                  child: Stagger(
+                    index: 4,
+                    child: BodySectionHeader(
+                      title: 'Recent Notes',
+                      trailing: notes.isEmpty ? null : 'See all',
+                      onTrailingTap: notes.isEmpty
+                          ? null
+                          : () => onNavigateTo(2),
                     ),
                   ),
                 ),
               ),
-
-            // ── Memory insights ──────────────────────────────────
-            if (memories.isNotEmpty) ...[
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverToBoxAdapter(
-                  child: Stagger(
-                    index: 6,
-                    child: const BodySectionHeader(title: 'Memory Insights'),
+              if (notes.isEmpty)
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: Stagger(
+                      index: 5,
+                      child: EmptyState(
+                        icon: Icons.sticky_note_2_rounded,
+                        message: 'No notes yet. Capture your first idea!',
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverToBoxAdapter(
+                )
+              else
+                SliverToBoxAdapter(
                   child: Stagger(
-                    index: 7,
-                    child: GlassCard(
-                      child: Column(
-                        children: memories
-                            .take(3)
-                            .map(
-                              (m) => Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 6,
-                                ),
-                                child: Row(
+                    index: 5,
+                    child: SizedBox(
+                      height: 150,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: notes.length > 5 ? 5 : notes.length,
+                        itemBuilder: (ctx, i) {
+                          final note = notes[i];
+                          return GestureDetector(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => NoteEditorScreen(note: note),
+                              ),
+                            ),
+                            child: Container(
+                              width: 200,
+                              margin: const EdgeInsets.only(right: 12),
+                              child: GlassCard(
+                                padding: const EdgeInsets.all(14),
+                                child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    ShaderMask(
-                                      shaderCallback: (b) =>
-                                          kGradientMain.createShader(b),
-                                      child: Icon(
-                                        _sourceIcon(m.sourceType),
-                                        size: 17,
-                                        color: Colors.white,
-                                      ),
+                                    Row(
+                                      children: [
+                                        if (note.isPinned)
+                                          const Padding(
+                                            padding: EdgeInsets.only(right: 4),
+                                            child: Icon(
+                                              Icons.push_pin_rounded,
+                                              size: 13,
+                                              color: kCoral,
+                                            ),
+                                          ),
+                                        Expanded(
+                                          child: Text(
+                                            note.title,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 13,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 10),
+                                    const SizedBox(height: 6),
                                     Expanded(
                                       child: Text(
-                                        m.content,
+                                        note.summary ?? note.content,
                                         style: TextStyle(
-                                          fontSize: 13,
-                                          height: 1.45,
+                                          fontSize: 12,
                                           color: isDark
-                                              ? Colors.white.withAlpha(200)
-                                              : kDark0,
+                                              ? Colors.white60
+                                              : const Color(0xFF7C7C8A),
+                                          height: 1.4,
                                         ),
+                                        maxLines: 4,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            )
-                            .toList(),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
 
-            const SliverToBoxAdapter(child: SizedBox(height: 120)),
-          ],
+              // ── Memory insights ──────────────────────────────────
+              if (memories.isNotEmpty) ...[
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: Stagger(
+                      index: 6,
+                      child: const BodySectionHeader(title: 'Memory Insights'),
+                    ),
+                  ),
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: Stagger(
+                      index: 7,
+                      child: GlassCard(
+                        child: Column(
+                          children: memories
+                              .take(3)
+                              .map(
+                                (m) => Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 6,
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ShaderMask(
+                                        shaderCallback: (b) =>
+                                            kGradientMain.createShader(b),
+                                        child: Icon(
+                                          _sourceIcon(m.sourceType),
+                                          size: 17,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          m.content,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            height: 1.45,
+                                            color: isDark
+                                                ? Colors.white.withAlpha(200)
+                                                : kDark0,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
+            ],
+          ),
         ),
       ),
     );
@@ -555,6 +603,90 @@ class DashboardScreen extends ConsumerWidget {
 
 bool isSameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
+
+// ── Streak badge ─────────────────────────────────────────────────────────────
+class _StreakBadge extends StatelessWidget {
+  final int streak;
+  const _StreakBadge({required this.streak});
+
+  @override
+  Widget build(BuildContext context) {
+    final milestones = [3, 7, 14, 30, 60, 100];
+    final nextMilestone = milestones.firstWhere(
+      (m) => m > streak,
+      orElse: () => streak + 10,
+    );
+    final remaining = nextMilestone - streak;
+
+    return GlassCard(
+      child: Row(
+        children: [
+          ShaderMask(
+            shaderCallback: (b) => kGradientWarm.createShader(b),
+            child: const Text('🔥', style: TextStyle(fontSize: 28)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$streak-day streak!',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  remaining == 1
+                      ? 'One more day to reach $nextMilestone!'
+                      : '$remaining days to reach $nextMilestone',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white54
+                        : Colors.black45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Progress pip indicators
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Row(
+                children: List.generate(
+                  (nextMilestone -
+                          (nextMilestone == milestones.first
+                              ? 0
+                              : (milestones[milestones.indexOf(nextMilestone) -
+                                    1])))
+                      .clamp(1, 10),
+                  (i) {
+                    final filled = i < streak.clamp(0, 10);
+                    return Container(
+                      width: 6,
+                      height: 6,
+                      margin: const EdgeInsets.only(left: 3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: filled ? kGradientWarm : null,
+                        color: filled ? null : Colors.grey.withAlpha(60),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _AIPulseIcon extends StatefulWidget {
   final bool loading;

@@ -55,11 +55,12 @@ class AIService {
   // ── Retry wrapper ────────────────────────────────────────────────────────
 
   /// Retries [fn] up to [maxAttempts] times with exponential back-off.
-  /// Waits 1 s → 2 s → 4 s between attempts.
+  /// Checks rate limit before each attempt.
   Future<T> _withRetry<T>(
     Future<T> Function() fn, {
     int maxAttempts = 3,
   }) async {
+    _tracker.guardRateLimit();
     var delay = const Duration(seconds: 1);
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       try {
@@ -169,6 +170,63 @@ Respond ONLY with a valid JSON array — no markdown, no explanation:
       await _tracker.log(action: 'planDay', response: response);
       return _parsePlanDayResult(response.text, existingTasks);
     });
+  }
+
+  // ── Proactive re-scheduling ──────────────────────────────────────────────
+
+  /// Given an overdue [task] and a list of candidate free [slots] (DateTime),
+  /// asks Gemini to pick the single best slot considering user memory patterns.
+  /// Returns the chosen [DateTime], or the first slot as a fallback.
+  Future<DateTime?> suggestReschedule({
+    required TaskItem task,
+    required List<DateTime> slots,
+    List<MemoryEntry>? memories,
+  }) async {
+    if (slots.isEmpty) return null;
+
+    final slotLines = slots
+        .asMap()
+        .entries
+        .map((e) => '  ${e.key + 1}. ${_formatSlot(e.value)}')
+        .join('\n');
+    final memCtx = _buildMemoryContext(memories, maxEntries: 5);
+    final prompt =
+        '''
+You are AutoPlanner AI. A task was missed and needs rescheduling.
+
+Task: "${_sanitize(task.title)}" [${task.priorityLabel}]
+Duration: ${_taskDurationMinutes(task)} min
+
+Available slots today:
+$slotLines
+$memCtx
+Pick the single best slot number considering priority, the user\'s energy patterns from memory, and realistic buffer time.
+Respond with ONLY the slot number as a single integer (e.g. "2"). No explanation.
+''';
+
+    return await _withRetry(() async {
+      final response = await _provider.complete(prompt);
+      await _tracker.log(action: 'suggestReschedule', response: response);
+      final pick = int.tryParse(response.text.trim());
+      if (pick != null && pick >= 1 && pick <= slots.length) {
+        return slots[pick - 1];
+      }
+      return slots.first; // fallback if model returns invalid index
+    });
+  }
+
+  String _formatSlot(DateTime dt) {
+    final h = dt.hour.toString().padLeft(2, '0');
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
+  int _taskDurationMinutes(TaskItem task) {
+    if (task.endTime != null) {
+      final d = task.endTime!.difference(task.startTime).inMinutes;
+      if (d >= 15) return d;
+    }
+    return 60;
   }
 
   // ── Note summarization ───────────────────────────────────────────────────
@@ -342,56 +400,124 @@ ${_sanitize(input)}
       return const BrainDumpResult(tasks: [], notes: [], memories: []);
     }
   }
-  // ── Reschedule suggestion ────────────────────────────────────────────────
+  // ── Behavioural pattern extraction ──────────────────────────────────────
 
-  /// Given a blocked event and a list of occupied windows, suggests 3
-  /// alternative time slots.
-  Future<List<Map<String, dynamic>>> suggestReschedule({
-    required TaskItem blocked,
-    required List<TaskItem> occupied,
-    required int workStartHour,
-    required int workHoursPerDay,
+  /// Analyses completed-task history to extract reusable behavioural patterns.
+  ///
+  /// Returns a list of patterns like:
+  /// `[{"pattern":"User focuses on creative work before noon","confidence":0.8,"category":"time"}]`
+  ///
+  /// Results should be stored as [MemoryEntry] records with `sourceType='pattern'`.
+  Future<List<Map<String, dynamic>>> extractPatterns(
+    List<TaskItem> history, {
+    List<MemoryEntry>? memories,
   }) async {
-    final workEnd = workStartHour + workHoursPerDay;
-    final occupiedLines = occupied.isEmpty
-        ? '  (none)'
-        : occupied
-              .map(
-                (t) =>
-                    '  - "${t.title}" ${t.startTime.hour}:${t.startTime.minute.toString().padLeft(2, '0')} – ${(t.endTime ?? t.startTime.add(const Duration(hours: 1))).hour}:${(t.endTime ?? t.startTime.add(const Duration(hours: 1))).minute.toString().padLeft(2, '0')}',
-              )
-              .join('\n');
+    final completed = history.where((t) => t.isCompleted).toList();
+    if (completed.length < 3) return []; // not enough data
 
-    final durationMins = blocked.endTime != null
-        ? blocked.endTime!.difference(blocked.startTime).inMinutes
-        : 60;
+    final taskLines = completed
+        .take(40)
+        .map((t) {
+          final h = t.startTime.hour;
+          final period = h < 12
+              ? 'morning'
+              : (h < 17 ? 'afternoon' : 'evening');
+          return '  - "${t.title}" [$period] [${t.priorityLabel}] tags: ${t.tags.join(", ")}';
+        })
+        .join('\n');
+
+    final memCtx = _buildMemoryContext(memories, maxEntries: 5);
 
     final prompt =
         '''
-You are AutoPlanner AI. Suggest 3 alternative time slots for a blocked task.
-
-Blocked task: "${_sanitize(blocked.title)}" (duration: $durationMins minutes)
-Work window: ${workStartHour.toString().padLeft(2, '0')}:00 – ${workEnd.toString().padLeft(2, '0')}:00
-
-Already occupied:
-$occupiedLines
+You are AutoPlanner AI. Analyse the user's task completion history and extract 3-6 meaningful behavioural patterns.
+Focus on: time-of-day preferences, task category habits, productivity rhythms, recurring behaviours.
+$memCtx
+Completed tasks:
+$taskLines
 
 Respond ONLY with a valid JSON array — no markdown, no explanation:
-[{"startTime":"HH:mm","reason":"Short rationale"}]
+[{"pattern":"One-sentence pattern description","confidence":0.7,"category":"time|task|habit|productivity"}]
+
+Rules:
+- confidence: 0.3 (weak signal) to 0.9 (very consistent)
+- Only include patterns supported by the data
+- Be specific and actionable (e.g., NOT "user likes mornings" but "user completes high-priority tasks before 11am")
 ''';
 
     return await _withRetry(() async {
       final response = await _provider.complete(prompt);
-      await _tracker.log(action: 'suggestReschedule', response: response);
+      await _tracker.log(action: 'extractPatterns', response: response);
       try {
         final jsonStr = _extractJsonArray(response.text);
-        if (jsonStr == null) return [];
+        if (jsonStr == null) return <Map<String, dynamic>>[];
         final list = jsonDecode(jsonStr) as List<dynamic>;
         return list.cast<Map<String, dynamic>>();
       } catch (_) {
-        return [];
+        return <Map<String, dynamic>>[];
       }
     });
+  }
+
+  // ── Proactive task suggestions ───────────────────────────────────────────
+
+  /// Suggests tasks the user might want to schedule based on memory context,
+  /// past behaviour patterns, and the target [date].
+  ///
+  /// Returns a short list of actionable task title strings (not full objects)
+  /// so the UI can render them as quick-add chips.
+  Future<List<String>> suggestTasks({
+    required List<MemoryEntry> memories,
+    required DateTime date,
+    List<TaskItem>? recentHistory,
+  }) async {
+    if (memories.isEmpty && (recentHistory?.isEmpty ?? true)) return [];
+
+    final memCtx = _buildMemoryContext(memories, maxEntries: 12);
+
+    final historyLines = recentHistory == null || recentHistory.isEmpty
+        ? '  (none)'
+        : recentHistory
+              .take(15)
+              .map((t) => '  - "${t.title}" [${t.priorityLabel}]')
+              .join('\n');
+
+    final dayName = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ][date.weekday - 1];
+
+    final prompt =
+        '''
+You are AutoPlanner AI. Suggest 4-6 tasks the user might want to add to their schedule for $dayName.
+Base suggestions on their memory context, recent history, and typical patterns.
+$memCtx
+Recent task history:
+$historyLines
+
+Respond ONLY with a valid JSON array of short, actionable task titles — no markdown, no explanation:
+["Review project proposal","Call dentist","30-min workout","Weekly grocery run"]
+
+Rules:
+- Keep each title under 40 characters
+- Be concrete and actionable — not vague like "work on project"
+- Vary by type (health, work, personal, admin)
+- Only suggest things plausibly relevant to this user's context
+''';
+
+    try {
+      final response = await _provider.complete(prompt);
+      await _tracker.log(action: 'suggestTasks', response: response);
+      return _parseStringList(response.text);
+    } catch (e) {
+      if (kDebugMode) debugPrint('suggestTasks failed: $e');
+      return [];
+    }
   }
 
   // ── Weekly review ──────────────────────────────────────────────────────────
@@ -560,7 +686,7 @@ Respond with ONLY the review text.
             ((task['estimatedMinutes'] as num?)?.toInt() ?? 60).clamp(15, 480);
         return TaskItem(
           id: _uuid.v4(),
-          title: (task['title'] as String).trim(),
+          title: (task['title'] as String?)?.trim() ?? 'Task',
           startTime: start,
           endTime: start.add(Duration(minutes: estimatedMins)),
           priority: (task['priority'] as int?)?.clamp(0, 3) ?? 1,
@@ -594,9 +720,11 @@ Respond with ONLY the review text.
     int maxEntries = 10,
   }) {
     if (memories == null || memories.isEmpty) return '';
-    final lines = memories
+    final sorted = List<MemoryEntry>.from(memories)
+      ..sort((a, b) => b.relevanceScore.compareTo(a.relevanceScore));
+    final lines = sorted
         .take(maxEntries)
-        .map((m) => '  - ${m.content}')
+        .map((m) => '  - ${_sanitize(m.content)}')
         .join('\n');
     return '\nUser context from memory:\n$lines\n';
   }

@@ -104,6 +104,16 @@ class SettingsController extends StateNotifier<AppSettings> {
     state = state.copyWith(requireBiometrics: v);
   }
 
+  Future<void> updateMorningBriefingEnabled(bool v) async {
+    await _box.put(AppSettings.kMorningBriefingEnabled, v);
+    state = state.copyWith(morningBriefingEnabled: v);
+  }
+
+  Future<void> updateMorningBriefingHour(int v) async {
+    await _box.put(AppSettings.kMorningBriefingHour, v);
+    state = state.copyWith(morningBriefingHour: v);
+  }
+
   Future<void> updateGeminiApiKey(String key) async {
     if (key.trim().isEmpty) {
       await SecureKeyService.deleteGeminiApiKey();

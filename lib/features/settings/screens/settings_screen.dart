@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
+import '../../../services/backup_service.dart';
 import '../controllers/settings_controller.dart';
 import '../models/app_settings_model.dart';
 import 'profile_screen.dart';
 import '../../onboarding/screens/onboarding_screen.dart';
+import 'help_screen.dart';
+import 'weekly_review_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -428,9 +431,30 @@ class SettingsScreen extends ConsumerWidget {
 
                   const SizedBox(height: 16),
 
-                  // ── Integrations ──────────────────────────────────────
+                  // ── Notifications ─────────────────────────────────────
                   Stagger(
                     index: 8,
+                    child: SectionLabel(
+                      icon: Icons.notifications_outlined,
+                      label: 'Notifications',
+                      color: kCoral,
+                    ),
+                  ),
+                  Stagger(
+                    index: 9,
+                    child: GlassCard(
+                      child: _MorningBriefingTile(
+                        settings: settings,
+                        ctrl: ctrl,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ── Integrations ──────────────────────────────────────
+                  Stagger(
+                    index: 10,
                     child: SectionLabel(
                       icon: Icons.sync_alt_rounded,
                       label: 'Integrations',
@@ -438,11 +462,13 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ),
                   Stagger(
-                    index: 9,
+                    index: 11,
                     child: GlassCard(
                       child: Column(
                         children: [
                           _GoogleCalendarTile(settings: settings, ctrl: ctrl),
+                          _GlassDivider(),
+                          _OutlookCalendarTile(settings: settings, ctrl: ctrl),
                         ],
                       ),
                     ),
@@ -452,7 +478,7 @@ class SettingsScreen extends ConsumerWidget {
 
                   // ── About ─────────────────────────────────────────────
                   Stagger(
-                    index: 10,
+                    index: 12,
                     child: SectionLabel(
                       icon: Icons.info_outline,
                       label: 'About',
@@ -460,7 +486,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ),
                   Stagger(
-                    index: 11,
+                    index: 13,
                     child: GlassCard(
                       child: Column(
                         children: [
@@ -501,9 +527,35 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                           _GlassDivider(),
                           _ListTile(
-                            icon: Icons.help_outline,
-                            title: 'Help & Tour',
-                            subtitle: 'Replay the onboarding walkthrough',
+                            icon: Icons.bar_chart_rounded,
+                            title: 'Weekly Review',
+                            subtitle: 'AI-powered summary of your week',
+                            trailing: const Icon(Icons.chevron_right, size: 18),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const WeeklyReviewScreen(),
+                              ),
+                            ),
+                          ),
+                          _GlassDivider(),
+                          _ListTile(
+                            icon: Icons.help_outline_rounded,
+                            title: 'Help & Guide',
+                            subtitle: 'How the app works, feature guide & FAQ',
+                            trailing: const Icon(Icons.chevron_right, size: 18),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const HelpScreen(),
+                              ),
+                            ),
+                          ),
+                          _GlassDivider(),
+                          _ListTile(
+                            icon: Icons.tour_outlined,
+                            title: 'Replay Tour',
+                            subtitle: 'Watch the onboarding walkthrough again',
                             trailing: const Icon(Icons.chevron_right, size: 18),
                             onTap: () => Navigator.push(
                               context,
@@ -520,11 +572,11 @@ class SettingsScreen extends ConsumerWidget {
 
                   const SizedBox(height: 16),
 
-                  // ── Danger zone ───────────────────────────────────────
+                  // ── Data / Backup ──────────────────────────────────────
                   Stagger(
                     index: 12,
                     child: SectionLabel(
-                      icon: Icons.warning_amber_rounded,
+                      icon: Icons.save_alt_rounded,
                       label: 'Data',
                       color: kCoral,
                     ),
@@ -532,14 +584,34 @@ class SettingsScreen extends ConsumerWidget {
                   Stagger(
                     index: 13,
                     child: GlassCard(
-                      child: _ListTile(
-                        icon: Icons.restart_alt_rounded,
-                        title: 'Reset all settings',
-                        subtitle:
-                            'Restore defaults — does not delete tasks or notes',
-                        titleColor: kCoral,
-                        iconColor: kCoral,
-                        onTap: () => _confirmReset(context, ctrl),
+                      child: Column(
+                        children: [
+                          _ListTile(
+                            icon: Icons.upload_rounded,
+                            title: 'Export backup',
+                            subtitle: 'Save all data as a JSON file',
+                            trailing: const Icon(Icons.chevron_right, size: 18),
+                            onTap: () => _exportBackup(context),
+                          ),
+                          _GlassDivider(),
+                          _ListTile(
+                            icon: Icons.download_rounded,
+                            title: 'Import backup',
+                            subtitle: 'Restore data from a JSON backup file',
+                            trailing: const Icon(Icons.chevron_right, size: 18),
+                            onTap: () => _importBackup(context),
+                          ),
+                          _GlassDivider(),
+                          _ListTile(
+                            icon: Icons.restart_alt_rounded,
+                            title: 'Reset all settings',
+                            subtitle:
+                                'Restore defaults — does not delete tasks or notes',
+                            titleColor: kCoral,
+                            iconColor: kCoral,
+                            onTap: () => _confirmReset(context, ctrl),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -738,6 +810,49 @@ class SettingsScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  static Future<void> _exportBackup(BuildContext context) async {
+    try {
+      await BackupService().exportToFile();
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e'), backgroundColor: kCoral),
+        );
+      }
+    }
+  }
+
+  static Future<void> _importBackup(BuildContext context) async {
+    try {
+      final result = await BackupService().importFromFile();
+      if (result == null) return; // user cancelled
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Imported ${result.total} items '
+              '(${result.tasks} tasks, ${result.notes} notes, '
+              '${result.calendarEvents} events, ${result.memories} memories)',
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } on FormatException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), backgroundColor: kCoral),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Import failed: $e'), backgroundColor: kCoral),
+        );
+      }
+    }
   }
 
   static void _confirmReset(BuildContext context, SettingsController ctrl) {
@@ -1116,6 +1231,99 @@ class _SecurityTileState extends ConsumerState<_SecurityTile> {
     );
   }
 }
+// ── Morning Briefing tile ──────────────────────────────────────────
+
+class _MorningBriefingTile extends ConsumerStatefulWidget {
+  final AppSettings settings;
+  final SettingsController ctrl;
+
+  const _MorningBriefingTile({required this.settings, required this.ctrl});
+
+  @override
+  ConsumerState<_MorningBriefingTile> createState() =>
+      _MorningBriefingTileState();
+}
+
+class _MorningBriefingTileState extends ConsumerState<_MorningBriefingTile> {
+  Future<void> _toggle(bool value) async {
+    await widget.ctrl.updateMorningBriefingEnabled(value);
+    final notifService = ref.read(notificationServiceProvider);
+    if (value) {
+      await notifService.scheduleMorningBriefing(
+        hour: widget.settings.morningBriefingHour,
+        minute: 0,
+        body:
+            'Good morning! Your AI planner is ready to help you plan the day.',
+      );
+    } else {
+      await notifService.cancelMorningBriefing();
+    }
+  }
+
+  Future<void> _pickHour() async {
+    final now = TimeOfDay(hour: widget.settings.morningBriefingHour, minute: 0);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: now,
+      helpText: 'Choose briefing time',
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+        child: child!,
+      ),
+    );
+    if (picked == null) return;
+    await widget.ctrl.updateMorningBriefingHour(picked.hour);
+    if (widget.settings.morningBriefingEnabled) {
+      await ref
+          .read(notificationServiceProvider)
+          .scheduleMorningBriefing(
+            hour: picked.hour,
+            minute: 0,
+            body:
+                'Good morning! Your AI planner is ready to help you plan the day.',
+          );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.settings.morningBriefingEnabled;
+    final hour = widget.settings.morningBriefingHour;
+    final timeLabel = TimeOfDay(hour: hour, minute: 0).format(context);
+
+    return Column(
+      children: [
+        SwitchListTile(
+          secondary: Icon(Icons.wb_sunny_outlined, color: kAmber, size: 22),
+          title: const Text('Morning Briefing'),
+          subtitle: const Text('Daily AI summary at your chosen time'),
+          value: enabled,
+          onChanged: _toggle,
+          activeThumbColor: kAmber,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        if (enabled)
+          ListTile(
+            leading: const Icon(Icons.schedule_outlined, size: 22),
+            title: const Text('Briefing time'),
+            trailing: TextButton(
+              onPressed: _pickHour,
+              child: Text(
+                timeLabel,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 // ── Google Calendar tile ───────────────────────────────────────────
 
 class _GoogleCalendarTile extends ConsumerStatefulWidget {
@@ -1194,6 +1402,110 @@ class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
+      ),
+      trailing: _loading
+          ? null
+          : connected
+          ? TextButton(
+              onPressed: _disconnect,
+              child: const Text(
+                'Disconnect',
+                style: TextStyle(color: kCoral, fontSize: 12),
+              ),
+            )
+          : TextButton(
+              onPressed: _connect,
+              child: ShaderMask(
+                shaderCallback: (b) => kGradientMain.createShader(b),
+                child: const Text(
+                  'Connect',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    );
+  }
+}
+
+// ── Outlook Calendar tile ─────────────────────────────────────────
+
+class _OutlookCalendarTile extends ConsumerStatefulWidget {
+  final AppSettings settings;
+  final SettingsController ctrl;
+
+  const _OutlookCalendarTile({required this.settings, required this.ctrl});
+
+  @override
+  ConsumerState<_OutlookCalendarTile> createState() =>
+      _OutlookCalendarTileState();
+}
+
+class _OutlookCalendarTileState extends ConsumerState<_OutlookCalendarTile> {
+  bool _loading = false;
+
+  Future<void> _connect() async {
+    setState(() => _loading = true);
+    final msalAuth = ref.read(msalAuthServiceProvider);
+    final email = await msalAuth.signIn();
+    setState(() => _loading = false);
+    if (email != null) {
+      await widget.ctrl.updateOutlookConnection(true);
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Microsoft sign-in cancelled.')),
+      );
+    }
+  }
+
+  Future<void> _disconnect() async {
+    setState(() => _loading = true);
+    final msalAuth = ref.read(msalAuthServiceProvider);
+    await msalAuth.signOut();
+    await widget.ctrl.updateOutlookConnection(false);
+    setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final connected = widget.settings.isOutlookConnected;
+
+    return ListTile(
+      leading: _loading
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              Icons.mail_outline_rounded,
+              size: 20,
+              color: connected
+                  ? kCyan
+                  : (isDark ? Colors.white60 : Colors.black54),
+            ),
+      title: Text(
+        'Outlook Calendar',
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: isDark ? Colors.white : kDark0,
+        ),
+      ),
+      subtitle: Text(
+        connected
+            ? 'Connected to Microsoft account'
+            : 'Sync events with Outlook Calendar',
+        style: TextStyle(
+          fontSize: 12,
+          color: connected ? kCyan : (isDark ? Colors.white38 : Colors.black38),
+        ),
       ),
       trailing: _loading
           ? null

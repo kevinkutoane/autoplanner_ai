@@ -6,6 +6,10 @@ import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../planner/controllers/task_controller.dart';
 import '../../../core/models/task_model.dart';
+import '../../../core/ai/token_tracker.dart';
+import '../../notes/controllers/note_controller.dart';
+import '../../../core/models/note_model.dart';
+import '../../../services/reschedule_service.dart';
 
 class PlannerScreen extends ConsumerWidget {
   const PlannerScreen({super.key});
@@ -13,6 +17,7 @@ class PlannerScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final allTasks = ref.watch(taskControllerProvider);
+    final searchQuery = ref.watch(plannerSearchProvider).toLowerCase();
     final now = DateTime.now();
     final tasks =
         allTasks
@@ -22,8 +27,32 @@ class PlannerScreen extends ConsumerWidget {
                   t.startTime.month == now.month &&
                   t.startTime.day == now.day,
             )
+            .where(
+              (t) =>
+                  searchQuery.isEmpty ||
+                  t.title.toLowerCase().contains(searchQuery) ||
+                  (t.note?.toLowerCase().contains(searchQuery) ?? false) ||
+                  t.tags.any((tag) => tag.toLowerCase().contains(searchQuery)),
+            )
             .toList()
           ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+    // ── Time-overlap detection ────────────────────────────────────────
+    // Build a set of task IDs that have at least one time conflict.
+    final conflictingIds = <String>{};
+    for (var i = 0; i < tasks.length; i++) {
+      for (var j = i + 1; j < tasks.length; j++) {
+        final a = tasks[i];
+        final b = tasks[j];
+        final aEnd = a.endTime ?? a.startTime.add(const Duration(hours: 1));
+        final bEnd = b.endTime ?? b.startTime.add(const Duration(hours: 1));
+        // Overlap: a starts before b ends AND b starts before a ends
+        if (a.startTime.isBefore(bEnd) && b.startTime.isBefore(aEnd)) {
+          conflictingIds.add(a.id);
+          conflictingIds.add(b.id);
+        }
+      }
+    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -32,153 +61,183 @@ class PlannerScreen extends ConsumerWidget {
       ),
       body: OrbBackground(
         subtle: true,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: GradientHeader(
-                gradient: LinearGradient(
-                  colors: [kDark0, const Color(0xFF1A1040)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Day Planner',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
+        child: RefreshIndicator(
+          onRefresh: () => Future.delayed(const Duration(milliseconds: 400)),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: [
+              SliverToBoxAdapter(
+                child: GradientHeader(
+                  gradient: LinearGradient(
+                    colors: [kDark0, const Color(0xFF1A1040)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Day Planner',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 26,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.5,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            DateFormat('EEEE, MMM d').format(DateTime.now()),
-                            style: const TextStyle(
-                              color: Colors.white60,
-                              fontSize: 14,
+                            const SizedBox(height: 4),
+                            Text(
+                              DateFormat('EEEE, MMM d').format(DateTime.now()),
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                fontSize: 14,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: kGradientMain,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${tasks.where((t) => t.isCompleted).length}/${tasks.length} done',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                          ],
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            if (tasks.isEmpty)
-              // Plan My Day banner is always visible so users can kick off
-              // AI planning even when no tasks exist yet.
-              SliverToBoxAdapter(
-                child: _PlanMyDayBanner(
-                  pendingCount: 0,
-                  onTap: () => _showPlanMyDaySheet(context, ref),
-                ),
-              ),
-
-            if (tasks.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Center(
-                  child: EmptyState(
-                    icon: Icons.schedule_rounded,
-                    message:
-                        'No tasks planned. Tap the button below to add tasks with AI!',
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: kGradientMain,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${tasks.where((t) => t.isCompleted).length}/${tasks.length} done',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              )
-            else ...[
+              ),
+
+              // ── Search bar ───────────────────────────────────────
               SliverToBoxAdapter(
-                child: _PlanMyDayBanner(
-                  pendingCount: tasks.where((t) => !t.isCompleted).length,
-                  onTap: () => _showPlanMyDaySheet(context, ref),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search tasks...',
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      isDense: true,
+                      filled: true,
+                      fillColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest.withAlpha(100),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onChanged: (v) =>
+                        ref.read(plannerSearchProvider.notifier).state = v,
+                  ),
                 ),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-                sliver: SliverToBoxAdapter(
-                  child: AnimationLimiter(
-                    child: ReorderableListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: tasks.length,
-                      onReorder: (oldIndex, newIndex) {
-                        if (oldIndex < newIndex) newIndex -= 1;
-                        // Just swap the two tasks' times with each other
-                        final reordered = List<TaskItem>.from(tasks)
-                          ..removeAt(oldIndex)
-                          ..insert(newIndex, tasks[oldIndex]);
-                        // Swap only the start/end times of affected items
-                        // keeping original durations and relative offsets
-                        final updated = <TaskItem>[];
-                        for (var i = 0; i < reordered.length; i++) {
-                          final t = reordered[i];
-                          final dur = t.endTime != null
-                              ? t.endTime!.difference(t.startTime)
-                              : const Duration(hours: 1);
-                          // Find the slot time from the original position
-                          final slotTime = i < tasks.length
-                              ? tasks[i].startTime
-                              : tasks.last.endTime ??
-                                    tasks.last.startTime.add(
-                                      const Duration(hours: 1),
-                                    );
-                          updated.add(
-                            t.copyWith(
-                              startTime: slotTime,
-                              endTime: slotTime.add(dur),
+
+              if (tasks.isEmpty)
+                // Plan My Day banner is always visible so users can kick off
+                // AI planning even when no tasks exist yet.
+                SliverToBoxAdapter(
+                  child: _PlanMyDayBanner(
+                    pendingCount: 0,
+                    onTap: () => _showPlanMyDaySheet(context, ref),
+                  ),
+                ),
+
+              if (tasks.isEmpty)
+                // AI-powered suggestions for an empty day
+                const SliverToBoxAdapter(child: _TaskSuggestionsPanel())
+              else ...[
+                SliverToBoxAdapter(
+                  child: _PlanMyDayBanner(
+                    pendingCount: tasks.where((t) => !t.isCompleted).length,
+                    onTap: () => _showPlanMyDaySheet(context, ref),
+                  ),
+                ),
+                // ── Proactive reschedule banner ────────────────────────────
+                const SliverToBoxAdapter(child: _OverdueBanner()),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+                  sliver: SliverToBoxAdapter(
+                    child: AnimationLimiter(
+                      child: ReorderableListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: tasks.length,
+                        onReorder: (oldIndex, newIndex) {
+                          if (oldIndex < newIndex) newIndex -= 1;
+                          // Just swap the two tasks' times with each other
+                          final reordered = List<TaskItem>.from(tasks)
+                            ..removeAt(oldIndex)
+                            ..insert(newIndex, tasks[oldIndex]);
+                          // Swap only the start/end times of affected items
+                          // keeping original durations and relative offsets
+                          final updated = <TaskItem>[];
+                          for (var i = 0; i < reordered.length; i++) {
+                            final t = reordered[i];
+                            final dur = t.endTime != null
+                                ? t.endTime!.difference(t.startTime)
+                                : const Duration(hours: 1);
+                            // Find the slot time from the original position
+                            final slotTime = i < tasks.length
+                                ? tasks[i].startTime
+                                : tasks.last.endTime ??
+                                      tasks.last.startTime.add(
+                                        const Duration(hours: 1),
+                                      );
+                            updated.add(
+                              t.copyWith(
+                                startTime: slotTime,
+                                endTime: slotTime.add(dur),
+                              ),
+                            );
+                          }
+                          ref
+                              .read(taskControllerProvider.notifier)
+                              .reorderTasks(updated);
+                        },
+                        itemBuilder: (ctx, i) {
+                          final task = tasks[i];
+                          return AnimationConfiguration.staggeredList(
+                            key: ValueKey(task.id),
+                            position: i,
+                            duration: const Duration(milliseconds: 400),
+                            child: SlideAnimation(
+                              verticalOffset: 30,
+                              child: FadeInAnimation(
+                                child: _TaskRow(
+                                  task: task,
+                                  index: i,
+                                  isConflicting: conflictingIds.contains(
+                                    task.id,
+                                  ),
+                                ),
+                              ),
                             ),
                           );
-                        }
-                        ref
-                            .read(taskControllerProvider.notifier)
-                            .reorderTasks(updated);
-                      },
-                      itemBuilder: (ctx, i) {
-                        final task = tasks[i];
-                        return AnimationConfiguration.staggeredList(
-                          key: ValueKey(task.id),
-                          position: i,
-                          duration: const Duration(milliseconds: 400),
-                          child: SlideAnimation(
-                            verticalOffset: 30,
-                            child: FadeInAnimation(
-                              child: _TaskRow(task: task, index: i),
-                            ),
-                          ),
-                        );
-                      },
+                        },
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -217,7 +276,12 @@ class PlannerScreen extends ConsumerWidget {
 class _TaskRow extends ConsumerWidget {
   final TaskItem task;
   final int index;
-  const _TaskRow({required this.task, required this.index});
+  final bool isConflicting;
+  const _TaskRow({
+    required this.task,
+    required this.index,
+    this.isConflicting = false,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -228,224 +292,322 @@ class _TaskRow extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: GlassCard(
         padding: EdgeInsets.zero,
-        child: IntrinsicHeight(
-          child: Row(
-            children: [
-              // priority bar
-              Container(
-                width: 5,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: pColors,
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Conflict warning banner ───────────────────────
+            if (isConflicting)
+              GestureDetector(
+                onTap: () => _showRescheduleSheet(context, ref),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
                   ),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(20),
-                    bottomLeft: Radius.circular(20),
+                  decoration: BoxDecoration(
+                    color: kCoral.withAlpha(30),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
                   ),
-                ),
-              ),
-              // time column
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 14,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      DateFormat('h:mm').format(task.startTime),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: kIndigo,
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        size: 13,
+                        color: kCoral,
                       ),
-                    ),
-                    Container(
-                      width: 1,
-                      height: 20,
-                      color: kIndigo.withAlpha(60),
-                    ),
-                    Text(
-                      DateFormat('h:mm a').format(
-                        task.endTime ??
-                            task.startTime.add(const Duration(hours: 1)),
-                      ),
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isDark
-                            ? Colors.white38
-                            : const Color(0xFF9090A0),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // content — tap to edit
-              Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => _TaskEditSheet(task: task),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 4,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          task.title,
+                      const SizedBox(width: 6),
+                      const Expanded(
+                        child: Text(
+                          'Time conflict — tap to get AI reschedule suggestions',
                           style: TextStyle(
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            decoration: task.isCompleted
-                                ? TextDecoration.lineThrough
-                                : null,
-                            color: task.isCompleted
-                                ? (isDark ? Colors.white38 : Colors.black38)
-                                : null,
+                            color: kCoral,
                           ),
                         ),
-                        if (task.note?.isNotEmpty ?? false) ...[
-                          const SizedBox(height: 3),
-                          Text(
-                            task.note ?? '',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark
-                                  ? Colors.white54
-                                  : const Color(0xFF7C7C8A),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                      ),
+                      const Icon(
+                        Icons.auto_fix_high_rounded,
+                        size: 13,
+                        color: kCoral,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            IntrinsicHeight(
+              child: Row(
+                children: [
+                  // priority bar
+                  Container(
+                    width: 5,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: pColors,
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        bottomLeft: Radius.circular(20),
+                      ),
+                    ),
+                  ),
+                  // time column
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          DateFormat('h:mm').format(task.startTime),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: kIndigo,
                           ),
-                        ],
-                        if (task.tags.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 4,
-                            children: task.tags
-                                .take(3)
-                                .map(
-                                  (tag) => Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: kIndigo.withAlpha(30),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Text(
-                                      tag,
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        color: kIndigo,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 20,
+                          color: kIndigo.withAlpha(60),
+                        ),
+                        Text(
+                          DateFormat('h:mm a').format(
+                            task.endTime ??
+                                task.startTime.add(const Duration(hours: 1)),
                           ),
-                        ],
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isDark
+                                ? Colors.white38
+                                : const Color(0xFF9090A0),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                ), // GestureDetector
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // complete toggle
-                  GestureDetector(
-                    onTap: () => ref
-                        .read(taskControllerProvider.notifier)
-                        .toggleComplete(task.id),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      width: 28,
-                      height: 28,
-                      margin: const EdgeInsets.only(right: 4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: task.isCompleted ? kGradientTeal : null,
-                        border: task.isCompleted
-                            ? null
-                            : Border.all(
-                                color: isDark ? Colors.white38 : Colors.black26,
-                                width: 1.5,
-                              ),
-                      ),
-                      child: task.isCompleted
-                          ? const Icon(
-                              Icons.check_rounded,
-                              size: 15,
-                              color: Colors.white,
-                            )
-                          : null,
-                    ),
-                  ),
-                  // delete
-                  GestureDetector(
-                    onTap: () async {
-                      final confirmed = await showDialog<bool>(
+                  // content — tap to edit
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => showModalBottomSheet<void>(
                         context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Delete task?'),
-                          content: Text('"${task.title}"'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text(
-                                'Delete',
-                                style: TextStyle(color: kCoral),
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => _TaskEditSheet(task: task),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 4,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              task.title,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                decoration: task.isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: task.isCompleted
+                                    ? (isDark ? Colors.white38 : Colors.black38)
+                                    : null,
                               ),
                             ),
+                            if (task.note?.isNotEmpty ?? false) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                task.note ?? '',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark
+                                      ? Colors.white54
+                                      : const Color(0xFF7C7C8A),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                            if (task.tags.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 4,
+                                children: task.tags
+                                    .take(3)
+                                    .map(
+                                      (tag) => Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: kIndigo.withAlpha(30),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          tag,
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            color: kIndigo,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                            ],
                           ],
                         ),
-                      );
-                      if (confirmed == true) {
-                        ref
-                            .read(taskControllerProvider.notifier)
-                            .removeTask(task.id);
-                      }
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Icon(
-                        Icons.close_rounded,
-                        size: 18,
-                        color: isDark ? Colors.white38 : Colors.black26,
                       ),
-                    ),
+                    ), // GestureDetector
                   ),
-                  // drag handle
-                  Padding(
-                    padding: const EdgeInsets.only(right: 10),
-                    child: Icon(
-                      Icons.drag_indicator_rounded,
-                      size: 20,
-                      color: isDark ? Colors.white24 : Colors.black12,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // complete toggle
+                      GestureDetector(
+                        onTap: () => ref
+                            .read(taskControllerProvider.notifier)
+                            .toggleComplete(task.id),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          width: 28,
+                          height: 28,
+                          margin: const EdgeInsets.only(right: 4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: task.isCompleted ? kGradientTeal : null,
+                            border: task.isCompleted
+                                ? null
+                                : Border.all(
+                                    color: isDark
+                                        ? Colors.white38
+                                        : Colors.black26,
+                                    width: 1.5,
+                                  ),
+                          ),
+                          child: task.isCompleted
+                              ? const Icon(
+                                  Icons.check_rounded,
+                                  size: 15,
+                                  color: Colors.white,
+                                )
+                              : null,
+                        ),
+                      ),
+                      // delete
+                      GestureDetector(
+                        onTap: () {
+                          final messenger = ScaffoldMessenger.of(context);
+                          ref
+                              .read(taskControllerProvider.notifier)
+                              .removeTask(task.id);
+                          messenger
+                            ..clearSnackBars()
+                            ..showSnackBar(
+                              SnackBar(
+                                behavior: SnackBarBehavior.floating,
+                                showCloseIcon: true,
+                                duration: const Duration(seconds: 8),
+                                content: Text('"${task.title}" deleted'),
+                                action: SnackBarAction(
+                                  label: 'UNDO',
+                                  onPressed: () {
+                                    try {
+                                      ref
+                                          .read(taskControllerProvider.notifier)
+                                          .addTask(task);
+                                    } catch (_) {}
+                                  },
+                                ),
+                              ),
+                            );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: isDark ? Colors.white38 : Colors.black26,
+                          ),
+                        ),
+                      ),
+                      // drag handle
+                      Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: Icon(
+                          Icons.drag_indicator_rounded,
+                          size: 20,
+                          color: isDark ? Colors.white24 : Colors.black12,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  void _showRescheduleSheet(BuildContext context, WidgetRef ref) {
+    final settings = ref.read(settingsProvider);
+    final scheduler = ref.read(schedulerServiceProvider);
+    final allTasks = ref.read(taskControllerProvider);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final busyTasks = allTasks
+        .where(
+          (t) =>
+              t.startTime.year == today.year &&
+              t.startTime.month == today.month &&
+              t.startTime.day == today.day &&
+              t.id != task.id,
+        )
+        .toList();
+    final duration = task.endTime != null
+        ? task.endTime!.difference(task.startTime)
+        : const Duration(hours: 1);
+    final slots = scheduler.freeSlots(
+      day: today,
+      workStartHour: settings.workStartHour,
+      workHoursPerDay: settings.workHoursPerDay,
+      slotDuration: duration,
+      busyTasks: busyTasks,
+      count: 4,
+    );
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _RescheduleSheet(
+        taskTitle: task.title,
+        slots: slots,
+        onApply: (newStart) {
+          ref
+              .read(taskControllerProvider.notifier)
+              .updateTask(
+                task.copyWith(
+                  startTime: newStart,
+                  endTime: newStart.add(duration),
+                ),
+              );
+        },
       ),
     );
   }
@@ -524,7 +686,9 @@ class _AddTaskDialogState extends State<_AddTaskDialog>
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'AI failed: $e';
+        _error = e is RateLimitException
+            ? 'Daily AI limit reached. Try again tomorrow.'
+            : 'AI failed — please try again.';
       });
     }
   }
@@ -683,6 +847,301 @@ class _GlowFabState extends State<_GlowFab>
       ),
     ),
   );
+}
+
+// ── AI Task Suggestions Panel (empty day) ───────────────────────────────────
+class _TaskSuggestionsPanel extends ConsumerWidget {
+  const _TaskSuggestionsPanel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final suggestionsAsync = ref.watch(taskSuggestionsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return suggestionsAsync.when(
+      loading: () => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                ShaderMask(
+                  shaderCallback: (b) => kGradientTeal.createShader(b),
+                  child: const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'AI is suggesting tasks…',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white54 : Colors.black45,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (suggestions) {
+        if (suggestions.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 30, 16, 8),
+            child: Center(
+              child: EmptyState(
+                icon: Icons.schedule_rounded,
+                message: 'No tasks planned. Tap + to add tasks with AI!',
+              ),
+            ),
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  ShaderMask(
+                    shaderCallback: (b) => kGradientTeal.createShader(b),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Based on your patterns, you might want to:',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: suggestions.map((title) {
+                  return _SuggestionChip(
+                    title: title,
+                    onTap: () async {
+                      final ai = ref.read(aiServiceProvider);
+                      final tasks = await ai.parseTasks(title);
+                      for (final t in tasks) {
+                        ref.read(taskControllerProvider.notifier).addTask(t);
+                      }
+                    },
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ── Suggestion chip ──────────────────────────────────────────────────────────
+class _SuggestionChip extends StatefulWidget {
+  final String title;
+  final VoidCallback onTap;
+  const _SuggestionChip({required this.title, required this.onTap});
+
+  @override
+  State<_SuggestionChip> createState() => _SuggestionChipState();
+}
+
+class _SuggestionChipState extends State<_SuggestionChip> {
+  bool _added = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: _added
+          ? null
+          : () {
+              setState(() => _added = true);
+              widget.onTap();
+            },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: _added ? kGradientTeal : null,
+          color: _added
+              ? null
+              : (isDark
+                    ? Colors.white.withAlpha(15)
+                    : Colors.black.withAlpha(8)),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: _added
+                ? Colors.transparent
+                : (isDark
+                      ? Colors.white.withAlpha(30)
+                      : Colors.black.withAlpha(20)),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _added ? Icons.check_rounded : Icons.add_rounded,
+              size: 14,
+              color: _added
+                  ? Colors.white
+                  : (isDark ? Colors.white60 : Colors.black54),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              widget.title,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: _added
+                    ? Colors.white
+                    : (isDark ? Colors.white70 : Colors.black87),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── AI Reschedule bottom sheet ───────────────────────────────────────────────
+class _RescheduleSheet extends StatelessWidget {
+  final String taskTitle;
+  final List<DateTime> slots;
+  final void Function(DateTime newStart) onApply;
+
+  const _RescheduleSheet({
+    required this.taskTitle,
+    required this.slots,
+    required this.onApply,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1A1A2E) : Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withAlpha(20)
+              : Colors.black.withAlpha(12),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_fix_high_rounded, color: kCoral, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Reschedule "$taskTitle"',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Choose a free slot for today',
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? Colors.white54 : Colors.black45,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (slots.isEmpty)
+            Text(
+              'No free slots found in your work window.',
+              style: TextStyle(
+                fontSize: 13,
+                color: isDark ? Colors.white54 : Colors.black45,
+              ),
+            )
+          else
+            ...slots.map((slot) {
+              final h = slot.hour.toString().padLeft(2, '0');
+              final m = slot.minute.toString().padLeft(2, '0');
+              final timeStr = '$h:$m';
+              return GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                  onApply(slot);
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1A1040), kIndigo],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.schedule_rounded,
+                        size: 18,
+                        color: Colors.white70,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        timeStr,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const Spacer(),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: Colors.white54,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
 }
 
 // ── Plan My Day banner ──────────────────────────────────────────────────────
@@ -1353,6 +1812,10 @@ class _TaskEditSheetState extends ConsumerState<_TaskEditSheet> {
                 hintText: 'Any context or details…',
                 maxLines: 3,
               ),
+              const SizedBox(height: 16),
+
+              // Linked Notes
+              _LinkedNotesSection(task: widget.task),
               const SizedBox(height: 24),
 
               // Actions
@@ -1434,6 +1897,254 @@ class _RecurrenceChip extends StatelessWidget {
             color: selected
                 ? Colors.white
                 : (isDark ? Colors.white60 : Colors.black54),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Linked Notes section ──────────────────────────────────────────────────────
+
+class _LinkedNotesSection extends ConsumerWidget {
+  final TaskItem task;
+  const _LinkedNotesSection({required this.task});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final allNotes = ref.watch(noteControllerProvider);
+    final linkedIds = task.linkedNoteIds;
+
+    void _unlink(String noteId) {
+      ref.read(taskControllerProvider.notifier).unlinkNote(task.id, noteId);
+      ref.read(noteControllerProvider.notifier).unlinkTask(noteId, task.id);
+    }
+
+    Future<void> _showAddDialog() async {
+      final available = allNotes
+          .where((n) => !linkedIds.contains(n.id))
+          .toList();
+      if (available.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No unlinked notes available.')),
+        );
+        return;
+      }
+      final chosen = await showDialog<NoteItem>(
+        context: context,
+        builder: (ctx) => SimpleDialog(
+          title: const Text('Link a note'),
+          children: available
+              .map(
+                (n) => SimpleDialogOption(
+                  onPressed: () => Navigator.pop(ctx, n),
+                  child: Text(
+                    n.title.isEmpty ? 'Untitled' : n.title,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      );
+      if (chosen != null) {
+        ref.read(taskControllerProvider.notifier).linkNote(task.id, chosen.id);
+        ref.read(noteControllerProvider.notifier).linkTask(chosen.id, task.id);
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Linked Notes',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: _showAddDialog,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? Colors.white24 : Colors.black12,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add,
+                      size: 14,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Add',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (linkedIds.isEmpty)
+          Text(
+            'No linked notes',
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? Colors.white38 : Colors.black38,
+            ),
+          )
+        else
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: linkedIds.map((id) {
+              final note = allNotes.where((n) => n.id == id).firstOrNull;
+              final label = note == null
+                  ? 'Unknown'
+                  : (note.title.isEmpty ? 'Untitled' : note.title);
+              return Chip(
+                label: Text(label, style: const TextStyle(fontSize: 12)),
+                deleteIcon: const Icon(Icons.close, size: 14),
+                onDeleted: () => _unlink(id),
+                backgroundColor: kIndigo.withAlpha(isDark ? 40 : 20),
+                side: BorderSide(color: kIndigo.withAlpha(80)),
+                labelStyle: const TextStyle(color: kIndigo),
+                deleteIconColor: kIndigo,
+                visualDensity: VisualDensity.compact,
+              );
+            }).toList(),
+          ),
+      ],
+    );
+  }
+}
+
+// ── Overdue / reschedule banner ─────────────────────────────────────────────────
+
+/// Amber banner that appears when Gemini has a reschedule suggestion.
+/// Watches [rescheduleSuggestionProvider].
+class _OverdueBanner extends ConsumerStatefulWidget {
+  const _OverdueBanner();
+  @override
+  ConsumerState<_OverdueBanner> createState() => _OverdueBannerState();
+}
+
+class _OverdueBannerState extends ConsumerState<_OverdueBanner> {
+  // Task IDs dismissed this session — prevents same task re-appearing.
+  static final _dismissed = <String>{};
+
+  void _accept(RescheduleSuggestion s) {
+    final notifier = ref.read(taskControllerProvider.notifier);
+    notifier.updateTask(
+      s.task.copyWith(startTime: s.proposedTime, endTime: s.proposedEndTime),
+    );
+    ref.read(rescheduleSuggestionProvider.notifier).state = null;
+  }
+
+  void _dismiss(String taskId) {
+    _dismissed.add(taskId);
+    ref.read(rescheduleSuggestionProvider.notifier).state = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final suggestion = ref.watch(rescheduleSuggestionProvider);
+    if (suggestion == null || _dismissed.contains(suggestion.task.id)) {
+      return const SizedBox.shrink();
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final h = suggestion.proposedTime.hour.toString().padLeft(2, '0');
+    final m = suggestion.proposedTime.minute.toString().padLeft(2, '0');
+    final timeLabel = '$h:$m';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              kAmber.withAlpha(isDark ? 40 : 30),
+              kAmber.withAlpha(isDark ? 20 : 15),
+            ],
+          ),
+          border: Border.all(color: kAmber.withAlpha(100), width: 1.2),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded, color: kAmber, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Missed: ${suggestion.task.title}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : kDark0,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'AI suggests moving to $timeLabel',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: kAmber,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onPressed: () => _accept(suggestion),
+                child: const Text(
+                  'Move',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _dismiss(suggestion.task.id),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                ),
+              ),
+            ],
           ),
         ),
       ),

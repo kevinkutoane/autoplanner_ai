@@ -64,6 +64,16 @@ class MemoryController extends StateNotifier<List<MemoryEntry>> {
     _refreshState();
   }
 
+  /// Boosts relevance when a memory contributed to a successful outcome.
+  /// Clamped at 1.0 so scores stay normalised.
+  Future<void> reinforceMemory(String id, {double boost = 0.1}) async {
+    final m = _box?.get(id);
+    if (m == null) return;
+    m.relevanceScore = (m.relevanceScore + boost).clamp(0.0, 1.0);
+    await m.save();
+    _refreshState();
+  }
+
   void clearAll() {
     if (_box == null) return;
     _box!.clear();

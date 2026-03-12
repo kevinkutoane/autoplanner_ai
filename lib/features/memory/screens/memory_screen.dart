@@ -61,6 +61,9 @@ class _MemoryScreenState extends ConsumerState<MemoryScreen> {
     }
   }
 
+  Future<void> _onRefresh() =>
+      Future.delayed(const Duration(milliseconds: 400));
+
   @override
   Widget build(BuildContext context) {
     final memories = ref.watch(memoryControllerProvider);
@@ -81,154 +84,121 @@ class _MemoryScreenState extends ConsumerState<MemoryScreen> {
       backgroundColor: Colors.transparent,
       body: OrbBackground(
         subtle: true,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // Header
-            SliverToBoxAdapter(
-              child: GradientHeader(
-                gradient: LinearGradient(
-                  colors: [kDark0, const Color(0xFF0A1A2E)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        ShaderMask(
-                          shaderCallback: (b) => kGradientTeal.createShader(b),
-                          child: const Icon(
-                            Icons.psychology_rounded,
-                            size: 28,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'Memory',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(18),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: Colors.white.withAlpha(35),
-                            ),
-                          ),
-                          child: Text(
-                            '${filtered.length} entries',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    // search
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(18),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: Colors.white.withAlpha(35),
-                            ),
-                          ),
-                          child: TextField(
-                            controller: _searchCtrl,
-                            onChanged: (v) => setState(() => _query = v),
-                            style: const TextStyle(
+        child: RefreshIndicator(
+          onRefresh: _onRefresh,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: [
+              // Header
+              SliverToBoxAdapter(
+                child: GradientHeader(
+                  gradient: LinearGradient(
+                    colors: [kDark0, const Color(0xFF0A1A2E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          ShaderMask(
+                            shaderCallback: (b) =>
+                                kGradientTeal.createShader(b),
+                            child: const Icon(
+                              Icons.psychology_rounded,
+                              size: 28,
                               color: Colors.white,
-                              fontSize: 14,
                             ),
-                            decoration: InputDecoration(
-                              hintText: 'Search memories...',
-                              hintStyle: const TextStyle(
-                                color: Colors.white54,
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Memory',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(18),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withAlpha(35),
+                              ),
+                            ),
+                            child: Text(
+                              '${filtered.length} entries',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      // search
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(18),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: Colors.white.withAlpha(35),
+                              ),
+                            ),
+                            child: TextField(
+                              controller: _searchCtrl,
+                              onChanged: (v) => setState(() => _query = v),
+                              style: const TextStyle(
+                                color: Colors.white,
                                 fontSize: 14,
                               ),
-                              prefixIcon: const Icon(
-                                Icons.search_rounded,
-                                color: Colors.white54,
-                                size: 20,
-                              ),
-                              suffixIcon: _query.isNotEmpty
-                                  ? GestureDetector(
-                                      onTap: () {
-                                        _searchCtrl.clear();
-                                        setState(() => _query = '');
-                                      },
-                                      child: const Icon(
-                                        Icons.close_rounded,
-                                        color: Colors.white54,
-                                        size: 20,
-                                      ),
-                                    )
-                                  : null,
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 14,
+                              decoration: InputDecoration(
+                                hintText: 'Search memories...',
+                                hintStyle: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 14,
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.search_rounded,
+                                  color: Colors.white54,
+                                  size: 20,
+                                ),
+                                suffixIcon: _query.isNotEmpty
+                                    ? GestureDetector(
+                                        onTap: () {
+                                          _searchCtrl.clear();
+                                          setState(() => _query = '');
+                                        },
+                                        child: const Icon(
+                                          Icons.close_rounded,
+                                          color: Colors.white54,
+                                          size: 20,
+                                        ),
+                                      )
+                                    : null,
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 14,
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Source type filter
-            SliverToBoxAdapter(
-              child: Stagger(
-                index: 0,
-                child: SizedBox(
-                  height: 50,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 6,
-                    ),
-                    children: [
-                      _SourceChip(
-                        label: 'All',
-                        icon: Icons.grid_view_rounded,
-                        color: kIndigo,
-                        selected: _selectedType == null,
-                        onTap: () => setState(() => _selectedType = null),
-                      ),
-                      ..._typeLabels.entries.map(
-                        (e) => _SourceChip(
-                          label: e.value,
-                          icon: _sourceIcon(e.key),
-                          color: _sourceColor(e.key),
-                          selected: _selectedType == e.key,
-                          onTap: () => setState(
-                            () => _selectedType = _selectedType == e.key
-                                ? null
-                                : e.key,
                           ),
                         ),
                       ),
@@ -236,110 +206,149 @@ class _MemoryScreenState extends ConsumerState<MemoryScreen> {
                   ),
                 ),
               ),
-            ),
 
-            // Tag cloud
-            if (allTags.isNotEmpty)
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverToBoxAdapter(
-                  child: Stagger(
-                    index: 1,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: allTags
-                            .map(
-                              (t) => GestureDetector(
-                                onTap: () => setState(
-                                  () => _selectedTag = _selectedTag == t
-                                      ? null
-                                      : t,
-                                ),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 180),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    gradient: _selectedTag == t
-                                        ? kGradientTeal
-                                        : null,
-                                    color: _selectedTag == t
-                                        ? null
-                                        : (isDark
-                                              ? Colors.white.withAlpha(15)
-                                              : Colors.black.withAlpha(7)),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: _selectedTag == t
-                                          ? Colors.transparent
-                                          : (isDark
-                                                ? Colors.white24
-                                                : Colors.black12),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    '#$t',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: _selectedTag == t
-                                          ? Colors.white
-                                          : (isDark
-                                                ? Colors.white70
-                                                : const Color(0xFF4A5568)),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
+              // Source type filter
+              SliverToBoxAdapter(
+                child: Stagger(
+                  index: 0,
+                  child: SizedBox(
+                    height: 50,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
                       ),
+                      children: [
+                        _SourceChip(
+                          label: 'All',
+                          icon: Icons.grid_view_rounded,
+                          color: kIndigo,
+                          selected: _selectedType == null,
+                          onTap: () => setState(() => _selectedType = null),
+                        ),
+                        ..._typeLabels.entries.map(
+                          (e) => _SourceChip(
+                            label: e.value,
+                            icon: _sourceIcon(e.key),
+                            color: _sourceColor(e.key),
+                            selected: _selectedType == e.key,
+                            onTap: () => setState(
+                              () => _selectedType = _selectedType == e.key
+                                  ? null
+                                  : e.key,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
 
-            // Memory list
-            if (filtered.isEmpty)
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverToBoxAdapter(
-                  child: Stagger(
-                    index: 2,
-                    child: EmptyState(
-                      icon: Icons.psychology_rounded,
-                      message:
-                          'No memories found. AI will learn from your tasks and notes!',
-                    ),
-                  ),
-                ),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate((ctx, i) {
-                    final m = filtered[i];
-                    return Stagger(
-                      index: i + 2,
+              // Tag cloud
+              if (allTags.isNotEmpty)
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: Stagger(
+                      index: 1,
                       child: Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _MemoryTile(
-                          memory: m,
-                          icon: _sourceIcon(m.sourceType),
-                          color: _sourceColor(m.sourceType),
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: allTags
+                              .map(
+                                (t) => GestureDetector(
+                                  onTap: () => setState(
+                                    () => _selectedTag = _selectedTag == t
+                                        ? null
+                                        : t,
+                                  ),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 180),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: _selectedTag == t
+                                          ? kGradientTeal
+                                          : null,
+                                      color: _selectedTag == t
+                                          ? null
+                                          : (isDark
+                                                ? Colors.white.withAlpha(15)
+                                                : Colors.black.withAlpha(7)),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: _selectedTag == t
+                                            ? Colors.transparent
+                                            : (isDark
+                                                  ? Colors.white24
+                                                  : Colors.black12),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '#$t',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: _selectedTag == t
+                                            ? Colors.white
+                                            : (isDark
+                                                  ? Colors.white70
+                                                  : const Color(0xFF4A5568)),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
                         ),
                       ),
-                    );
-                  }, childCount: filtered.length),
+                    ),
+                  ),
                 ),
-              ),
-          ],
+
+              // Memory list
+              if (filtered.isEmpty)
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: Stagger(
+                      index: 2,
+                      child: EmptyState(
+                        icon: Icons.psychology_rounded,
+                        message:
+                            'No memories found. AI will learn from your tasks and notes!',
+                      ),
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 120),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate((ctx, i) {
+                      final m = filtered[i];
+                      return Stagger(
+                        index: i + 2,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _MemoryTile(
+                            memory: m,
+                            icon: _sourceIcon(m.sourceType),
+                            color: _sourceColor(m.sourceType),
+                          ),
+                        ),
+                      );
+                    }, childCount: filtered.length),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

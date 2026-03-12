@@ -1,4 +1,4 @@
-package com.example.autoplanner_ai
+package com.kevinkutoane.autoplannerai
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

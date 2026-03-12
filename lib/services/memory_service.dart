@@ -1,3 +1,4 @@
+import 'dart:math' show exp;
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import '../core/models/memory_entry_model.dart';
@@ -22,12 +23,70 @@ class MemoryService {
     return allMemories.take(20).toList();
   }
 
+  /// Returns the top [limit] memories ranked by time-decayed relevance score.
+  /// Formula: base_score × e^(-0.007 × days_old) + 0.05 × access_count
+  /// This means a memory with score 0.8 created 100 days ago ranks lower than
+  /// a score 0.5 memory from last week — keeping context fresh and useful.
+  List<MemoryEntry> contextMemories({int limit = 10}) {
+    final entries = _box?.values.toList() ?? [];
+    entries.sort((a, b) => _adjustedScore(b).compareTo(_adjustedScore(a)));
+    return entries.take(limit).toList();
+  }
+
+  /// Time-decayed relevance score for memory prioritisation.
+  double _adjustedScore(MemoryEntry m) {
+    final days = DateTime.now().difference(m.createdAt).inDays.clamp(0, 365);
+    return m.relevanceScore * exp(-0.007 * days.toDouble()) +
+        0.05 * m.accessCount.clamp(0, 10);
+  }
+
+  /// Deletes memories that haven't been accessed and whose adjusted score
+  /// has decayed below [threshold]. Returns the count removed.
+  Future<int> decayStaleMemories({
+    int thresholdDays = 90,
+    double threshold = 0.05,
+  }) async {
+    final stale =
+        _box?.values
+            .where(
+              (m) =>
+                  m.accessCount == 0 &&
+                  DateTime.now().difference(m.createdAt).inDays >
+                      thresholdDays &&
+                  _adjustedScore(m) < threshold,
+            )
+            .toList() ??
+        [];
+    for (final m in stale) {
+      await _box?.delete(m.id);
+    }
+    if (kDebugMode && stale.isNotEmpty) {
+      debugPrint('🧠 Decayed ${stale.length} stale memories');
+    }
+    return stale.length;
+  }
+
+  /// Increments the access count for context-injected memories.
+  Future<void> markAccessed(List<MemoryEntry> memories) async {
+    for (final m in memories) {
+      m.accessCount += 1;
+      await m.save();
+    }
+  }
+
+  /// Boosts relevance when a memory contributed to a successful outcome.
+  /// Clamped at 1.0 so scores stay normalised.
+  Future<void> reinforceMemory(String id, {double boost = 0.1}) async {
+    final m = _box?.get(id);
+    if (m == null) return;
+    m.relevanceScore = (m.relevanceScore + boost).clamp(0.0, 1.0);
+    await m.save();
+  }
+
   /// Add a new memory entry
   Future<void> addMemory(MemoryEntry entry) async {
     await _box?.put(entry.id, entry);
-    if (kDebugMode) {
-      print("🧠 Memory saved: ${entry.content}");
-    }
+    if (kDebugMode) debugPrint('MemoryService: saved — ${entry.content}');
   }
 
   /// Delete a memory entry

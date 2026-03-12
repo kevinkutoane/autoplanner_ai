@@ -20,6 +20,12 @@ class NotificationService {
   static const _channelDesc = 'Reminders shown before scheduled tasks begin';
   static const _reminderMinutesBefore = 10;
 
+  static const _briefingChannelId = 'autoplanner_briefing';
+  static const _briefingChannelName = 'Morning Briefing';
+  static const _briefingChannelDesc =
+      'Daily morning notification to start your day';
+  static const _briefingNotificationId = 9000;
+
   Future<void> init() async {
     tz.initializeTimeZones();
 
@@ -48,6 +54,19 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.createNotificationChannel(androidChannel);
+
+    // Create the morning briefing channel.
+    const briefingChannel = AndroidNotificationChannel(
+      _briefingChannelId,
+      _briefingChannelName,
+      description: _briefingChannelDesc,
+      importance: Importance.defaultImportance,
+    );
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(briefingChannel);
 
     _ready = true;
   }
@@ -107,5 +126,63 @@ class NotificationService {
         >();
     final granted = await android?.requestNotificationsPermission();
     return granted ?? true;
+  }
+
+  /// Schedules (or re-schedules) a daily morning briefing notification.
+  ///
+  /// Fires every day at [hour]:[minute] local time. The [body] line is
+  /// included in the notification so the user sees their task count even
+  /// from the lock screen.
+  Future<void> scheduleMorningBriefing({
+    required int hour,
+    required int minute,
+    String body = 'Tap to review your plan for the day.',
+  }) async {
+    if (!_ready) return;
+    try {
+      final now = tz.TZDateTime.now(tz.local);
+      var scheduled = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        hour,
+        minute,
+      );
+      // If today's time has already passed, start tomorrow.
+      if (scheduled.isBefore(now)) {
+        scheduled = scheduled.add(const Duration(days: 1));
+      }
+
+      await _plugin.zonedSchedule(
+        _briefingNotificationId,
+        '☀️  Good morning!',
+        body,
+        scheduled,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _briefingChannelId,
+            _briefingChannelName,
+            channelDescription: _briefingChannelDesc,
+            importance: Importance.defaultImportance,
+            priority: Priority.defaultPriority,
+            icon: '@mipmap/ic_launcher',
+          ),
+          iOS: const DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    } catch (e) {
+      if (kDebugMode) print('scheduleMorningBriefing: $e');
+    }
+  }
+
+  /// Cancels the daily morning briefing notification.
+  Future<void> cancelMorningBriefing() async {
+    if (!_ready) return;
+    await _plugin.cancel(_briefingNotificationId);
   }
 }

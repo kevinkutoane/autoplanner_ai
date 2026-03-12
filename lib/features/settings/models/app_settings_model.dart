@@ -24,6 +24,12 @@ class AppSettings {
   /// Whether to require biometric / device-credential unlock on resume.
   final bool requireBiometrics;
 
+  /// Whether a daily morning briefing notification is enabled.
+  final bool morningBriefingEnabled;
+
+  /// Hour (0-23) at which the morning briefing fires.
+  final int morningBriefingHour;
+
   /// Whether Google Calendar is currently connected.
   final bool isGoogleCalendarConnected;
 
@@ -48,6 +54,8 @@ class AppSettings {
     this.isOnboardingDone = false,
     this.geminiApiKey = '',
     this.requireBiometrics = false,
+    this.morningBriefingEnabled = false,
+    this.morningBriefingHour = 8,
     this.isGoogleCalendarConnected = false,
     this.googleAccountEmail = '',
     this.isOutlookConnected = false,
@@ -68,6 +76,8 @@ class AppSettings {
     isOnboardingDone: false,
     geminiApiKey: '',
     requireBiometrics: false,
+    morningBriefingEnabled: false,
+    morningBriefingHour: 8,
     isGoogleCalendarConnected: false,
     googleAccountEmail: '',
     isOutlookConnected: false,
@@ -88,6 +98,8 @@ class AppSettings {
     bool? isOnboardingDone,
     String? geminiApiKey,
     bool? requireBiometrics,
+    bool? morningBriefingEnabled,
+    int? morningBriefingHour,
     bool? isGoogleCalendarConnected,
     String? googleAccountEmail,
     bool? isOutlookConnected,
@@ -107,6 +119,9 @@ class AppSettings {
       isOnboardingDone: isOnboardingDone ?? this.isOnboardingDone,
       geminiApiKey: geminiApiKey ?? this.geminiApiKey,
       requireBiometrics: requireBiometrics ?? this.requireBiometrics,
+      morningBriefingEnabled:
+          morningBriefingEnabled ?? this.morningBriefingEnabled,
+      morningBriefingHour: morningBriefingHour ?? this.morningBriefingHour,
       isGoogleCalendarConnected:
           isGoogleCalendarConnected ?? this.isGoogleCalendarConnected,
       googleAccountEmail: googleAccountEmail ?? this.googleAccountEmail,
@@ -129,6 +144,8 @@ class AppSettings {
   static const String kEnableAILogging = 'enableAILogging';
   static const String kMaxTokensPerDay = 'maxTokensPerDay';
   static const String kRequireBiometrics = 'requireBiometrics';
+  static const String kMorningBriefingEnabled = 'morningBriefingEnabled';
+  static const String kMorningBriefingHour = 'morningBriefingHour';
   static const String kIsGoogleCalendarConnected = 'isGoogleCalendarConnected';
   static const String kGoogleAccountEmail = 'googleAccountEmail';
   static const String kIsOutlookConnected = 'isOutlookConnected';
@@ -167,6 +184,8 @@ class AppSettings {
     kMaxTokensPerDay: maxTokensPerDay,
     kOnboardingSeen: isOnboardingDone,
     kRequireBiometrics: requireBiometrics,
+    kMorningBriefingEnabled: morningBriefingEnabled,
+    kMorningBriefingHour: morningBriefingHour,
     kIsGoogleCalendarConnected: isGoogleCalendarConnected,
     kGoogleAccountEmail: googleAccountEmail,
     kIsOutlookConnected: isOutlookConnected,
@@ -186,6 +205,8 @@ class AppSettings {
     maxTokensPerDay: (map[kMaxTokensPerDay] as int?) ?? 100000,
     isOnboardingDone: (map[kOnboardingSeen] as bool?) ?? false,
     requireBiometrics: (map[kRequireBiometrics] as bool?) ?? false,
+    morningBriefingEnabled: (map[kMorningBriefingEnabled] as bool?) ?? false,
+    morningBriefingHour: (map[kMorningBriefingHour] as int?) ?? 8,
     isGoogleCalendarConnected:
         (map[kIsGoogleCalendarConnected] as bool?) ?? false,
     googleAccountEmail: (map[kGoogleAccountEmail] as String?) ?? '',

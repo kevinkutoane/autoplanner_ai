@@ -1,4 +1,5 @@
 import '../core/models/task_model.dart';
+import '../core/models/calendar_event_model.dart';
 
 /// Deterministic, AI-free day-scheduling engine.
 ///
@@ -18,6 +19,7 @@ class SchedulerService {
   /// * [day]             – the calendar day to schedule (time components ignored).
   /// * [workStartHour]   – e.g. 9  → work starts 09:00.
   /// * [workHoursPerDay] – e.g. 8  → work ends 17:00.
+  /// * [calendarBlocks]  – external calendar events treated as occupied slots.
   ///
   /// Returns a new sorted list; the original list is not mutated.
   List<TaskItem> scheduleDay({
@@ -25,6 +27,7 @@ class SchedulerService {
     required DateTime day,
     required int workStartHour,
     required int workHoursPerDay,
+    List<CalendarEvent> calendarBlocks = const [],
   }) {
     final workStart = DateTime(day.year, day.month, day.day, workStartHour);
     final workEnd = workStart.add(Duration(hours: workHoursPerDay));
@@ -33,13 +36,15 @@ class SchedulerService {
     final pending = List<TaskItem>.from(tasks.where((t) => !t.isCompleted))
       ..sort((a, b) => b.priority.compareTo(a.priority)); // urgent first
 
-    // Occupied intervals from completed tasks — these are untouchable.
+    // Occupied intervals: completed tasks + external calendar events.
     final occupied = <_Interval>[
       for (final t in completed)
         _Interval(
           t.startTime,
           t.endTime ?? t.startTime.add(const Duration(hours: 1)),
         ),
+      for (final e in calendarBlocks)
+        if (!e.isAllDay) _Interval(e.startTime, e.endTime),
     ]..sort((a, b) => a.start.compareTo(b.start));
 
     var cursor = _initialCursor(workStart, day);
@@ -61,6 +66,46 @@ class SchedulerService {
 
     return [...completed, ...scheduled]
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
+  }
+
+  /// Returns up to [count] available start times on [day] within the work
+  /// window, skipping slots blocked by [busyTasks] and [calendarBlocks].
+  /// Each slot is rounded to the nearest [_slotRoundingMinutes] boundary.
+  List<DateTime> freeSlots({
+    required DateTime day,
+    required int workStartHour,
+    required int workHoursPerDay,
+    required Duration slotDuration,
+    List<TaskItem> busyTasks = const [],
+    List<CalendarEvent> calendarBlocks = const [],
+    int count = 6,
+  }) {
+    final workStart = DateTime(day.year, day.month, day.day, workStartHour);
+    final workEnd = workStart.add(Duration(hours: workHoursPerDay));
+
+    final occupied = <_Interval>[
+      for (final t in busyTasks)
+        _Interval(
+          t.startTime,
+          t.endTime ?? t.startTime.add(const Duration(hours: 1)),
+        ),
+      for (final e in calendarBlocks)
+        if (!e.isAllDay) _Interval(e.startTime, e.endTime),
+    ]..sort((a, b) => a.start.compareTo(b.start));
+
+    final results = <DateTime>[];
+    var cursor = _initialCursor(workStart, day);
+
+    while (results.length < count) {
+      cursor = _findFreeSlot(cursor, slotDuration, occupied, workEnd);
+      if (cursor.add(slotDuration).isAfter(workEnd)) break;
+      results.add(cursor);
+      // Advance by slot duration + buffer so the next candidate doesn't overlap.
+      cursor = cursor
+          .add(slotDuration)
+          .add(const Duration(minutes: _bufferMinutes));
+    }
+    return results;
   }
 
   // ── Private helpers ─────────────────────────────────────────────────────
