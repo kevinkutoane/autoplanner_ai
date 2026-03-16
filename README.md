@@ -222,6 +222,44 @@ lib/
 
 ---
 
+## Testing
+
+### Running the test suite
+
+```bash
+flutter test
+```
+
+All tests are pure Dart unit tests — no device, emulator, or Firebase connection required. The full suite runs in CI without any platform plugins active.
+
+### Test coverage
+
+| File | What is covered |
+| --- | --- |
+| `test/task_model_test.dart` | `TaskItem` constructor defaults, `copyWith` (including sentinel null-clear), `priorityLabel` mapping |
+| `test/note_model_test.dart` | `NoteItem` constructor defaults, `copyWith`, pin/tag/link mutations |
+| `test/calendar_event_model_test.dart` | `CalendarEvent` constructor defaults, explicit values for all 15 fields, `copyWith` across all sync/time fields |
+| `test/memory_entry_model_test.dart` | `MemoryEntry` constructor defaults, explicit values (all 5 sourceTypes), `copyWith`, immutability |
+| `test/app_settings_model_test.dart` | `AppSettings.defaults()` for all 20 fields, `copyWith` mutations, Hive key constant completeness |
+| `test/env_config_test.dart` | `EnvConfig.fromDotEnv` defaults + explicit ENV / key / flag parsing, invalid `MAX_TOKENS_PER_DAY` fallback |
+| `test/conflict_detector_test.dart` | Time-overlap detection (empty, single, partial, back-to-back, sequential, multi-pair), all-day exclusion, sync-status conflict filtering |
+| `test/scheduler_service_test.dart` | `scheduleDay` — empty input, single task, priority ordering, completed-task immutability, buffer gap, full-window cutoff, explicit durations |
+| `test/reschedule_service_test.dart` | `freeSlots` — empty day, task-blocked, calendar-blocked, nearly-full day, non-overlapping slots; `RescheduleSuggestion.proposedEndTime` with and without `endTime` |
+| `test/ai_service_test.dart` | Prompt-injection sanitization, `parseTasks` / `generateTags` / `extractActionItems` / `summarizeNote` / `brainDump` / `generateDailyInsight` via `MockAIProvider` |
+| `test/token_tracker_test.dart` | `todayTokens` accumulation, `isOverLimit` / `guardRateLimit` threshold, `remainingTokens` clamping, `todayCallCount`, `todayAvgLatency`, `usageHistory` day-key structure |
+| `test/memory_service_test.dart` | `addMemory` / `allMemories` sort order, `recentMemories` limit, `contextMemories` relevance ranking, `searchMemories` case-insensitive keyword/tag search, `getByTag`, `reinforceMemory` boost, `decayStaleMemories` threshold |
+| `test/backup_service_test.dart` | Round-trip JSON serialisation for `TaskItem`, `NoteItem`, `CalendarEvent`, and `MemoryEntry`; null-optional-field preservation; full envelope structure |
+| `test/widget_test.dart` | Stateless widget smoke tests: `GlassCard`, `SectionLabel`, `EmptyState` |
+
+### Testing philosophy
+
+- **No Hive in most tests** — model tests operate on plain Dart objects; only `token_tracker_test.dart` and `memory_service_test.dart` open a real Hive box in `Directory.systemTemp`, cleaned up in `tearDown`.
+- **No Flutter engine** — non-widget tests run in `dart test` mode without pumping the widget tree.
+- **MockAIProvider** — `AIService` tests use canned deterministic responses so the full AI method surface is covered without live network calls.
+- **Fixed dates** — tests that involve scheduling use `DateTime(2099, ...)` or `DateTime(2025, ...)` to decouple results from `DateTime.now()`.
+
+---
+
 ## Architecture Notes
 
 ### AI Layer

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
+import 'package:uuid/uuid.dart';
 import '../config/env_config.dart';
 import 'ai_provider.dart';
 
@@ -8,30 +9,40 @@ part 'token_tracker.g.dart';
 /// Persistent record of a single AI call for billing/audit.
 @HiveType(typeId: 10)
 class AILogEntry extends HiveObject {
+  /// Unique identifier for this log entry (UUID v4).
   @HiveField(0)
   String id;
 
+  /// Name of the model that produced the response (e.g. `'gemini-2.5-flash'`).
   @HiveField(1)
   String model;
 
+  /// The high-level AI action that triggered this call (e.g. `'parseTasks'`,
+  /// `'summarizeNote'`). Used for per-action cost analysis.
   @HiveField(2)
-  String action; // e.g. 'parseTasks', 'summarizeNote'
+  String action;
 
+  /// Number of tokens in the prompt sent to the model.
   @HiveField(3)
   int promptTokens;
 
+  /// Number of tokens in the model's response.
   @HiveField(4)
   int completionTokens;
 
+  /// Wall-clock time the model took to respond, in milliseconds.
   @HiveField(5)
   int latencyMs;
 
+  /// When this call was made; used to bucket usage by calendar day.
   @HiveField(6)
   DateTime timestamp;
 
+  /// Whether the call completed successfully. False for retried failures.
   @HiveField(7)
   bool success;
 
+  /// Combined token count: [promptTokens] + [completionTokens].
   int get totalTokens => promptTokens + completionTokens;
 
   AILogEntry({
@@ -46,8 +57,18 @@ class AILogEntry extends HiveObject {
   });
 }
 
-/// Tracks AI token usage and enforces daily limits.
+/// Tracks AI token usage, enforces daily rate limits, and persists an audit
+/// log of every model call in an encrypted Hive box.
+///
+/// Typical usage:
+/// ```dart
+/// final tracker = TokenTracker();
+/// await tracker.init(cipher: hiveCipher); // once at app start
+/// tracker.guardRateLimit();               // throws if daily cap exceeded
+/// await tracker.log(action: 'parseTasks', response: response);
+/// ```
 class TokenTracker {
+  static const _uuid = Uuid();
   Box<AILogEntry>? _box;
 
   Future<void> init({HiveAesCipher? cipher}) async {
@@ -57,7 +78,9 @@ class TokenTracker {
     );
   }
 
-  /// Log an AI response
+  /// Persists a token usage entry for [action] (when tracking is enabled).
+  /// No operation when `appConfig.enableTokenTracking == false` or when
+  /// [init] has not been called (box is null).
   Future<void> log({
     required String action,
     required AIResponse response,
@@ -66,7 +89,7 @@ class TokenTracker {
     if (!appConfig.enableTokenTracking) return;
 
     final entry = AILogEntry(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: _uuid.v4(),
       model: response.model,
       action: action,
       promptTokens: response.promptTokens,
@@ -87,7 +110,7 @@ class TokenTracker {
     }
   }
 
-  /// Total tokens used today
+  /// Total tokens consumed today (prompt + completion across all calls).
   int get todayTokens {
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
@@ -96,7 +119,7 @@ class TokenTracker {
         .fold(0, (sum, e) => sum + e.totalTokens);
   }
 
-  /// Check if daily limit is exceeded
+  /// True when [todayTokens] has met or exceeded [EnvConfig.maxTokensPerDay].
   bool get isOverLimit => todayTokens >= appConfig.maxTokensPerDay;
 
   /// Throws [RateLimitException] if today's token budget is exhausted.
@@ -108,13 +131,13 @@ class TokenTracker {
     }
   }
 
-  /// Remaining tokens for today
+  /// Tokens remaining in today's budget; clamped to 0 when over the limit.
   int get remainingTokens => (appConfig.maxTokensPerDay - todayTokens).clamp(
     0,
     appConfig.maxTokensPerDay,
   );
 
-  /// Today's call count
+  /// Number of AI calls made today (each [log] invocation = one call).
   int get todayCallCount {
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
@@ -123,7 +146,8 @@ class TokenTracker {
         .length;
   }
 
-  /// Average latency today (ms)
+  /// Average response latency in milliseconds across all calls today.
+  /// Returns `0` when no calls have been made.
   double get todayAvgLatency {
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
@@ -135,7 +159,10 @@ class TokenTracker {
         todayEntries.length;
   }
 
-  /// Usage history — last N days
+  /// Per-day token totals for the last [days] calendar days.
+  ///
+  /// Keys are formatted as `'MM/DD'` for the calling locale. Useful for
+  /// rendering sparkline charts on the analytics screen.
   Map<String, int> usageHistory({int days = 7}) {
     final now = DateTime.now();
     final result = <String, int>{};
@@ -156,14 +183,14 @@ class TokenTracker {
     return result;
   }
 
-  /// All log entries (most recent first)
+  /// All persisted log entries, sorted most-recent-first.
   List<AILogEntry> get allLogs {
     final entries = _box?.values.toList() ?? [];
     entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return entries;
   }
 
-  /// Clear old logs (keep last N days)
+  /// Deletes all log entries older than [days] days to keep the box lean.
   Future<void> pruneOlderThan({int days = 30}) async {
     final cutoff = DateTime.now().subtract(Duration(days: days));
     final oldKeys = (_box?.toMap() ?? {}).entries

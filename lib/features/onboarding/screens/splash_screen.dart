@@ -180,7 +180,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       child: ShaderMask(
                         shaderCallback: (b) => kGradientMain.createShader(b),
                         child: const Text(
-                          'AutoPlanner',
+                          'AutoPlanner AI',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 36,

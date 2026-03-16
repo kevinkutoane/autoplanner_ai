@@ -1,17 +1,26 @@
 import 'package:flutter/material.dart';
 
-/// Flat value-object for all user-adjustable settings.
+/// Immutable value-object for all user-adjustable settings.
+///
 /// Stored as individual key-value pairs in a `Hive<dynamic>` box
-/// so no code-gen is required.
+/// so no code-gen is required. Reconstruct via `AppSettings.copyWith`
+/// and persist through [SettingsController].
 class AppSettings {
   final String userName;
   final String userEmail;
   final String userJobTitle;
-  final String avatarEmoji; // optional decorative emoji
+
+  /// Optional decorative emoji shown in the profile header.
+  final String avatarEmoji;
+
   final ThemeMode themeMode;
   final int workHoursPerDay;
-  final int workStartHour; // 0-23
-  final List<bool> workDays; // Mon-Sun (7 bools)
+
+  /// Work-day start hour in 24-hour format (0–23).
+  final int workStartHour;
+
+  /// 7-element bitmask for Mon–Sun; `true` = that weekday is a work day.
+  final List<bool> workDays;
   final bool useMockAI;
   final bool enableAILogging;
   final int maxTokensPerDay;

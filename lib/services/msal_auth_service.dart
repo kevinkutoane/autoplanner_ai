@@ -73,7 +73,9 @@ class MsalAuthService {
     try {
       final pca = await _getPca();
       await pca.logout();
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('MsalAuth: signOut failed — $e');
+    }
     connectedEmail.value = null;
     await SecureKeyService.deleteMsalTokens();
   }

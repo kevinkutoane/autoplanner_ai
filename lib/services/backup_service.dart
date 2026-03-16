@@ -14,9 +14,16 @@ import '../core/models/memory_entry_model.dart';
 
 /// Summary returned after a successful import so the UI can confirm counts.
 class BackupImportResult {
+  /// Number of [TaskItem] records written to `tasksBox`.
   final int tasks;
+
+  /// Number of [NoteItem] records written to `notesBox`.
   final int notes;
+
+  /// Number of [MemoryEntry] records written to `memoryBox`.
   final int memories;
+
+  /// Number of [CalendarEvent] records written to `calendarBox`.
   final int calendarEvents;
 
   const BackupImportResult({
@@ -26,6 +33,7 @@ class BackupImportResult {
     required this.calendarEvents,
   });
 
+  /// Total items imported across all four collections.
   int get total => tasks + notes + memories + calendarEvents;
 }
 
@@ -35,19 +43,26 @@ class BackupService {
   static const int _version = 1;
 
   // ── Export ───────────────────────────────────────────────────────────────
-
+  /// Serialises all Hive data to a pretty-printed JSON file and shares it
+  /// via the OS share sheet (Android share / iOS share extension).
+  ///
+  /// The JSON envelope contains a `version` integer so future versions of the
+  /// app can detect and migrate older backup formats on import.
+  ///
+  /// Throws if any Hive box is not open or if the temporary file cannot be
+  /// written to the cache directory.
   Future<void> exportToFile() async {
     final payload = <String, dynamic>{
       'version': _version,
       'exportedAt': DateTime.now().toIso8601String(),
       'tasks': Hive.box<TaskItem>('tasksBox').values.map(_taskToMap).toList(),
       'notes': Hive.box<NoteItem>('notesBox').values.map(_noteToMap).toList(),
-      'memories':
-          Hive.box<MemoryEntry>('memoryBox').values.map(_memoryToMap).toList(),
-      'calendarEvents': Hive.box<CalendarEvent>('calendarBox')
-          .values
-          .map(_calEventToMap)
-          .toList(),
+      'memories': Hive.box<MemoryEntry>(
+        'memoryBox',
+      ).values.map(_memoryToMap).toList(),
+      'calendarEvents': Hive.box<CalendarEvent>(
+        'calendarBox',
+      ).values.map(_calEventToMap).toList(),
     };
 
     final json = const JsonEncoder.withIndent('  ').convert(payload);
@@ -56,15 +71,25 @@ class BackupService {
     final file = File('${dir.path}/autoplanner_backup_$stamp.json');
     await file.writeAsString(json, flush: true);
 
-    await Share.shareXFiles(
-      [XFile(file.path, mimeType: 'application/json')],
-      subject: 'AutoPlanner AI Backup',
-      text: 'AutoPlanner AI — full data backup',
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'application/json')],
+        subject: 'AutoPlanner AI Backup',
+        text: 'AutoPlanner AI — full data backup',
+      ),
     );
   }
 
   // ── Import ───────────────────────────────────────────────────────────────
-
+  /// Opens the system file picker filtered to `.json` files, reads the
+  /// selected backup, and writes all records into their respective Hive boxes.
+  ///
+  /// Malformed individual records are silently skipped (a debug-mode message
+  /// is printed) so a single corrupt entry does not abort the entire import.
+  ///
+  /// Returns `null` when the user cancels the file picker.
+  /// Throws [FormatException] when the file is not valid JSON or uses an
+  /// unsupported backup version.
   Future<BackupImportResult?> importFromFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -143,105 +168,106 @@ class BackupService {
   }
 
   // ── Serialisation helpers ─────────────────────────────────────────────────
-
+  /// Converts a [TaskItem] to a plain JSON-compatible map for backup export.
   Map<String, dynamic> _taskToMap(TaskItem t) => {
-        'id': t.id,
-        'title': t.title,
-        'startTime': t.startTime.toIso8601String(),
-        'endTime': t.endTime?.toIso8601String(),
-        'note': t.note,
-        'isCompleted': t.isCompleted,
-        'priority': t.priority,
-        'tags': t.tags,
-        'linkedNoteIds': t.linkedNoteIds,
-        'recurrence': t.recurrence,
-        'recurrenceDays': t.recurrenceDays,
-      };
+    'id': t.id,
+    'title': t.title,
+    'startTime': t.startTime.toIso8601String(),
+    'endTime': t.endTime?.toIso8601String(),
+    'note': t.note,
+    'isCompleted': t.isCompleted,
+    'priority': t.priority,
+    'tags': t.tags,
+    'linkedNoteIds': t.linkedNoteIds,
+    'recurrence': t.recurrence,
+    'recurrenceDays': t.recurrenceDays,
+  };
 
   TaskItem _taskFromMap(Map<String, dynamic> m) => TaskItem(
-        id: m['id'] as String,
-        title: m['title'] as String? ?? '',
-        startTime: DateTime.parse(m['startTime'] as String),
-        endTime:
-            m['endTime'] != null ? DateTime.parse(m['endTime'] as String) : null,
-        note: m['note'] as String?,
-        isCompleted: m['isCompleted'] as bool? ?? false,
-        priority: m['priority'] as int? ?? 1,
-        tags: List<String>.from(m['tags'] as List? ?? []),
-        linkedNoteIds: List<String>.from(m['linkedNoteIds'] as List? ?? []),
-        recurrence: m['recurrence'] as String?,
-        recurrenceDays: List<int>.from(m['recurrenceDays'] as List? ?? []),
-      );
+    id: m['id'] as String,
+    title: m['title'] as String? ?? '',
+    startTime: DateTime.parse(m['startTime'] as String),
+    endTime: m['endTime'] != null
+        ? DateTime.parse(m['endTime'] as String)
+        : null,
+    note: m['note'] as String?,
+    isCompleted: m['isCompleted'] as bool? ?? false,
+    priority: m['priority'] as int? ?? 1,
+    tags: List<String>.from(m['tags'] as List? ?? []),
+    linkedNoteIds: List<String>.from(m['linkedNoteIds'] as List? ?? []),
+    recurrence: m['recurrence'] as String?,
+    recurrenceDays: List<int>.from(m['recurrenceDays'] as List? ?? []),
+  );
 
   Map<String, dynamic> _noteToMap(NoteItem n) => {
-        'id': n.id,
-        'title': n.title,
-        'content': n.content,
-        'summary': n.summary,
-        'tags': n.tags,
-        'createdAt': n.createdAt.toIso8601String(),
-        'updatedAt': n.updatedAt.toIso8601String(),
-        'linkedTaskIds': n.linkedTaskIds,
-        'isPinned': n.isPinned,
-      };
+    'id': n.id,
+    'title': n.title,
+    'content': n.content,
+    'summary': n.summary,
+    'tags': n.tags,
+    'createdAt': n.createdAt.toIso8601String(),
+    'updatedAt': n.updatedAt.toIso8601String(),
+    'linkedTaskIds': n.linkedTaskIds,
+    'isPinned': n.isPinned,
+  };
 
   NoteItem _noteFromMap(Map<String, dynamic> m) => NoteItem(
-        id: m['id'] as String,
-        title: m['title'] as String? ?? '',
-        content: m['content'] as String? ?? '',
-        summary: m['summary'] as String?,
-        tags: List<String>.from(m['tags'] as List? ?? []),
-        createdAt: DateTime.parse(m['createdAt'] as String),
-        updatedAt: DateTime.parse(m['updatedAt'] as String),
-        linkedTaskIds: List<String>.from(m['linkedTaskIds'] as List? ?? []),
-        isPinned: m['isPinned'] as bool? ?? false,
-      );
+    id: m['id'] as String,
+    title: m['title'] as String? ?? '',
+    content: m['content'] as String? ?? '',
+    summary: m['summary'] as String?,
+    tags: List<String>.from(m['tags'] as List? ?? []),
+    createdAt: DateTime.parse(m['createdAt'] as String),
+    updatedAt: DateTime.parse(m['updatedAt'] as String),
+    linkedTaskIds: List<String>.from(m['linkedTaskIds'] as List? ?? []),
+    isPinned: m['isPinned'] as bool? ?? false,
+  );
 
   Map<String, dynamic> _memoryToMap(MemoryEntry m) => {
-        'id': m.id,
-        'content': m.content,
-        'sourceType': m.sourceType,
-        'sourceId': m.sourceId,
-        'tags': m.tags,
-        'createdAt': m.createdAt.toIso8601String(),
-        'relevanceScore': m.relevanceScore,
-        'accessCount': m.accessCount,
-      };
+    'id': m.id,
+    'content': m.content,
+    'sourceType': m.sourceType,
+    'sourceId': m.sourceId,
+    'tags': m.tags,
+    'createdAt': m.createdAt.toIso8601String(),
+    'relevanceScore': m.relevanceScore,
+    'accessCount': m.accessCount,
+  };
 
   MemoryEntry _memoryFromMap(Map<String, dynamic> m) => MemoryEntry(
-        id: m['id'] as String,
-        content: m['content'] as String? ?? '',
-        sourceType: m['sourceType'] as String? ?? 'user',
-        sourceId: m['sourceId'] as String?,
-        tags: List<String>.from(m['tags'] as List? ?? []),
-        createdAt: DateTime.parse(m['createdAt'] as String),
-        relevanceScore: (m['relevanceScore'] as num?)?.toDouble() ?? 0.5,
-        accessCount: m['accessCount'] as int? ?? 0,
-      );
+    id: m['id'] as String,
+    content: m['content'] as String? ?? '',
+    sourceType: m['sourceType'] as String? ?? 'user',
+    sourceId: m['sourceId'] as String?,
+    tags: List<String>.from(m['tags'] as List? ?? []),
+    createdAt: DateTime.parse(m['createdAt'] as String),
+    relevanceScore: (m['relevanceScore'] as num?)?.toDouble() ?? 0.5,
+    accessCount: m['accessCount'] as int? ?? 0,
+  );
 
   Map<String, dynamic> _calEventToMap(CalendarEvent e) => {
-        'id': e.id,
-        'title': e.title,
-        'description': e.description,
-        'startTime': e.startTime.toIso8601String(),
-        'endTime': e.endTime.toIso8601String(),
-        'source': e.source,
-        'linkedTaskId': e.linkedTaskId,
-        'colorValue': e.colorValue,
-        'isAllDay': e.isAllDay,
-        'syncStatus': e.syncStatus,
-      };
+    'id': e.id,
+    'title': e.title,
+    'description': e.description,
+    'startTime': e.startTime.toIso8601String(),
+    'endTime': e.endTime.toIso8601String(),
+    'source': e.source,
+    'linkedTaskId': e.linkedTaskId,
+    'colorValue': e.colorValue,
+    'isAllDay': e.isAllDay,
+    'syncStatus': e.syncStatus,
+  };
 
   CalendarEvent _calEventFromMap(Map<String, dynamic> m) => CalendarEvent(
-        id: m['id'] as String,
-        title: m['title'] as String? ?? '',
-        description: m['description'] as String?,
-        startTime: DateTime.parse(m['startTime'] as String),
-        endTime: DateTime.parse(m['endTime'] as String),
-        source: m['source'] as String? ?? 'local',
-        linkedTaskId: m['linkedTaskId'] as String?,
-        colorValue: m['colorValue'] as int? ?? 0xFF4CAF50,
-        isAllDay: m['isAllDay'] as bool? ?? false,
-        syncStatus: m['syncStatus'] as String? ?? 'local',
-      );
+    id: m['id'] as String,
+    title: m['title'] as String? ?? '',
+    description: m['description'] as String?,
+    startTime: DateTime.parse(m['startTime'] as String),
+    endTime: DateTime.parse(m['endTime'] as String),
+    source: m['source'] as String? ?? 'local',
+    linkedTaskId: m['linkedTaskId'] as String?,
+    colorValue: m['colorValue'] as int? ?? 0xFF4CAF50,
+    isAllDay: m['isAllDay'] as bool? ?? false,
+    syncStatus: m['syncStatus'] as String? ?? 'local',
+  );
 }

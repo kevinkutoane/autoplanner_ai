@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Autoplanner Ai</string>
+	<string>AutoPlanner AI</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -43,6 +43,10 @@
 	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>AutoPlanner uses Face ID to protect your data when the app resumes from background.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>AutoPlanner needs microphone access so you can dictate tasks and notes using Brain Dump.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>AutoPlanner uses speech recognition to convert your voice into text for task and note creation.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

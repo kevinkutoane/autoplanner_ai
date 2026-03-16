@@ -370,6 +370,7 @@ class _GradBtnState extends State<GradBtn> with SingleTickerProviderStateMixin {
             Transform.scale(scale: 1 - 0.02 * _c.value, child: child),
         child: Container(
           height: widget.height,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
             gradient: widget.gradient,
             borderRadius: BorderRadius.circular(16),
@@ -383,7 +384,6 @@ class _GradBtnState extends State<GradBtn> with SingleTickerProviderStateMixin {
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
             children: [
               if (widget.icon != null) ...[
                 Icon(widget.icon, color: Colors.white, size: 18),
@@ -420,7 +420,7 @@ class GhostBtn extends StatelessWidget {
     required this.label,
     this.icon,
     this.onTap,
-    this.height = 48,
+    this.height = 52,
   });
 
   @override
@@ -431,6 +431,7 @@ class GhostBtn extends StatelessWidget {
       onTap: onTap,
       child: Container(
         height: height,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
@@ -445,12 +446,15 @@ class GhostBtn extends StatelessWidget {
               Icon(icon, size: 15, color: fg),
               const SizedBox(width: 8),
             ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: fg,
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: fg,
+                ),
               ),
             ),
           ],

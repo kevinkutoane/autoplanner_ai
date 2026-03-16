@@ -10,14 +10,10 @@ class RescheduleSuggestion {
   final TaskItem task;
   final DateTime proposedTime;
 
-  const RescheduleSuggestion({
-    required this.task,
-    required this.proposedTime,
-  });
+  const RescheduleSuggestion({required this.task, required this.proposedTime});
 
   /// The proposed end time, preserving original task duration.
-  DateTime get proposedEndTime =>
-      proposedTime.add(_duration(task));
+  DateTime get proposedEndTime => proposedTime.add(_duration(task));
 
   Duration _duration(TaskItem t) {
     if (t.endTime != null) {
@@ -41,10 +37,28 @@ class RescheduleService {
   final AIService _ai;
   final SchedulerService _scheduler;
 
-  RescheduleService({required AIService ai, required SchedulerService scheduler})
-      : _ai = ai,
-        _scheduler = scheduler;
+  RescheduleService({
+    required AIService ai,
+    required SchedulerService scheduler,
+  }) : _ai = ai,
+       _scheduler = scheduler;
 
+  /// Checks whether any of [tasks] are overdue today and, if so, proposes an
+  /// AI-selected reschedule slot.
+  ///
+  /// Steps:
+  /// 1. Filters today's uncompleted tasks whose [TaskItem.startTime] is more
+  ///    than 5 minutes in the past.
+  /// 2. Selects the single highest-priority overdue task.
+  /// 3. Asks [SchedulerService.freeSlots] for up to 6 free windows.
+  /// 4. Passes those windows to [AIService.suggestReschedule] for ranking.
+  ///
+  /// Returns `null` when no overdue tasks exist or no free slots are available.
+  /// Finds the highest-priority overdue task for today and picks the best
+  /// available free slot using AI.
+  ///
+  /// Returns `null` when no uncompleted tasks have passed their [_gracePeriod].
+  /// The returned [RescheduleSuggestion] preserves the original task duration.
   Future<RescheduleSuggestion?> checkOverdue({
     required List<TaskItem> tasks,
     required List<CalendarEvent> calendarEvents,
@@ -56,7 +70,8 @@ class RescheduleService {
 
     // Filter: today's tasks that are uncompleted and overdue by > grace period.
     final overdue = tasks.where((t) {
-      final isToday = t.startTime.year == today.year &&
+      final isToday =
+          t.startTime.year == today.year &&
           t.startTime.month == today.month &&
           t.startTime.day == today.day;
       return isToday &&

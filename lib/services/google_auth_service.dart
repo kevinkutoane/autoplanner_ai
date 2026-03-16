@@ -55,7 +55,9 @@ class GoogleAuthService {
   Future<void> signOut() async {
     try {
       await _googleSignIn.signOut();
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('GoogleAuth: signOut failed — $e');
+    }
     connectedEmail.value = null;
     await SecureKeyService.deleteGoogleTokens();
   }

@@ -21,6 +21,12 @@ import 'services/calendar_sync_service.dart';
 import 'features/onboarding/screens/splash_screen.dart';
 
 // ── Workmanager background entry-point ───────────────────────────────────────
+/// Top-level entry point called by Workmanager in a background isolate.
+///
+/// Must be a top-level (non-closure) function annotated with
+/// `@pragma('vm:entry-point')` so the AOT compiler does not tree-shake it.
+/// Re-initialises Hive and all required services independently of the
+/// main isolate, because background isolates have no shared memory.
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
@@ -55,6 +61,17 @@ void callbackDispatcher() {
   });
 }
 
+/// App entry point. Runs the init chain in order:
+///
+/// 1. Load `.env` for [appConfig].
+/// 2. Init Workmanager with [callbackDispatcher].
+/// 3. Open all encrypted Hive boxes (AES key from OS keychain).
+/// 4. Initialise [TokenTracker] and [MemoryService] (require open boxes).
+/// 5. Restore Google + Outlook OAuth sessions silently.
+/// 6. Init [NotificationService] and schedule morning briefing if enabled.
+/// 7. Optionally initialise Firebase (graceful no-op when config is absent).
+/// 8. Wrap the widget tree in [ProviderScope] with service overrides, then
+///    call [runApp].
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 

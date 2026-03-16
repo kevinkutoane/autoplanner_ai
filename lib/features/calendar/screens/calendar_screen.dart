@@ -630,29 +630,37 @@ class _EventTile extends StatelessWidget {
                           ],
                         ),
                       ),
-                      GestureDetector(
-                        onTap: onEdit,
-                        child: Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Icon(
-                            Icons.edit_outlined,
-                            size: 18,
-                            color: isDark
-                                ? Colors.white54
-                                : kIndigo.withAlpha(180),
+                      Semantics(
+                        button: true,
+                        label: 'Edit event',
+                        child: GestureDetector(
+                          onTap: onEdit,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Icon(
+                              Icons.edit_outlined,
+                              size: 18,
+                              color: isDark
+                                  ? Colors.white54
+                                  : kIndigo.withAlpha(180),
+                            ),
                           ),
                         ),
                       ),
-                      GestureDetector(
-                        onTap: onDelete,
-                        child: Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Icon(
-                            Icons.delete_outline_rounded,
-                            size: 18,
-                            color: isDark
-                                ? Colors.white38
-                                : const Color(0xFFFF6B6B),
+                      Semantics(
+                        button: true,
+                        label: 'Delete event',
+                        child: GestureDetector(
+                          onTap: onDelete,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Icon(
+                              Icons.delete_outline_rounded,
+                              size: 18,
+                              color: isDark
+                                  ? Colors.white38
+                                  : const Color(0xFFFF6B6B),
+                            ),
                           ),
                         ),
                       ),
@@ -946,23 +954,27 @@ class _GlowFabState extends State<_GlowFab>
     animation: _c,
     builder: (_, child) =>
         Transform.scale(scale: 1.0 + 0.04 * _c.value, child: child),
-    child: GestureDetector(
-      onTap: widget.onTap,
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          gradient: kGradientTeal,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: kCyan.withAlpha(120),
-              blurRadius: 20,
-              spreadRadius: 2,
-            ),
-          ],
+    child: Semantics(
+      button: true,
+      label: 'Add event',
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            gradient: kGradientTeal,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: kCyan.withAlpha(120),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
         ),
-        child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
       ),
     ),
   );

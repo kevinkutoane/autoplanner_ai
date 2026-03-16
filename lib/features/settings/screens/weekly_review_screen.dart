@@ -20,40 +20,51 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
   bool _loading = false;
   bool _generated = false;
 
+  String? _error;
+
   Future<void> _generate() async {
     setState(() {
       _loading = true;
       _review = null;
+      _error = null;
     });
 
-    final now = DateTime.now();
-    final weekStart = now.subtract(Duration(days: now.weekday - 1));
-    final cutoff = DateTime(weekStart.year, weekStart.month, weekStart.day);
+    try {
+      final now = DateTime.now();
+      final weekStart = now.subtract(Duration(days: now.weekday - 1));
+      final cutoff = DateTime(weekStart.year, weekStart.month, weekStart.day);
 
-    final allTasks = ref.read(taskControllerProvider);
-    final allNotes = ref.read(noteControllerProvider);
-    final memories = ref.read(memoryControllerProvider);
+      final allTasks = ref.read(taskControllerProvider);
+      final allNotes = ref.read(noteControllerProvider);
+      final memories = ref.read(memoryControllerProvider);
 
-    final weekTasks = allTasks
-        .where((t) => !t.startTime.isBefore(cutoff))
-        .toList();
-    final weekNotes = allNotes
-        .where((n) => !n.createdAt.isBefore(cutoff))
-        .toList();
+      final weekTasks = allTasks
+          .where((t) => !t.startTime.isBefore(cutoff))
+          .toList();
+      final weekNotes = allNotes
+          .where((n) => !n.createdAt.isBefore(cutoff))
+          .toList();
 
-    final ai = ref.read(aiServiceProvider);
-    final result = await ai.generateWeeklyReview(
-      weekTasks: weekTasks,
-      weekNotes: weekNotes,
-      memories: memories,
-    );
+      final ai = ref.read(aiServiceProvider);
+      final result = await ai.generateWeeklyReview(
+        weekTasks: weekTasks,
+        weekNotes: weekNotes,
+        memories: memories,
+      );
 
-    if (!mounted) return;
-    setState(() {
-      _review = result;
-      _loading = false;
-      _generated = true;
-    });
+      if (!mounted) return;
+      setState(() {
+        _review = result;
+        _loading = false;
+        _generated = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'Could not generate review. Please try again.';
+      });
+    }
   }
 
   @override
@@ -96,12 +107,16 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                   children: [
                     Row(
                       children: [
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: const Icon(
-                            Icons.arrow_back_rounded,
-                            color: Colors.white70,
-                            size: 22,
+                        Semantics(
+                          button: true,
+                          label: 'Back',
+                          child: GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: const Icon(
+                              Icons.arrow_back_rounded,
+                              color: Colors.white70,
+                              size: 22,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -291,6 +306,42 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
                                 ),
                                 const SizedBox(height: 20),
                                 const LinearProgressIndicator(),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    : _error != null
+                    ? Stagger(
+                        index: 1,
+                        child: GlassCard(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: kCoral,
+                                  size: 36,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _error!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: _generate,
+                                  icon: const Icon(
+                                    Icons.refresh_rounded,
+                                    size: 16,
+                                  ),
+                                  label: const Text('Try Again'),
+                                ),
                               ],
                             ),
                           ),

@@ -556,13 +556,16 @@ class _GlowFabState extends State<_GlowFab>
     animation: _c,
     builder: (_, child) =>
         Transform.scale(scale: 1.0 + 0.04 * _c.value, child: child),
-    child: GestureDetector(
-      onTap: widget.onTap,
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          gradient: kGradientMain,
+    child: Semantics(
+      button: true,
+      label: 'Add note',
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            gradient: kGradientMain,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
@@ -575,5 +578,6 @@ class _GlowFabState extends State<_GlowFab>
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
       ),
     ),
+  ),
   );
 }

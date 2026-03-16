@@ -12,6 +12,13 @@ import '../../calendar/controllers/calendar_controller.dart';
 
 const _uuid = Uuid();
 
+/// Riverpod [StateNotifier] that owns all [TaskItem] CRUD, scheduling,
+/// recurrence, and AI-enrichment logic.
+///
+/// State is a flat list of every task in the local Hive box. The box is
+/// opened synchronously in the constructor (Hive must be initialised first
+/// in `main()`). Mutations go through dedicated methods that update both
+/// the Hive box and Riverpod state atomically.
 class TaskController extends StateNotifier<List<TaskItem>> {
   Box<TaskItem>? _box;
   final AIService _aiService;

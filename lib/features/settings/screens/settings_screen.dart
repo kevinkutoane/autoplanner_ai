@@ -49,80 +49,86 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 20),
                     // profile banner
-                    GestureDetector(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ProfileScreen(),
+                    Semantics(
+                      button: true,
+                      label: 'Edit profile',
+                      child: GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ProfileScreen(),
+                          ),
                         ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(18),
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: Colors.white.withAlpha(35),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withAlpha(18),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: Colors.white.withAlpha(35),
+                                ),
                               ),
-                            ),
-                            child: Row(
-                              children: [
-                                AvatarCircle(settings: settings, size: 56),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        settings.displayName,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 17,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      if (settings.userEmail.isNotEmpty) ...[
-                                        const SizedBox(height: 2),
+                              child: Row(
+                                children: [
+                                  AvatarCircle(settings: settings, size: 56),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
                                         Text(
-                                          settings.userEmail,
+                                          settings.displayName,
                                           style: const TextStyle(
-                                            color: Colors.white60,
-                                            fontSize: 13,
+                                            color: Colors.white,
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.w700,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
-                                      ],
-                                      if (settings.userJobTitle.isNotEmpty) ...[
-                                        const SizedBox(height: 2),
-                                        ShaderMask(
-                                          shaderCallback: (b) =>
-                                              kGradientTeal.createShader(b),
-                                          child: Text(
-                                            settings.userJobTitle,
+                                        if (settings.userEmail.isNotEmpty) ...[
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            settings.userEmail,
                                             style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white60,
+                                              fontSize: 13,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                        if (settings
+                                            .userJobTitle
+                                            .isNotEmpty) ...[
+                                          const SizedBox(height: 2),
+                                          ShaderMask(
+                                            shaderCallback: (b) =>
+                                                kGradientTeal.createShader(b),
+                                            child: Text(
+                                              settings.userJobTitle,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
                                           ),
-                                        ),
+                                        ],
                                       ],
-                                    ],
+                                    ),
                                   ),
-                                ),
-                                const Icon(
-                                  Icons.chevron_right,
-                                  color: Colors.white38,
-                                ),
-                              ],
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    color: Colors.white38,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -1342,27 +1348,42 @@ class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
 
   Future<void> _connect() async {
     setState(() => _loading = true);
-    final googleAuth = ref.read(googleAuthServiceProvider);
-    final email = await googleAuth.signIn();
-    setState(() => _loading = false);
-    if (email != null) {
-      await widget.ctrl.updateGoogleCalendarConnection(
-        connected: true,
-        email: email,
-      );
-    } else {
+    try {
+      final googleAuth = ref.read(googleAuthServiceProvider);
+      final email = await googleAuth.signIn();
       if (!mounted) return;
+      setState(() => _loading = false);
+      if (email != null) {
+        await widget.ctrl.updateGoogleCalendarConnection(
+          connected: true,
+          email: email,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Google sign-in cancelled.')),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Google sign-in cancelled.')),
+        const SnackBar(
+          content: Text('Google sign-in failed. Please try again.'),
+        ),
       );
     }
   }
 
   Future<void> _disconnect() async {
     setState(() => _loading = true);
-    final googleAuth = ref.read(googleAuthServiceProvider);
-    await googleAuth.signOut();
-    await widget.ctrl.updateGoogleCalendarConnection(connected: false);
+    try {
+      final googleAuth = ref.read(googleAuthServiceProvider);
+      await googleAuth.signOut();
+      await widget.ctrl.updateGoogleCalendarConnection(connected: false);
+    } catch (_) {
+      // Sign-out best-effort — clear local state regardless.
+    }
+    if (!mounted) return;
     setState(() => _loading = false);
   }
 
@@ -1450,24 +1471,39 @@ class _OutlookCalendarTileState extends ConsumerState<_OutlookCalendarTile> {
 
   Future<void> _connect() async {
     setState(() => _loading = true);
-    final msalAuth = ref.read(msalAuthServiceProvider);
-    final email = await msalAuth.signIn();
-    setState(() => _loading = false);
-    if (email != null) {
-      await widget.ctrl.updateOutlookConnection(true);
-    } else {
+    try {
+      final msalAuth = ref.read(msalAuthServiceProvider);
+      final email = await msalAuth.signIn();
       if (!mounted) return;
+      setState(() => _loading = false);
+      if (email != null) {
+        await widget.ctrl.updateOutlookConnection(true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Microsoft sign-in cancelled.')),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Microsoft sign-in cancelled.')),
+        const SnackBar(
+          content: Text('Microsoft sign-in failed. Please try again.'),
+        ),
       );
     }
   }
 
   Future<void> _disconnect() async {
     setState(() => _loading = true);
-    final msalAuth = ref.read(msalAuthServiceProvider);
-    await msalAuth.signOut();
-    await widget.ctrl.updateOutlookConnection(false);
+    try {
+      final msalAuth = ref.read(msalAuthServiceProvider);
+      await msalAuth.signOut();
+      await widget.ctrl.updateOutlookConnection(false);
+    } catch (_) {
+      // Sign-out best-effort — clear local state regardless.
+    }
+    if (!mounted) return;
     setState(() => _loading = false);
   }
 

@@ -451,61 +451,68 @@ class DashboardScreen extends ConsumerWidget {
                         itemCount: notes.length > 5 ? 5 : notes.length,
                         itemBuilder: (ctx, i) {
                           final note = notes[i];
-                          return GestureDetector(
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => NoteEditorScreen(note: note),
+                          return Semantics(
+                            button: true,
+                            label: 'Open note: ${note.title}',
+                            child: GestureDetector(
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => NoteEditorScreen(note: note),
+                                ),
                               ),
-                            ),
-                            child: Container(
-                              width: 200,
-                              margin: const EdgeInsets.only(right: 12),
-                              child: GlassCard(
-                                padding: const EdgeInsets.all(14),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        if (note.isPinned)
-                                          const Padding(
-                                            padding: EdgeInsets.only(right: 4),
-                                            child: Icon(
-                                              Icons.push_pin_rounded,
-                                              size: 13,
-                                              color: kCoral,
+                              child: Container(
+                                width: 200,
+                                margin: const EdgeInsets.only(right: 12),
+                                child: GlassCard(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          if (note.isPinned)
+                                            const Padding(
+                                              padding: EdgeInsets.only(
+                                                right: 4,
+                                              ),
+                                              child: Icon(
+                                                Icons.push_pin_rounded,
+                                                size: 13,
+                                                color: kCoral,
+                                              ),
+                                            ),
+                                          Expanded(
+                                            child: Text(
+                                              note.title,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
-                                        Expanded(
-                                          child: Text(
-                                            note.title,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 13,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Expanded(
-                                      child: Text(
-                                        note.summary ?? note.content,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: isDark
-                                              ? Colors.white60
-                                              : const Color(0xFF7C7C8A),
-                                          height: 1.4,
-                                        ),
-                                        maxLines: 4,
-                                        overflow: TextOverflow.ellipsis,
+                                        ],
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(height: 6),
+                                      Expanded(
+                                        child: Text(
+                                          note.summary ?? note.content,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: isDark
+                                                ? Colors.white60
+                                                : const Color(0xFF7C7C8A),
+                                            height: 1.4,
+                                          ),
+                                          maxLines: 4,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),

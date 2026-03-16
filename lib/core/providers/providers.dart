@@ -1,6 +1,7 @@
-// Centralized Riverpod providers for the entire app.
-// Single source of truth for all shared services and controllers.
-// Every feature imports from here — no more duplicate providers.
+/// Centralized Riverpod providers for the entire app.
+///
+/// Single source of truth for all shared services and controllers.
+/// Every feature imports from here — no more duplicate providers.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/env_config.dart';
 import '../ai/ai_provider.dart';
@@ -22,8 +23,8 @@ import '../../features/settings/controllers/settings_controller.dart';
 import '../../features/planner/controllers/task_controller.dart';
 
 // ── Settings & Profile ────────────────────────────────────────────
-// Declared first so other providers can watch it without forward-reference issues.
-
+/// Declared first so other providers can watch it without forward-reference
+/// issues. Persists all user preferences across app restarts.
 final settingsProvider = StateNotifierProvider<SettingsController, AppSettings>(
   (ref) => SettingsController(),
 );
@@ -51,12 +52,16 @@ final aiServiceProvider = Provider<AIService>((ref) {
 // ── Services ──────────────────────────────────────────────────────────
 
 /// Overridden in main() with an already-initialized MemoryService instance.
+/// Overridden in main() with an already-initialized MemoryService instance.
 final memoryServiceProvider = Provider<MemoryService>((_) => MemoryService());
 
+/// Singleton deterministic scheduler. Stateless — safe to create inline,
+/// but shared here to avoid repeated allocations across the widget tree.
 final schedulerServiceProvider = Provider<SchedulerService>(
   (_) => SchedulerService(),
 );
 
+/// Wrapper around `local_auth` for fingerprint / Face ID / device-PIN checks.
 final biometricServiceProvider = Provider<BiometricService>(
   (_) => BiometricService(),
 );

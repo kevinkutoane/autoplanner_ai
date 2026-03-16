@@ -60,7 +60,7 @@ class HomeWidgetService {
         qualifiedAndroidName: '$_appId.$_androidWidgetName',
       );
     } catch (e) {
-      if (kDebugMode) print('HomeWidgetService: $e');
+      if (kDebugMode) debugPrint('HomeWidgetService: $e');
     }
   }
 }

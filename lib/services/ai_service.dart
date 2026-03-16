@@ -9,22 +9,42 @@ import '../core/models/memory_entry_model.dart';
 
 // ── Brain Dump result types ───────────────────────────────────────────────
 
+/// A note entity produced by the brain-dump AI pass.
+///
+/// Distinct from [NoteItem] because it has not yet been persisted to Hive;
+/// the caller (BrainDumpSheet) writes it after the AI stream completes.
 class BrainNote {
+  /// Short descriptive title for the note.
   final String title;
+
+  /// Full body text of the note.
   final String content;
+
   const BrainNote({required this.title, required this.content});
 }
 
+/// Aggregated output of a single brain-dump AI invocation.
+///
+/// Contains three categories of structured items extracted from free-form
+/// user input — tasks, notes, and long-term memory strings — which are
+/// persisted to their respective Hive boxes by the caller.
 class BrainDumpResult {
+  /// Tasks extracted from the brain dump, ready to be written to `tasksBox`.
   final List<TaskItem> tasks;
+
+  /// Notes extracted from the brain dump, ready to be written to `notesBox`.
   final List<BrainNote> notes;
+
+  /// Raw memory strings to be stored in `memoryBox` as [MemoryEntry] records.
   final List<String> memories;
+
   const BrainDumpResult({
     required this.tasks,
     required this.notes,
     required this.memories,
   });
 
+  /// True when all three result lists are empty (model produced nothing useful).
   bool get isEmpty => tasks.isEmpty && notes.isEmpty && memories.isEmpty;
 }
 
@@ -200,7 +220,7 @@ Duration: ${_taskDurationMinutes(task)} min
 Available slots today:
 $slotLines
 $memCtx
-Pick the single best slot number considering priority, the user\'s energy patterns from memory, and realistic buffer time.
+Pick the single best slot number considering priority, the user's energy patterns from memory, and realistic buffer time.
 Respond with ONLY the slot number as a single integer (e.g. "2"). No explanation.
 ''';
 
@@ -231,6 +251,10 @@ Respond with ONLY the slot number as a single integer (e.g. "2"). No explanation
 
   // ── Note summarization ───────────────────────────────────────────────────
 
+  /// Returns a 1–3 sentence summary of [content], or `null` if the content
+  /// is shorter than 50 characters or the model returns an empty string.
+  ///
+  /// Useful for automatically populating [NoteItem.summary] after saving.
   Future<String?> summarizeNote(String content) async {
     if (content.trim().length < 50) return null;
     final prompt =
@@ -250,6 +274,10 @@ ${_sanitize(content)}
 
   // ── Tag generation ───────────────────────────────────────────────────────
 
+  /// Generates 2–5 lowercase topic tags for [content].
+  ///
+  /// Returns an empty list when [content] is shorter than 20 characters or
+  /// when the model cannot produce a parseable JSON array.
   Future<List<String>> generateTags(String content) async {
     if (content.trim().length < 20) return [];
     final prompt =
@@ -270,6 +298,11 @@ ${_sanitize(content)}
 
   // ── Daily insight ────────────────────────────────────────────────────────
 
+  /// Generates a 2–3 sentence motivating daily insight from [tasks] and
+  /// [memories], including a productivity tip.
+  ///
+  /// Returns `null` on failure (e.g. network error). The failure is logged in
+  /// debug mode but not rethrown, so callers can treat it as optional UI.
   Future<String?> generateDailyInsight(
     List<TaskItem> tasks,
     List<MemoryEntry> memories,
@@ -311,6 +344,11 @@ $memDesc
 
   // ── Memory extraction ─────────────────────────────────────────────────────
 
+  /// Extracts a single reusable insight from [context] for long-term storage.
+  ///
+  /// [sourceType] describes where the context came from (e.g. `'task'`,
+  /// `'note'`, `'calendar'`). Returns `null` when the model responds with
+  /// `"NONE"` or on network failure.
   Future<String?> extractMemoryFromContext(
     String context,
     String sourceType,

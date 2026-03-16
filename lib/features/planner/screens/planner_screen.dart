@@ -10,6 +10,8 @@ import '../../../core/ai/token_tracker.dart';
 import '../../notes/controllers/note_controller.dart';
 import '../../../core/models/note_model.dart';
 import '../../../services/reschedule_service.dart';
+import '../../../core/models/memory_entry_model.dart';
+import '../../memory/controllers/memory_controller.dart';
 
 class PlannerScreen extends ConsumerWidget {
   const PlannerScreen({super.key});
@@ -148,6 +150,21 @@ class PlannerScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+
+              // ── Empty search state ──────────────────────────────────────
+              if (searchQuery.isNotEmpty &&
+                  tasks.isEmpty &&
+                  allTasks.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 40, 16, 8),
+                    child: EmptyState(
+                      icon: Icons.search_off_rounded,
+                      message:
+                          'No tasks match "${searchQuery.length > 24 ? '${searchQuery.substring(0, 24)}\u2026' : searchQuery}"',
+                    ),
+                  ),
+                ),
 
               if (tasks.isEmpty)
                 // Plan My Day banner is always visible so users can kick off
@@ -477,70 +494,94 @@ class _TaskRow extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // complete toggle
-                      GestureDetector(
-                        onTap: () => ref
-                            .read(taskControllerProvider.notifier)
-                            .toggleComplete(task.id),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          width: 28,
-                          height: 28,
-                          margin: const EdgeInsets.only(right: 4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: task.isCompleted ? kGradientTeal : null,
-                            border: task.isCompleted
-                                ? null
-                                : Border.all(
-                                    color: isDark
-                                        ? Colors.white38
-                                        : Colors.black26,
-                                    width: 1.5,
-                                  ),
+                      Semantics(
+                        button: true,
+                        label: task.isCompleted
+                            ? 'Mark ${task.title} as pending'
+                            : 'Mark ${task.title} as complete',
+                        child: GestureDetector(
+                          onTap: () => ref
+                              .read(taskControllerProvider.notifier)
+                              .toggleComplete(task.id),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            width: 28,
+                            height: 28,
+                            margin: const EdgeInsets.only(right: 4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: task.isCompleted ? kGradientTeal : null,
+                              border: task.isCompleted
+                                  ? null
+                                  : Border.all(
+                                      color: isDark
+                                          ? Colors.white38
+                                          : Colors.black26,
+                                      width: 1.5,
+                                    ),
+                            ),
+                            child: task.isCompleted
+                                ? const Icon(
+                                    Icons.check_rounded,
+                                    size: 15,
+                                    color: Colors.white,
+                                  )
+                                : null,
                           ),
-                          child: task.isCompleted
-                              ? const Icon(
-                                  Icons.check_rounded,
-                                  size: 15,
-                                  color: Colors.white,
-                                )
-                              : null,
                         ),
                       ),
                       // delete
-                      GestureDetector(
-                        onTap: () {
-                          final messenger = ScaffoldMessenger.of(context);
-                          ref
-                              .read(taskControllerProvider.notifier)
-                              .removeTask(task.id);
-                          messenger
-                            ..clearSnackBars()
-                            ..showSnackBar(
-                              SnackBar(
-                                behavior: SnackBarBehavior.floating,
-                                showCloseIcon: true,
-                                duration: const Duration(seconds: 8),
-                                content: Text('"${task.title}" deleted'),
-                                action: SnackBarAction(
-                                  label: 'UNDO',
-                                  onPressed: () {
-                                    try {
-                                      ref
-                                          .read(taskControllerProvider.notifier)
-                                          .addTask(task);
-                                    } catch (_) {}
-                                  },
+                      Semantics(
+                        button: true,
+                        label: 'Delete ${task.title}',
+                        child: GestureDetector(
+                          onTap: () {
+                            final messenger = ScaffoldMessenger.of(context);
+                            ref
+                                .read(taskControllerProvider.notifier)
+                                .removeTask(task.id);
+                            messenger
+                              ..clearSnackBars()
+                              ..showSnackBar(
+                                SnackBar(
+                                  behavior: SnackBarBehavior.floating,
+                                  showCloseIcon: true,
+                                  duration: const Duration(seconds: 8),
+                                  content: Text('"${task.title}" deleted'),
+                                  action: SnackBarAction(
+                                    label: 'UNDO',
+                                    onPressed: () {
+                                      try {
+                                        ref
+                                            .read(
+                                              taskControllerProvider.notifier,
+                                            )
+                                            .addTask(task);
+                                      } catch (_) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Could not restore task.',
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                  ),
                                 ),
-                              ),
-                            );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Icon(
-                            Icons.close_rounded,
-                            size: 18,
-                            color: isDark ? Colors.white38 : Colors.black26,
+                              );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: 18,
+                              color: isDark ? Colors.white38 : Colors.black26,
+                            ),
                           ),
                         ),
                       ),
@@ -764,7 +805,7 @@ class _AddTaskDialogState extends State<_AddTaskDialog>
               Expanded(
                 child: _loading
                     ? Container(
-                        height: 44,
+                        height: 52,
                         decoration: BoxDecoration(
                           gradient: kGradientMain,
                           borderRadius: BorderRadius.circular(16),
@@ -827,23 +868,27 @@ class _GlowFabState extends State<_GlowFab>
     animation: _c,
     builder: (_, child) =>
         Transform.scale(scale: 1.0 + 0.04 * _c.value, child: child),
-    child: GestureDetector(
-      onTap: widget.onTap,
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          gradient: kGradientMain,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: kIndigo.withAlpha(120),
-              blurRadius: 20,
-              spreadRadius: 2,
-            ),
-          ],
+    child: Semantics(
+      button: true,
+      label: 'Add tasks with AI',
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            gradient: kGradientMain,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: kIndigo.withAlpha(120),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
         ),
-        child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
       ),
     ),
   );
@@ -1233,6 +1278,7 @@ class _PlanMyDaySheetState extends ConsumerState<_PlanMyDaySheet> {
   String _statusMsg = '';
   int _scheduledCount = 0;
   String? _error;
+  bool _feedbackGiven = false;
 
   @override
   void dispose() {
@@ -1306,7 +1352,9 @@ class _PlanMyDaySheetState extends ConsumerState<_PlanMyDaySheet> {
       if (!mounted) return;
       setState(() {
         _state = _PlanState.idle;
-        _error = 'Planning failed: $e';
+        _error = e is RateLimitException
+            ? 'Daily AI limit reached. Try again tomorrow.'
+            : 'Planning failed — please try again.';
       });
     }
   }
@@ -1391,6 +1439,39 @@ class _PlanMyDaySheetState extends ConsumerState<_PlanMyDaySheet> {
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+              if (!_feedbackGiven)
+                _AiFeedbackBar(
+                  onFeedback: (isPositive) {
+                    setState(() => _feedbackGiven = true);
+                    // Persist feedback as a memory so future AI calls improve.
+                    final memCtrl = ref.read(memoryControllerProvider.notifier);
+                    memCtrl.addMemory(
+                      MemoryEntry(
+                        id: DateTime.now().microsecondsSinceEpoch.toString(),
+                        content: isPositive
+                            ? 'User rated the AI day plan positively'
+                            : 'User rated the AI day plan negatively — schedule may need adjustment',
+                        sourceType: 'ai',
+                        tags: const ['feedback', 'planday'],
+                        createdAt: DateTime.now(),
+                        relevanceScore: isPositive ? 0.7 : 0.4,
+                      ),
+                    );
+                  },
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'Thanks for the feedback!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? Colors.white54 : Colors.black45,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -2148,6 +2229,78 @@ class _OverdueBannerState extends ConsumerState<_OverdueBanner> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── AI Feedback bar ───────────────────────────────────────────────────────
+
+/// Thumbs-up / thumbs-down rating row shown after AI generates a plan.
+///
+/// Calls [onFeedback] once with `true` for positive and `false` for negative.
+/// Dismissed automatically after one selection.
+class _AiFeedbackBar extends StatelessWidget {
+  final void Function(bool isPositive) onFeedback;
+  const _AiFeedbackBar({required this.onFeedback});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          'Was this plan helpful?',
+          style: TextStyle(
+            fontSize: 13,
+            color: isDark ? Colors.white54 : Colors.black45,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Semantics(
+          button: true,
+          label: 'Rate plan as helpful',
+          child: GestureDetector(
+            onTap: () => onFeedback(true),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark
+                    ? Colors.white.withAlpha(18)
+                    : Colors.black.withAlpha(10),
+              ),
+              child: const Icon(
+                Icons.thumb_up_rounded,
+                size: 18,
+                color: Color(0xFF00C896),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Semantics(
+          button: true,
+          label: 'Rate plan as not helpful',
+          child: GestureDetector(
+            onTap: () => onFeedback(false),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark
+                    ? Colors.white.withAlpha(18)
+                    : Colors.black.withAlpha(10),
+              ),
+              child: Icon(
+                Icons.thumb_down_rounded,
+                size: 18,
+                color: isDark ? Colors.white38 : Colors.black38,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

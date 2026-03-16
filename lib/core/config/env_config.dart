@@ -1,17 +1,31 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-// Application environment configuration.
-// Reads from .env at runtime via flutter_dotenv.
+/// Application environment: controls AI logging, token limits, and mock mode.
 enum Environment { dev, staging, prod }
 
+/// Typed, immutable snapshot of all values read from the `.env` file.
+///
+/// Initialised once in `main()` via [EnvConfig.fromDotEnv] after
+/// `dotenv.load()` completes, then stored in the [appConfig] global singleton.
+/// Feature code reads `appConfig.*` directly — no BuildContext required.
 class EnvConfig {
   final Environment environment;
   final String geminiApiKey;
   final String appName;
+
+  /// Whether to print each AI prompt/response to the debug console.
   final bool enableAILogging;
+
+  /// Whether per-call token usage is written to the `aiLogsBox`.
   final bool enableTokenTracking;
+
+  /// Maximum combined tokens (prompt + completion) allowed per calendar day.
   final int maxTokensPerDay;
+
+  /// When true, [MockAIProvider] is used instead of the real Gemini model.
   final bool useMockAI;
+
+  /// Azure App Registration client ID for Microsoft MSAL sign-in.
   final String azureClientId;
 
   const EnvConfig._({

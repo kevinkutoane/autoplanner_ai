@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -42,7 +41,6 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
   BrainDumpResult? _result;
   bool _processing = false;
   bool _saved = false;
-  String _streamPreview = '';
   bool _listening = false;
   bool _speechAvailable = false;
 
@@ -142,12 +140,7 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
     });
 
     final ai = ref.read(aiServiceProvider);
-    final result = await ai.brainDump(
-      text,
-      onChunk: (accumulated) {
-        if (mounted) setState(() => _streamPreview = accumulated);
-      },
-    );
+    final result = await ai.brainDump(text);
 
     if (mounted) {
       setState(() {
@@ -419,50 +412,60 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
         ),
         if (_speechAvailable) ...[
           const SizedBox(height: 10),
-          GestureDetector(
-            onTap: _toggleListen,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-              decoration: BoxDecoration(
-                gradient: _listening ? kGradientTeal : null,
-                color: _listening
-                    ? null
-                    : (isDark
-                          ? Colors.white.withAlpha(15)
-                          : Colors.black.withAlpha(8)),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: _listening
-                      ? Colors.transparent
-                      : (isDark
-                            ? Colors.white.withAlpha(25)
-                            : kCyan.withAlpha(80)),
+          Semantics(
+            button: true,
+            label: _listening ? 'Stop listening' : 'Speak',
+            child: GestureDetector(
+              onTap: _toggleListen,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
                 ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _listening ? Icons.stop_rounded : Icons.mic_rounded,
-                    size: 18,
+                decoration: BoxDecoration(
+                  gradient: _listening ? kGradientTeal : null,
+                  color: _listening
+                      ? null
+                      : (isDark
+                            ? Colors.white.withAlpha(15)
+                            : Colors.black.withAlpha(8)),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
                     color: _listening
-                        ? Colors.white
-                        : (isDark ? kCyan : kIndigo),
+                        ? Colors.transparent
+                        : (isDark
+                              ? Colors.white.withAlpha(25)
+                              : kCyan.withAlpha(80)),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _listening ? 'Tap to stop' : 'Speak',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _listening ? Icons.stop_rounded : Icons.mic_rounded,
+                      size: 18,
                       color: _listening
                           ? Colors.white
                           : (isDark ? kCyan : kIndigo),
                     ),
-                  ),
-                  if (_listening) ...[const SizedBox(width: 8), _VoicePulse()],
-                ],
+                    const SizedBox(width: 8),
+                    Text(
+                      _listening ? 'Tap to stop' : 'Speak',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: _listening
+                            ? Colors.white
+                            : (isDark ? kCyan : kIndigo),
+                      ),
+                    ),
+                    if (_listening) ...[
+                      const SizedBox(width: 8),
+                      _VoicePulse(),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -544,40 +547,44 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
     return AnimatedBuilder(
       animation: _pulse,
       builder: (_, child) => Transform.scale(scale: _pulse.value, child: child),
-      child: GestureDetector(
-        onTap: _process,
-        child: Container(
-          height: 54,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [kIndigo, kCyan],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: kIndigo.withAlpha(120),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+      child: Semantics(
+        button: true,
+        label: 'Process with AI',
+        child: GestureDetector(
+          onTap: _process,
+          child: Container(
+            height: 54,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [kIndigo, kCyan],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
               ),
-            ],
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
-              SizedBox(width: 10),
-              Text(
-                'Process with AI',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: kIndigo.withAlpha(120),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 20),
+                SizedBox(width: 10),
+                Text(
+                  'Process with AI',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -609,39 +616,6 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
               color: isDark ? Colors.white38 : Colors.black38,
             ),
           ),
-          if (_streamPreview.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withAlpha(12)
-                        : Colors.black.withAlpha(6),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: kIndigo.withAlpha(isDark ? 60 : 40),
-                    ),
-                  ),
-                  child: Text(
-                    _streamPreview,
-                    maxLines: 8,
-                    overflow: TextOverflow.fade,
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 11,
-                      color: isDark ? Colors.white54 : Colors.black45,
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -810,52 +784,62 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
       );
     }
 
-    return GestureDetector(
-      onTap: selCount > 0 ? _saveAll : null,
-      child: AnimatedOpacity(
-        opacity: selCount > 0 ? 1.0 : 0.45,
-        duration: const Duration(milliseconds: 200),
-        child: Container(
-          height: 54,
-          decoration: BoxDecoration(
-            gradient: selCount > 0
-                ? const LinearGradient(
-                    colors: [kIndigo, kCyan],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  )
-                : null,
-            color: selCount == 0
-                ? (isDark ? Colors.white24 : Colors.black12)
-                : null,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: selCount > 0
-                ? [
-                    BoxShadow(
-                      color: kIndigo.withAlpha(100),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.save_alt_rounded, color: Colors.white, size: 20),
-              const SizedBox(width: 10),
-              Text(
-                selCount > 0
-                    ? 'Save $selCount item${selCount == 1 ? '' : 's'}'
-                    : 'Select items to save',
-                style: const TextStyle(
+    return Semantics(
+      button: true,
+      label: selCount > 0
+          ? 'Save $selCount item${selCount == 1 ? '' : 's'}'
+          : 'Select items to save',
+      child: GestureDetector(
+        onTap: selCount > 0 ? _saveAll : null,
+        child: AnimatedOpacity(
+          opacity: selCount > 0 ? 1.0 : 0.45,
+          duration: const Duration(milliseconds: 200),
+          child: Container(
+            height: 54,
+            decoration: BoxDecoration(
+              gradient: selCount > 0
+                  ? const LinearGradient(
+                      colors: [kIndigo, kCyan],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    )
+                  : null,
+              color: selCount == 0
+                  ? (isDark ? Colors.white24 : Colors.black12)
+                  : null,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: selCount > 0
+                  ? [
+                      BoxShadow(
+                        color: kIndigo.withAlpha(100),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.save_alt_rounded,
                   color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
+                  size: 20,
                 ),
-              ),
-            ],
+                const SizedBox(width: 10),
+                Text(
+                  selCount > 0
+                      ? 'Save $selCount item${selCount == 1 ? '' : 's'}'
+                      : 'Select items to save',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

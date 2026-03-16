@@ -107,7 +107,7 @@ class NotificationService {
             UILocalNotificationDateInterpretation.absoluteTime,
       );
     } catch (e) {
-      if (kDebugMode) print('NotificationService: $e');
+      if (kDebugMode) debugPrint('NotificationService: $e');
     }
   }
 
@@ -176,7 +176,7 @@ class NotificationService {
         matchDateTimeComponents: DateTimeComponents.time,
       );
     } catch (e) {
-      if (kDebugMode) print('scheduleMorningBriefing: $e');
+      if (kDebugMode) debugPrint('scheduleMorningBriefing: $e');
     }
   }
 

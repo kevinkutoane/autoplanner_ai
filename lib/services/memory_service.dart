@@ -3,6 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import '../core/models/memory_entry_model.dart';
 
+/// Local memory store backed by a Hive box.
+///
+/// Provides ranked retrieval (time-decayed relevance scoring), tag/source
+/// filtering, keyword search, and automatic decay of stale entries. Call
+/// [init] once at app startup after Hive is initialised.
 class MemoryService {
   Box<MemoryEntry>? _box;
 
@@ -13,12 +18,16 @@ class MemoryService {
     );
   }
 
+  /// All stored memory entries, sorted by [MemoryEntry.createdAt] descending
+  /// (most recent first). Returns an empty list before [init] is called.
   List<MemoryEntry> get allMemories {
     final entries = _box?.values.toList() ?? [];
     entries.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return entries;
   }
 
+  /// The 20 most recently created memory entries. Useful for populating
+  /// short AI context windows without relevance-ranking overhead.
   List<MemoryEntry> get recentMemories {
     return allMemories.take(20).toList();
   }
@@ -83,18 +92,20 @@ class MemoryService {
     await m.save();
   }
 
-  /// Add a new memory entry
+  /// Persists a new [MemoryEntry] to the memory box.
+  /// Use [reinforceMemory] later to boost its relevance when it proves useful.
   Future<void> addMemory(MemoryEntry entry) async {
     await _box?.put(entry.id, entry);
     if (kDebugMode) debugPrint('MemoryService: saved — ${entry.content}');
   }
 
-  /// Delete a memory entry
+  /// Permanently removes the memory entry with the given [id].
   Future<void> deleteMemory(String id) async {
     await _box?.delete(id);
   }
 
-  /// Search memories by content keywords
+  /// Returns all memories whose [MemoryEntry.content] or [MemoryEntry.tags]
+  /// contain [query] as a case-insensitive substring.
   List<MemoryEntry> searchMemories(String query) {
     final queryLower = query.toLowerCase();
     return allMemories.where((m) {
@@ -103,7 +114,8 @@ class MemoryService {
     }).toList();
   }
 
-  /// Get memories by source type
+  /// Returns all memories whose [MemoryEntry.sourceType] matches [sourceType]
+  /// exactly (e.g. `'task'`, `'note'`, `'ai'`, `'user'`).
   List<MemoryEntry> getBySourceType(String sourceType) {
     return allMemories.where((m) => m.sourceType == sourceType).toList();
   }
@@ -116,7 +128,7 @@ class MemoryService {
         .toList();
   }
 
-  /// Get all unique tags across all memories
+  /// Sorted list of all unique tag strings across every stored memory entry.
   List<String> get allTags {
     final tags = <String>{};
     for (final m in allMemories) {
@@ -126,7 +138,8 @@ class MemoryService {
     return tagList;
   }
 
-  /// Clear all memories
+  /// Removes all entries from the memory box.
+  /// Useful for full data wipe (e.g. settings reset).
   Future<void> clearAll() async {
     await _box?.clear();
   }

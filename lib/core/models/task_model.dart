@@ -2,35 +2,49 @@ import 'package:hive/hive.dart';
 
 part 'task_model.g.dart';
 
-// Sentinel for nullable copyWith fields
+// Sentinel object used by [TaskItem.copyWith] so callers can explicitly
+// pass `null` to clear a nullable field (e.g. `recurrence: null`).
 const _sentinel = Object();
 
+/// A single scheduled task in the user's planner.
+///
+/// Stored in the Hive `tasksBox` (typeId 0). All list fields default to
+/// empty so they are safe to read without null-checks.
 @HiveType(typeId: 0)
 class TaskItem extends HiveObject {
+  /// Unique identifier (UUID v4).
   @HiveField(0)
   String id;
 
+  /// Short, actionable task title shown in all list views.
   @HiveField(1)
   String title;
 
+  /// Scheduled start time for the task.
   @HiveField(2)
   DateTime startTime;
 
+  /// Scheduled end time; null until the scheduler assigns one.
   @HiveField(3)
   DateTime? endTime;
 
+  /// Optional free-text note attached to the task.
   @HiveField(4)
   String? note;
 
+  /// Whether the user has marked the task done.
   @HiveField(5)
   bool isCompleted;
 
+  /// Priority level: 0 = Low, 1 = Medium, 2 = High, 3 = Urgent.
   @HiveField(6)
-  int priority; // 0=low, 1=medium, 2=high, 3=urgent
+  int priority;
 
+  /// User-defined labels for filtering and AI context.
   @HiveField(7)
   List<String> tags;
 
+  /// IDs of [NoteItem]s linked to this task.
   @HiveField(8)
   List<String> linkedNoteIds;
 
@@ -86,6 +100,10 @@ class TaskItem extends HiveObject {
     );
   }
 
+  /// Human-readable label for [priority].
+  ///
+  /// Falls back to `'Medium'` for any unrecognised value so the UI
+  /// never shows a raw integer.
   String get priorityLabel {
     switch (priority) {
       case 0:
