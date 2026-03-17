@@ -9,6 +9,7 @@ import '../../notes/controllers/note_controller.dart';
 import '../../notes/screens/note_editor_screen.dart';
 import '../../calendar/controllers/calendar_controller.dart';
 import '../../memory/controllers/memory_controller.dart';
+import '../../../core/utils/date_utils.dart';
 
 // ── Daily insight provider ───────────────────────────────────────────────────
 // keepAlive() ensures the insight is fetched exactly once per app session and
@@ -607,9 +608,6 @@ class DashboardScreen extends ConsumerWidget {
     }
   }
 }
-
-bool isSameDay(DateTime a, DateTime b) =>
-    a.year == b.year && a.month == b.month && a.day == b.day;
 
 // ── Streak badge ─────────────────────────────────────────────────────────────
 class _StreakBadge extends StatelessWidget {

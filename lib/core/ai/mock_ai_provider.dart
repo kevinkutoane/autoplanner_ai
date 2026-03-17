@@ -24,6 +24,9 @@ class MockAIProvider implements AIProvider {
       // Return the full structured object the parser expects.
       text =
           '''{"tasks":[{"title":"Review action items","startTime":"09:00","estimatedMinutes":30,"priority":1,"tags":["work"]},{"title":"Deep work block","startTime":"10:00","estimatedMinutes":90,"priority":2,"tags":["focus"]}],"notes":[{"title":"Ideas captured","content":"Remember to follow up on the project proposal next week."}],"memories":["User prefers focused work blocks in the morning."]}''';
+    } else if (lower.contains('insight') || lower.contains('daily')) {
+      text =
+          'You tend to be most productive in the morning. Try scheduling your hardest task before 10am.';
     } else if (lower.contains('task') ||
         lower.contains('plan') ||
         lower.contains('schedule') ||
@@ -38,9 +41,6 @@ class MockAIProvider implements AIProvider {
           'This note covers key project decisions and action items from the team sync.';
     } else if (lower.contains('tag')) {
       text = '["productivity", "planning", "ai"]';
-    } else if (lower.contains('insight') || lower.contains('daily')) {
-      text =
-          'You tend to be most productive in the morning. Try scheduling your hardest task before 10am.';
     } else {
       text =
           'Mock AI response for: ${prompt.substring(0, prompt.length.clamp(0, 50))}';

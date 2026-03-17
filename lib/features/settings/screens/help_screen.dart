@@ -76,7 +76,7 @@ class HelpScreen extends StatelessWidget {
 
             // ── Body ────────────────────────────────────────────────────
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   // ── What is AutoPlanner AI? ──────────────────────────

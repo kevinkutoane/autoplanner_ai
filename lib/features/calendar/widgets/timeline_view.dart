@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/models/calendar_event_model.dart';
+import '../../../core/utils/date_utils.dart';
 
 /// Scrollable hourly timeline for a single day.
 ///
@@ -45,7 +46,7 @@ class _TimelineViewState extends State<TimelineView> {
 
   void _scrollToNow() {
     final now = DateTime.now();
-    final isToday = _isSameDay(widget.selectedDate, now);
+    final isToday = isSameDay(widget.selectedDate, now);
     if (!isToday) return;
     final offset =
         (now.hour + now.minute / 60.0 - 1.5).clamp(0, 23) * _hourHeight;
@@ -54,19 +55,16 @@ class _TimelineViewState extends State<TimelineView> {
     }
   }
 
-  bool _isSameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();
-    final isToday = _isSameDay(widget.selectedDate, now);
+    final isToday = isSameDay(widget.selectedDate, now);
     final totalHeight = (_endHour - _startHour) * _hourHeight;
 
     // Filter events for this day
     final dayEvents = widget.events
-        .where((e) => _isSameDay(e.startTime, widget.selectedDate))
+        .where((e) => isSameDay(e.startTime, widget.selectedDate))
         .toList();
 
     return SingleChildScrollView(

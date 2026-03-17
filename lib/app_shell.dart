@@ -103,7 +103,10 @@ class _AppShellState extends ConsumerState<AppShell>
     WidgetsBinding.instance.addObserver(this);
     // Run the first overdue check after the first frame so all providers
     // are fully initialised.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkReschedule());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(appMonitorServiceProvider).logSessionStart();
+      _checkReschedule();
+    });
   }
 
   @override
@@ -118,9 +121,11 @@ class _AppShellState extends ConsumerState<AppShell>
 
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
-      // App going to background — arm the lock.
+      // App going to background — arm the lock and end the session.
+      ref.read(appMonitorServiceProvider).logSessionEnd();
       if (requireBiometrics && mounted) setState(() => _locked = true);
     } else if (state == AppLifecycleState.resumed) {
+      ref.read(appMonitorServiceProvider).logSessionStart();
       if (requireBiometrics && _locked) _triggerUnlock();
       // Check for overdue tasks whenever the user returns to the app.
       _checkReschedule();

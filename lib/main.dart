@@ -18,6 +18,7 @@ import 'services/secure_key_service.dart';
 import 'services/notification_service.dart';
 import 'services/google_auth_service.dart';
 import 'services/calendar_sync_service.dart';
+import 'services/app_monitor_service.dart';
 import 'features/onboarding/screens/splash_screen.dart';
 
 // ── Workmanager background entry-point ───────────────────────────────────────
@@ -106,6 +107,7 @@ void main() async {
   }
   if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(MemoryEntryAdapter());
   if (!Hive.isAdapterRegistered(10)) Hive.registerAdapter(AILogEntryAdapter());
+  if (!Hive.isAdapterRegistered(11)) Hive.registerAdapter(AppEventAdapter());
 
   // Derive a device-unique encryption key stored in the OS keychain.
   final hiveKeyBytes = await SecureKeyService.getOrCreateHiveEncryptionKey();
@@ -172,6 +174,25 @@ void main() async {
   await _openBoxSafe<CalendarEvent>('calendarBox', hiveCipher);
   // settingsBox: pre-open with cipher so SettingsController._init() inherits it.
   await _openBoxSafe<dynamic>('settingsBox', hiveCipher);
+  await _openBoxSafe<AppEvent>('appEventsBox', hiveCipher);
+
+  // ── App monitoring ────────────────────────────────────────────────────
+  final appMonitorService = AppMonitorService();
+  try {
+    await appMonitorService.init(cipher: hiveCipher);
+  } catch (e) {
+    if (kDebugMode) debugPrint('AppMonitorService init failed: $e');
+  }
+  final originalOnError = FlutterError.onError;
+  FlutterError.onError = (details) {
+    originalOnError?.call(details);
+    appMonitorService.logFlutterError(details);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    appMonitorService.logFatalError(error, stack);
+    return !kDebugMode;
+  };
+  appMonitorService.logSessionStart();
 
   runApp(
     ProviderScope(
@@ -181,6 +202,7 @@ void main() async {
         notificationServiceProvider.overrideWithValue(notificationService),
         googleAuthServiceProvider.overrideWithValue(googleAuthService),
         calendarSyncServiceProvider.overrideWithValue(calendarSyncService),
+        appMonitorServiceProvider.overrideWithValue(appMonitorService),
       ],
       child: const AutoPlannerApp(),
     ),

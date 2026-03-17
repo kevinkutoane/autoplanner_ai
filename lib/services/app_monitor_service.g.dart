@@ -1,53 +1,47 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'memory_entry_model.dart';
+part of 'app_monitor_service.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class MemoryEntryAdapter extends TypeAdapter<MemoryEntry> {
+class AppEventAdapter extends TypeAdapter<AppEvent> {
   @override
-  final int typeId = 3;
+  final int typeId = 11;
 
   @override
-  MemoryEntry read(BinaryReader reader) {
+  AppEvent read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return MemoryEntry(
+    return AppEvent(
       id: fields[0] as String,
-      content: fields[1] as String,
-      sourceType: fields[2] as String,
-      sourceId: fields[3] as String?,
-      tags: (fields[4] as List).cast<String>(),
-      createdAt: fields[5] as DateTime,
-      relevanceScore: fields[6] as double,
-      accessCount: fields[7] as int,
+      type: fields[1] as String,
+      message: fields[2] as String,
+      detail: fields[3] as String,
+      timestamp: fields[4] as DateTime,
+      durationMs: fields[5] as int,
     );
   }
 
   @override
-  void write(BinaryWriter writer, MemoryEntry obj) {
+  void write(BinaryWriter writer, AppEvent obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.content)
+      ..write(obj.type)
       ..writeByte(2)
-      ..write(obj.sourceType)
+      ..write(obj.message)
       ..writeByte(3)
-      ..write(obj.sourceId)
+      ..write(obj.detail)
       ..writeByte(4)
-      ..write(obj.tags)
+      ..write(obj.timestamp)
       ..writeByte(5)
-      ..write(obj.createdAt)
-      ..writeByte(6)
-      ..write(obj.relevanceScore)
-      ..writeByte(7)
-      ..write(obj.accessCount);
+      ..write(obj.durationMs);
   }
 
   @override
@@ -56,7 +50,7 @@ class MemoryEntryAdapter extends TypeAdapter<MemoryEntry> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is MemoryEntryAdapter &&
+      other is AppEventAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

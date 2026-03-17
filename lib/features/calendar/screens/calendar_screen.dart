@@ -6,6 +6,7 @@ import '../../calendar/controllers/calendar_controller.dart';
 import '../../../core/models/calendar_event_model.dart';
 import '../../../core/providers/providers.dart';
 import '../widgets/timeline_view.dart';
+import '../../../core/utils/date_utils.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -58,7 +59,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
     final syncConflicts = calCtrl.syncConflicts;
 
     final dayEvents =
-        events.where((e) => _isSameDay(e.startTime, _selectedDate)).toList()
+        events.where((e) => isSameDay(e.startTime, _selectedDate)).toList()
           ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
     return Scaffold(
@@ -276,17 +277,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
 
   String _formatDayLabel(DateTime d) {
     final now = DateTime.now();
-    if (_isSameDay(d, now)) return 'Today';
-    if (_isSameDay(d, now.add(const Duration(days: 1)))) return 'Tomorrow';
-    if (_isSameDay(d, now.subtract(const Duration(days: 1)))) {
+    if (isSameDay(d, now)) return 'Today';
+    if (isSameDay(d, now.add(const Duration(days: 1)))) return 'Tomorrow';
+    if (isSameDay(d, now.subtract(const Duration(days: 1)))) {
       return 'Yesterday';
     }
 
     return DateFormat('EEEE, MMM d').format(d);
   }
-
-  bool _isSameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
 
   void _showAddDialog(BuildContext context, WidgetRef ref) {
     showDialog(
@@ -416,9 +414,6 @@ class _MiniCalendar extends StatelessWidget {
     required this.onDateSelected,
   });
 
-  bool _isSameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
   @override
   Widget build(BuildContext context) {
     final firstOfMonth = DateTime(focusedMonth.year, focusedMonth.month, 1);
@@ -465,9 +460,9 @@ class _MiniCalendar extends StatelessWidget {
                 return const Expanded(child: SizedBox());
               }
               final d = DateTime(focusedMonth.year, focusedMonth.month, dayNum);
-              final isSelected = _isSameDay(d, selectedDate);
-              final isToday = _isSameDay(d, now);
-              final hasEvents = events.any((e) => _isSameDay(e.startTime, d));
+              final isSelected = isSameDay(d, selectedDate);
+              final isToday = isSameDay(d, now);
+              final hasEvents = events.any((e) => isSameDay(e.startTime, d));
 
               return Expanded(
                 child: GestureDetector(

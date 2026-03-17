@@ -21,7 +21,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -84,6 +84,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                         Tab(text: 'Performance'),
                         Tab(text: 'AI Usage'),
                         Tab(text: 'Weekly Review'),
+                        Tab(text: 'App Health'),
                       ],
                     ),
                   ],
@@ -97,6 +98,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
               _PerformanceTab(),
               _AiUsageTab(),
               WeeklyReviewScreen(),
+              _AppHealthTab(),
             ],
           ),
         ),
@@ -899,6 +901,367 @@ class _LegendDot extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             color: isDark ? Colors.white54 : Colors.black45,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── App Health tab ────────────────────────────────────────────────────────────
+class _AppHealthTab extends ConsumerWidget {
+  const _AppHealthTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final monitor = ref.watch(appMonitorServiceProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final crashFree = monitor.crashFreeRate(days: 7);
+    final sessions7 = monitor.sessionsInDays(7).length;
+    final errors7 = monitor.errorCountInDays(7);
+    final avgDur = monitor.avgSessionDuration;
+    final recentErrors = monitor.recentErrors.take(10).toList();
+
+    String durStr(Duration d) {
+      if (d == Duration.zero) return '—';
+      if (d.inMinutes < 1) return '${d.inSeconds}s';
+      if (d.inHours < 1) return '${d.inMinutes}m ${d.inSeconds % 60}s';
+      return '${d.inHours}h ${d.inMinutes % 60}m';
+    }
+
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        // Row 1: crash-free % and avg session
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          sliver: SliverToBoxAdapter(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: GlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ShaderMask(
+                          shaderCallback: (b) => kGradientTeal.createShader(b),
+                          child: const Icon(
+                            Icons.verified_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${(crashFree * 100).toStringAsFixed(0)}%',
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1,
+                          ),
+                        ),
+                        Text(
+                          'crash-free (7d)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white54 : Colors.black45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ShaderMask(
+                          shaderCallback: (b) => kGradientMain.createShader(b),
+                          child: const Icon(
+                            Icons.timer_outlined,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          durStr(avgDur),
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1,
+                          ),
+                        ),
+                        Text(
+                          'avg session',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white54 : Colors.black45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Row 2: errors and sessions
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          sliver: SliverToBoxAdapter(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: GlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ShaderMask(
+                          shaderCallback: (b) => kGradientWarm.createShader(b),
+                          child: const Icon(
+                            Icons.error_outline_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '$errors7',
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1,
+                          ),
+                        ),
+                        Text(
+                          'errors (7d)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white54 : Colors.black45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ShaderMask(
+                          shaderCallback: (b) => kGradientTeal.createShader(b),
+                          child: const Icon(
+                            Icons.phone_android_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '$sessions7',
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1,
+                          ),
+                        ),
+                        Text(
+                          'sessions (7d)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white54 : Colors.black45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Crash-free progress bar
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          sliver: SliverToBoxAdapter(
+            child: GlassCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Crash-free sessions',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        '7-day window',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.white38 : Colors.black38,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: crashFree,
+                      minHeight: 10,
+                      backgroundColor: isDark
+                          ? Colors.white.withAlpha(20)
+                          : Colors.black.withAlpha(10),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        crashFree >= 0.95
+                            ? kCyan
+                            : (crashFree >= 0.8 ? kAmber : kCoral),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    sessions7 == 0
+                        ? 'No sessions recorded yet.'
+                        : '$sessions7 session${sessions7 == 1 ? '' : 's'}, '
+                              '$errors7 error${errors7 == 1 ? '' : 's'}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // Recent errors list
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          sliver: SliverToBoxAdapter(
+            child: recentErrors.isEmpty
+                ? GlassCard(
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Column(
+                          children: [
+                            ShaderMask(
+                              shaderCallback: (b) =>
+                                  kGradientTeal.createShader(b),
+                              child: const Icon(
+                                Icons.shield_rounded,
+                                color: Colors.white,
+                                size: 36,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No errors recorded',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white70 : Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                : GlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Recent Errors',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ...recentErrors.map(
+                          (e) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: e.type == 'fatal'
+                                        ? kCoral.withAlpha(40)
+                                        : kAmber.withAlpha(40),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    e.type.toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: e.type == 'fatal'
+                                          ? kCoral
+                                          : kAmber,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        e.message,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: isDark
+                                              ? Colors.white70
+                                              : Colors.black54,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        DateFormat(
+                                          'MMM d, HH:mm',
+                                        ).format(e.timestamp),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: isDark
+                                              ? Colors.white38
+                                              : Colors.black38,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
           ),
         ),
       ],

@@ -1,5 +1,4 @@
 /// Centralized Riverpod providers for the entire app.
-///
 /// Single source of truth for all shared services and controllers.
 /// Every feature imports from here — no more duplicate providers.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +15,7 @@ import '../../services/notification_service.dart';
 import '../../services/google_auth_service.dart';
 import '../../services/calendar_sync_service.dart';
 import '../../services/conflict_detector.dart';
+import '../../services/app_monitor_service.dart';
 import '../../services/msal_auth_service.dart';
 import '../../services/reschedule_service.dart';
 import '../../features/settings/models/app_settings_model.dart';
@@ -90,6 +90,11 @@ final conflictDetectorProvider = Provider<ConflictDetector>(
 /// Overridden in main() with the initialized MsalAuthService instance.
 final msalAuthServiceProvider = Provider<MsalAuthService>(
   (_) => MsalAuthService(clientId: appConfig.azureClientId),
+);
+
+/// Overridden in main() with the initialized AppMonitorService instance.
+final appMonitorServiceProvider = Provider<AppMonitorService>(
+  (_) => AppMonitorService(),
 );
 
 // ── Proactive re-scheduling ───────────────────────────────────────────────

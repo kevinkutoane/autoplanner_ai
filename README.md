@@ -115,7 +115,7 @@ On first launch the onboarding walkthrough introduces the app. Add or update you
 | Variable | Default | Description |
 | --- | --- | --- |
 | `GEMINI_API_KEY` | (required) | Google AI Studio API key |
-| `ENV` | `dev` | Environment: `dev` / `staging` / `prod` |
+| `ENV` | `prod` | Environment: `dev` / `staging` / `prod` |
 | `USE_MOCK_AI` | `false` | Use canned AI responses (no API calls) |
 | `ENABLE_AI_LOGGING` | `true` | Log AI requests/responses |
 | `ENABLE_TOKEN_TRACKING` | `true` | Track token usage per call |
@@ -395,7 +395,6 @@ A floating action button opens the **Brain Dump** modal sheet from any screen.
 | `http` | ^1.2.2 | HTTP client for Calendar REST calls |
 | `workmanager` | ^0.9.0 | Background periodic sync |
 | `msal_flutter` | ^2.0.1 | Microsoft (Outlook/O365) MSAL authentication |
-| `firebase_core` | ^3.8.0 | Firebase initialisation (optional) |
 | `uuid` | ^4.5.1 | UUID generation |
 | `intl` | ^0.20.2 | Date/number formatting |
 | `timezone` | ^0.9.4 | Timezone-aware scheduling |
@@ -415,18 +414,79 @@ A floating action button opens the **Brain Dump** modal sheet from any screen.
 
 ---
 
-## Tests
+## Performance Optimizations
 
-```bash
-flutter test
-```
-
-38 tests across two suites:
-
-| File | Coverage |
+| Optimization | Detail |
 | --- | --- |
-| `test/scheduler_service_test.dart` | `SchedulerService.scheduleDay` — conflict avoidance, priority ordering, buffer gaps, today-anchor, calendar blocks; `freeSlots` — empty day, task blocks, calendar blocks, nearly-full day |
-| `test/reschedule_service_test.dart` | `RescheduleSuggestion.proposedEndTime` — real duration, null endTime fallback; `RescheduleService.checkOverdue` — no overdue, grace period, highest-priority selection, empty slots |
+| **Cached daily token tallies** | `TokenTracker` maintains in-memory `_cachedTokens`, `_cachedCalls`, `_cachedLatencySum`. Cache is built once per calendar day and updated inline on each `log()` call — avoids O(n) box scan on every `todayTokens` access. |
+| **Static ThemeData** | `AppTheme.lightTheme` and `AppTheme.darkTheme` are `static final` — `ThemeData` is constructed once and reused across all rebuilds. |
+| **Shared date utility** | `isSameDay()` is a single top-level function in `core/utils/date_utils.dart`, replacing 4 duplicate private copies. |
+| **Riverpod keepAlive** | `dailyInsightProvider` uses `ref.keepAlive()` so the AI insight call happens exactly once per session. |
+| **Quarter-hour cursor rounding** | `SchedulerService` rounds the scheduling cursor to the next 15-minute boundary, reducing slot fragmentation. |
+| **Lazy box opens** | Background isolate (`callbackDispatcher`) only opens the boxes it needs, keeping memory usage minimal. |
+
+---
+
+## Hive Data Schema
+
+All boxes are AES-256 encrypted with a key stored in the OS keychain (`flutter_secure_storage`).
+
+| Box Name | TypeId | Model | Key Fields |
+| --- | --- | --- | --- |
+| `tasksBox` | 0 | `TaskItem` | id, title, startTime, endTime, priority (0–3), tags, isCompleted, linkedNoteIds, recurrence, recurrenceDays |
+| `notesBox` | 1 | `NoteItem` | id, title, content, summary, tags, createdAt, updatedAt, linkedTaskIds, isPinned |
+| `calendarBox` | 2 | `CalendarEvent` | id, title, description, startTime, endTime, source, linkedTaskId, colorValue, isAllDay, syncStatus, googleEventId, etag, lastSyncedAt |
+| `memoryBox` | 3 | `MemoryEntry` | id, content, sourceType, sourceId, tags, createdAt, relevanceScore, accessCount |
+| `settingsBox` | — | `AppSettings` (manual) | 20+ keys for work schedule, theme, biometric lock, Google/Outlook toggle, etc. |
+| `aiLogsBox` | 10 | `AILogEntry` | id, model, action, promptTokens, completionTokens, latencyMs, timestamp, success |
+
+---
+
+## Build & Release Checklist
+
+### Android
+
+1. Generate a production upload keystore:
+
+   ```bash
+   keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+   ```
+
+2. Create `android/key.properties` (git-ignored):
+
+   ```properties
+   storePassword=<password>
+   keyPassword=<password>
+   keyAlias=upload
+   storeFile=<path-to-upload-keystore.jks>
+   ```
+
+3. Populate `GEMINI_API_KEY` in `.env` (or instruct users to enter it in Settings).
+4. Build the release bundle:
+
+   ```bash
+   flutter build appbundle --release
+   ```
+
+   Output: `build/app/outputs/bundle/release/app-release.aab`
+
+### iOS
+
+1. Open `ios/Runner.xcworkspace` in Xcode.
+2. Set Team and Bundle Identifier under **Signing & Capabilities**.
+3. Build the archive:
+
+   ```bash
+   flutter build ipa --release
+   ```
+
+4. Upload via **Xcode → Distribute App** or **Transporter**.
+
+### Environment Notes
+
+- `.env` ships inside the APK/IPA (listed under `pubspec.yaml` assets) with `GEMINI_API_KEY=` blank. The user enters their own key via **Settings → AI Settings**.
+- `ENV=prod` is the default in `.env` so the app title reads "AutoPlanner AI" (not "[DEV]").
+- `AZURE_CLIENT_ID` must be populated before Outlook connect will work. If not shipping with Outlook, the Connect button can be hidden by leaving the client ID empty — the service gracefully no-ops.
 
 ---
 

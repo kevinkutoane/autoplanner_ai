@@ -71,6 +71,36 @@ class TokenTracker {
   static const _uuid = Uuid();
   Box<AILogEntry>? _box;
 
+  // ── Cached daily tallies ──────────────────────────────────────────────────
+  // Avoids scanning the entire Hive box on every todayTokens / todayCallCount
+  // access. Cached values are invalidated when the calendar day rolls over.
+  int _cachedDay = -1;
+  int _cachedTokens = 0;
+  int _cachedCalls = 0;
+  int _cachedLatencySum = 0;
+
+  /// Recomputes cached tallies if the calendar day has changed since the last
+  /// call, or returns the cached values immediately.
+  void _ensureDayCache() {
+    final now = DateTime.now();
+    final day = now.year * 10000 + now.month * 100 + now.day;
+    if (day == _cachedDay) return;
+    // Day rolled over — rebuild from box.
+    final todayStart = DateTime(now.year, now.month, now.day);
+    int tokens = 0, calls = 0, latency = 0;
+    for (final e in (_box?.values ?? const <AILogEntry>[])) {
+      if (e.timestamp.isAfter(todayStart)) {
+        tokens += e.totalTokens;
+        latency += e.latencyMs;
+        calls++;
+      }
+    }
+    _cachedDay = day;
+    _cachedTokens = tokens;
+    _cachedCalls = calls;
+    _cachedLatencySum = latency;
+  }
+
   Future<void> init({HiveAesCipher? cipher}) async {
     _box = await Hive.openBox<AILogEntry>(
       'aiLogsBox',
@@ -99,6 +129,12 @@ class TokenTracker {
       success: success,
     );
 
+    // Update daily cache inline — no full rescan needed.
+    _ensureDayCache();
+    _cachedTokens += entry.totalTokens;
+    _cachedCalls++;
+    _cachedLatencySum += entry.latencyMs;
+
     await _box?.put(entry.id, entry);
 
     if (appConfig.enableAILogging && kDebugMode) {
@@ -112,11 +148,8 @@ class TokenTracker {
 
   /// Total tokens consumed today (prompt + completion across all calls).
   int get todayTokens {
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
-    return (_box?.values ?? [])
-        .where((e) => e.timestamp.isAfter(todayStart))
-        .fold(0, (sum, e) => sum + e.totalTokens);
+    _ensureDayCache();
+    return _cachedTokens;
   }
 
   /// True when [todayTokens] has met or exceeded [EnvConfig.maxTokensPerDay].
@@ -139,24 +172,16 @@ class TokenTracker {
 
   /// Number of AI calls made today (each [log] invocation = one call).
   int get todayCallCount {
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
-    return (_box?.values ?? [])
-        .where((e) => e.timestamp.isAfter(todayStart))
-        .length;
+    _ensureDayCache();
+    return _cachedCalls;
   }
 
   /// Average response latency in milliseconds across all calls today.
   /// Returns `0` when no calls have been made.
   double get todayAvgLatency {
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
-    final todayEntries = (_box?.values ?? [])
-        .where((e) => e.timestamp.isAfter(todayStart))
-        .toList();
-    if (todayEntries.isEmpty) return 0;
-    return todayEntries.fold(0, (sum, e) => sum + e.latencyMs) /
-        todayEntries.length;
+    _ensureDayCache();
+    if (_cachedCalls == 0) return 0;
+    return _cachedLatencySum / _cachedCalls;
   }
 
   /// Per-day token totals for the last [days] calendar days.
