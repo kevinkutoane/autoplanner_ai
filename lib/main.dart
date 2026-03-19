@@ -150,10 +150,12 @@ void main() async {
         settingsBox.get('morningBriefingEnabled', defaultValue: false) as bool;
     final briefingHour =
         settingsBox.get('morningBriefingHour', defaultValue: 7) as int;
+    final briefingMinute =
+        settingsBox.get('morningBriefingMinute', defaultValue: 0) as int;
     if (briefingEnabled) {
       await notificationService.scheduleMorningBriefing(
         hour: briefingHour,
-        minute: 0,
+        minute: briefingMinute,
         body: 'Good morning! Tap to review your plan for the day.',
       );
     }

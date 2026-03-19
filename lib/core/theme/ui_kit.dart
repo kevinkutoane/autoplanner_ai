@@ -711,6 +711,7 @@ class GlassField extends StatelessWidget {
   final int? maxLines;
   final String? hintText;
   final bool readOnly;
+  final bool autofocus;
 
   const GlassField({
     super.key,
@@ -723,6 +724,7 @@ class GlassField extends StatelessWidget {
     this.maxLines = 1,
     this.hintText,
     this.readOnly = false,
+    this.autofocus = false,
   });
 
   @override
@@ -730,10 +732,10 @@ class GlassField extends StatelessWidget {
     final d = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: d ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5),
+        color: d ? Colors.white.withAlpha(10) : const Color(0xFFF0F0F0),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: d ? Colors.white.withAlpha(20) : Colors.black.withAlpha(12),
+          color: d ? Colors.white.withAlpha(20) : const Color(0xFFCCCCCC),
           width: 1,
         ),
       ),
@@ -744,6 +746,7 @@ class GlassField extends StatelessWidget {
         onChanged: onChanged,
         maxLines: maxLines,
         readOnly: readOnly,
+        autofocus: autofocus,
         style: TextStyle(color: d ? Colors.white : kDark0, fontSize: 15),
         decoration: InputDecoration(
           labelText: label,

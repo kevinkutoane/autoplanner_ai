@@ -666,192 +666,197 @@ class SettingsScreen extends ConsumerWidget {
             ),
             child: Container(
               margin: const EdgeInsets.all(16),
-              child: GlassCard(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          ShaderMask(
-                            shaderCallback: (b) =>
-                                kGradientMain.createShader(b),
-                            child: const Icon(
-                              Icons.key_rounded,
-                              color: Colors.white,
-                            ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E1E2C) : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isDark ? Colors.white.withAlpha(30) : Colors.black12,
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        ShaderMask(
+                          shaderCallback: (b) => kGradientMain.createShader(b),
+                          child: const Icon(
+                            Icons.key_rounded,
+                            color: Colors.white,
                           ),
-                          const SizedBox(width: 10),
-                          const Text(
-                            'Gemini API Key',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Your key is stored in the device keychain and never leaves your phone.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? Colors.white38 : Colors.black38,
                         ),
-                      ),
-                      if (settings.useMockAI) ...[
-                        const SizedBox(height: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: kAmber.withAlpha(30),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: kAmber.withAlpha(100)),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(
-                                Icons.warning_amber_rounded,
-                                color: kAmber,
-                                size: 16,
-                              ),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Mock AI is ON — disable it in AI Settings to use your key.',
-                                  style: TextStyle(fontSize: 12, color: kAmber),
-                                ),
-                              ),
-                            ],
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Gemini API Key',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],
-                      const SizedBox(height: 16),
-                      GlassField(
-                        controller: keyCtrl,
-                        label: 'API Key',
-                        icon: Icons.vpn_key_outlined,
-                        hintText: 'AIza...',
-                        keyboardType: TextInputType.visiblePassword,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Your key is stored in the device keychain and never leaves your phone.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white38 : Colors.black38,
                       ),
-                      if (testResult != null) ...[
-                        const SizedBox(height: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
+                    ),
+                    if (settings.useMockAI) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: kAmber.withAlpha(30),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: kAmber.withAlpha(100)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: kAmber,
+                              size: 16,
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Mock AI is ON — disable it in AI Settings to use your key.',
+                                style: TextStyle(fontSize: 12, color: kAmber),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    GlassField(
+                      controller: keyCtrl,
+                      label: 'API Key',
+                      icon: Icons.vpn_key_outlined,
+                      hintText: 'AIza...',
+                      keyboardType: TextInputType.visiblePassword,
+                      autofocus: true,
+                    ),
+                    if (testResult != null) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: testResult!
+                              ? kCyan.withAlpha(30)
+                              : kCoral.withAlpha(30),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
                             color: testResult!
-                                ? kCyan.withAlpha(30)
-                                : kCoral.withAlpha(30),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: testResult!
-                                  ? kCyan.withAlpha(100)
-                                  : kCoral.withAlpha(100),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                testResult!
-                                    ? Icons.check_circle_outline_rounded
-                                    : Icons.error_outline_rounded,
-                                color: testResult! ? kCyan : kCoral,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                testResult!
-                                    ? 'Connection successful!'
-                                    : 'Connection failed — check your key.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: testResult! ? kCyan : kCoral,
-                                ),
-                              ),
-                            ],
+                                ? kCyan.withAlpha(100)
+                                : kCoral.withAlpha(100),
                           ),
                         ),
-                      ],
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          if (settings.geminiApiKey.isNotEmpty) ...[
-                            GhostBtn(
-                              label: 'Clear',
-                              onTap: () async {
-                                await ctrl.updateGeminiApiKey('');
-                                if (ctx.mounted) Navigator.pop(ctx);
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('API key cleared.'),
-                                      duration: Duration(seconds: 2),
-                                    ),
-                                  );
-                                }
-                              },
+                        child: Row(
+                          children: [
+                            Icon(
+                              testResult!
+                                  ? Icons.check_circle_outline_rounded
+                                  : Icons.error_outline_rounded,
+                              color: testResult! ? kCyan : kCoral,
+                              size: 16,
                             ),
                             const SizedBox(width: 8),
+                            Text(
+                              testResult!
+                                  ? 'Connection successful!'
+                                  : 'Connection failed — check your key.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: testResult! ? kCyan : kCoral,
+                              ),
+                            ),
                           ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        if (settings.geminiApiKey.isNotEmpty) ...[
                           GhostBtn(
-                            label: testing ? '…' : 'Test',
+                            label: 'Clear',
                             onTap: () async {
-                              if (testing) return;
-                              setSheetState(() {
-                                testing = true;
-                                testResult = null;
-                              });
-                              try {
-                                await ref
-                                    .read(aiServiceProvider)
-                                    .generateDailyInsight([], []);
-                                setSheetState(() {
-                                  testing = false;
-                                  testResult = true;
-                                });
-                              } catch (_) {
-                                setSheetState(() {
-                                  testing = false;
-                                  testResult = false;
-                                });
+                              await ctrl.updateGeminiApiKey('');
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('API key cleared.'),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
                               }
                             },
                           ),
                           const SizedBox(width: 8),
-                          Expanded(
-                            child: GradBtn(
-                              label: 'Save',
-                              icon: Icons.check_rounded,
-                              gradient: kGradientMain,
-                              onTap: () async {
-                                await ctrl.updateGeminiApiKey(keyCtrl.text);
-                                if (ctx.mounted) Navigator.pop(ctx);
-                                if (context.mounted) {
-                                  final msg = keyCtrl.text.trim().isEmpty
-                                      ? 'API key cleared.'
-                                      : 'API key saved successfully.';
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(msg),
-                                      duration: const Duration(seconds: 2),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                          ),
                         ],
-                      ),
-                    ],
-                  ),
+                        GhostBtn(
+                          label: testing ? '…' : 'Test',
+                          onTap: () async {
+                            if (testing) return;
+                            setSheetState(() {
+                              testing = true;
+                              testResult = null;
+                            });
+                            try {
+                              await ref
+                                  .read(aiServiceProvider)
+                                  .generateDailyInsight([], []);
+                              setSheetState(() {
+                                testing = false;
+                                testResult = true;
+                              });
+                            } catch (_) {
+                              setSheetState(() {
+                                testing = false;
+                                testResult = false;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: GradBtn(
+                            label: 'Save',
+                            icon: Icons.check_rounded,
+                            gradient: kGradientMain,
+                            onTap: () async {
+                              await ctrl.updateGeminiApiKey(keyCtrl.text);
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (context.mounted) {
+                                final msg = keyCtrl.text.trim().isEmpty
+                                    ? 'API key cleared.'
+                                    : 'API key saved successfully.';
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(msg),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1384,7 +1389,7 @@ class _MorningBriefingTileState extends ConsumerState<_MorningBriefingTile> {
     if (value) {
       await notifService.scheduleMorningBriefing(
         hour: widget.settings.morningBriefingHour,
-        minute: 0,
+        minute: widget.settings.morningBriefingMinute,
         body:
             'Good morning! Your AI planner is ready to help you plan the day.',
       );
@@ -1394,7 +1399,10 @@ class _MorningBriefingTileState extends ConsumerState<_MorningBriefingTile> {
   }
 
   Future<void> _pickHour() async {
-    final now = TimeOfDay(hour: widget.settings.morningBriefingHour, minute: 0);
+    final now = TimeOfDay(
+      hour: widget.settings.morningBriefingHour,
+      minute: widget.settings.morningBriefingMinute,
+    );
     final picked = await showTimePicker(
       context: context,
       initialTime: now,
@@ -1406,12 +1414,13 @@ class _MorningBriefingTileState extends ConsumerState<_MorningBriefingTile> {
     );
     if (picked == null) return;
     await widget.ctrl.updateMorningBriefingHour(picked.hour);
+    await widget.ctrl.updateMorningBriefingMinute(picked.minute);
     if (widget.settings.morningBriefingEnabled) {
       await ref
           .read(notificationServiceProvider)
           .scheduleMorningBriefing(
             hour: picked.hour,
-            minute: 0,
+            minute: picked.minute,
             body:
                 'Good morning! Your AI planner is ready to help you plan the day.',
           );
@@ -1422,7 +1431,8 @@ class _MorningBriefingTileState extends ConsumerState<_MorningBriefingTile> {
   Widget build(BuildContext context) {
     final enabled = widget.settings.morningBriefingEnabled;
     final hour = widget.settings.morningBriefingHour;
-    final timeLabel = TimeOfDay(hour: hour, minute: 0).format(context);
+    final minute = widget.settings.morningBriefingMinute;
+    final timeLabel = TimeOfDay(hour: hour, minute: minute).format(context);
 
     return Column(
       children: [
@@ -1490,14 +1500,12 @@ class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
           const SnackBar(content: Text('Google sign-in cancelled.')),
         );
       }
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Google sign-in failed. Please try again.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Google sign-in failed: $e')));
     }
   }
 

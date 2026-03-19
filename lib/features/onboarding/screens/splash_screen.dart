@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/ui_kit.dart';
@@ -226,37 +225,28 @@ class _LogoMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 100,
-      height: 100,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [kIndigo, kCyan],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
             color: kIndigo.withAlpha(120),
-            blurRadius: 40,
-            spreadRadius: 5,
+            blurRadius: 48,
+            spreadRadius: 6,
           ),
           BoxShadow(
             color: kCyan.withAlpha(60),
-            blurRadius: 60,
-            spreadRadius: 10,
+            blurRadius: 72,
+            spreadRadius: 12,
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-          child: const Icon(
-            Icons.auto_awesome_rounded,
-            color: Colors.white,
-            size: 48,
-          ),
+        borderRadius: BorderRadius.circular(32),
+        child: Image.asset(
+          'lib/Assets/autoplanner_logo.png',
+          width: 120,
+          height: 120,
+          fit: BoxFit.contain,
         ),
       ),
     );

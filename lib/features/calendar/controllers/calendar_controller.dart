@@ -131,13 +131,13 @@ class CalendarController extends StateNotifier<List<CalendarEvent>> {
 
   CalendarEvent _taskToEvent(TaskItem task) => CalendarEvent(
     id: 'task_${task.id}',
-    title: task.title,
+    title: task.isCompleted ? '✓ ${task.title}' : task.title,
     description: task.note,
     startTime: task.startTime,
     endTime: task.endTime ?? task.startTime.add(const Duration(hours: 1)),
     source: 'local',
     linkedTaskId: task.id,
-    colorValue: _priorityToColor(task.priority),
+    colorValue: task.isCompleted ? 0xFF9E9E9E : _priorityToColor(task.priority),
   );
 
   int _priorityToColor(int priority) {

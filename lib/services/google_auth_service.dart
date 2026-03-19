@@ -47,7 +47,7 @@ class GoogleAuthService {
       return account.email;
     } catch (e) {
       if (kDebugMode) debugPrint('GoogleAuth: signIn failed — $e');
-      return null;
+      rethrow;
     }
   }
 

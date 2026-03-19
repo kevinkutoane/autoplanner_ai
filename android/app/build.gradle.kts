@@ -26,7 +26,7 @@ android {
         applicationId = "com.kevinkutoane.autoplannerai"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 21 // Minimum required for all used plugins (flutter_secure_storage, biometrics, MSAL)
+        minSdk = flutter.minSdkVersion // Minimum required for all used plugins (flutter_secure_storage, biometrics, MSAL)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

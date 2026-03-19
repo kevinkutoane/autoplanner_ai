@@ -39,6 +39,9 @@ class AppSettings {
   /// Hour (0-23) at which the morning briefing fires.
   final int morningBriefingHour;
 
+  /// Minute (0-59) at which the morning briefing fires.
+  final int morningBriefingMinute;
+
   /// Whether Google Calendar is currently connected.
   final bool isGoogleCalendarConnected;
 
@@ -65,6 +68,7 @@ class AppSettings {
     this.requireBiometrics = false,
     this.morningBriefingEnabled = false,
     this.morningBriefingHour = 8,
+    this.morningBriefingMinute = 0,
     this.isGoogleCalendarConnected = false,
     this.googleAccountEmail = '',
     this.isOutlookConnected = false,
@@ -87,6 +91,7 @@ class AppSettings {
     requireBiometrics: false,
     morningBriefingEnabled: false,
     morningBriefingHour: 8,
+    morningBriefingMinute: 0,
     isGoogleCalendarConnected: false,
     googleAccountEmail: '',
     isOutlookConnected: false,
@@ -109,6 +114,7 @@ class AppSettings {
     bool? requireBiometrics,
     bool? morningBriefingEnabled,
     int? morningBriefingHour,
+    int? morningBriefingMinute,
     bool? isGoogleCalendarConnected,
     String? googleAccountEmail,
     bool? isOutlookConnected,
@@ -131,6 +137,8 @@ class AppSettings {
       morningBriefingEnabled:
           morningBriefingEnabled ?? this.morningBriefingEnabled,
       morningBriefingHour: morningBriefingHour ?? this.morningBriefingHour,
+      morningBriefingMinute:
+          morningBriefingMinute ?? this.morningBriefingMinute,
       isGoogleCalendarConnected:
           isGoogleCalendarConnected ?? this.isGoogleCalendarConnected,
       googleAccountEmail: googleAccountEmail ?? this.googleAccountEmail,
@@ -155,6 +163,7 @@ class AppSettings {
   static const String kRequireBiometrics = 'requireBiometrics';
   static const String kMorningBriefingEnabled = 'morningBriefingEnabled';
   static const String kMorningBriefingHour = 'morningBriefingHour';
+  static const String kMorningBriefingMinute = 'morningBriefingMinute';
   static const String kIsGoogleCalendarConnected = 'isGoogleCalendarConnected';
   static const String kGoogleAccountEmail = 'googleAccountEmail';
   static const String kIsOutlookConnected = 'isOutlookConnected';
@@ -195,6 +204,7 @@ class AppSettings {
     kRequireBiometrics: requireBiometrics,
     kMorningBriefingEnabled: morningBriefingEnabled,
     kMorningBriefingHour: morningBriefingHour,
+    kMorningBriefingMinute: morningBriefingMinute,
     kIsGoogleCalendarConnected: isGoogleCalendarConnected,
     kGoogleAccountEmail: googleAccountEmail,
     kIsOutlookConnected: isOutlookConnected,
@@ -216,6 +226,7 @@ class AppSettings {
     requireBiometrics: (map[kRequireBiometrics] as bool?) ?? false,
     morningBriefingEnabled: (map[kMorningBriefingEnabled] as bool?) ?? false,
     morningBriefingHour: (map[kMorningBriefingHour] as int?) ?? 8,
+    morningBriefingMinute: (map[kMorningBriefingMinute] as int?) ?? 0,
     isGoogleCalendarConnected:
         (map[kIsGoogleCalendarConnected] as bool?) ?? false,
     googleAccountEmail: (map[kGoogleAccountEmail] as String?) ?? '',

@@ -302,10 +302,10 @@ class _ApiKeyPageState extends ConsumerState<_ApiKeyPage>
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 0, 32, 150),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(32, 48, 32, 160),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           ScaleTransition(
             scale: _iconScale,
@@ -382,6 +382,9 @@ class _ApiKeyPageState extends ConsumerState<_ApiKeyPage>
                                     letterSpacing: 0.5,
                                   ),
                                   obscureText: true,
+                                  scrollPadding: const EdgeInsets.only(
+                                    bottom: 160,
+                                  ),
                                   decoration: InputDecoration(
                                     hintText: 'AIza...',
                                     hintStyle: TextStyle(

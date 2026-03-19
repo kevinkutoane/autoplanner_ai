@@ -161,244 +161,227 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         if (!didPop) _mayPop();
       },
       child: Scaffold(
-        backgroundColor: isDark ? kDark0 : kLight0,
-        body: OrbBackground(
-          subtle: true,
-          child: SlideTransition(
-            position: _entrySlide,
-            child: Column(
-              children: [
-                // ── Top bar ──────────────────────────────────────────────
-                SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                    child: Row(
-                      children: [
-                        _IconBtn(
-                          icon: Icons.arrow_back_ios_new_rounded,
-                          onTap: _mayPop,
-                        ),
-                        Expanded(
-                          child: TextField(
-                            controller: _titleCtrl,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: isDark ? kLight0 : kDark0,
-                              letterSpacing: -0.4,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Title',
-                              hintStyle: TextStyle(
-                                color: isDark ? Colors.white38 : Colors.black26,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 20,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                            ),
-                            textCapitalization: TextCapitalization.sentences,
-                          ),
-                        ),
-                        _IconBtn(
-                          icon: Icons.check_rounded,
-                          onTap: _save,
-                          gradient: kGradientMain,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                Divider(
-                  color: isDark ? Colors.white10 : Colors.black.withAlpha(12),
-                  height: 1,
-                ),
-
-                // ── Content area ─────────────────────────────────────────
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextField(
-                          controller: _contentCtrl,
-                          maxLines: null,
+        backgroundColor: isDark ? kDark0 : Colors.white,
+        body: SlideTransition(
+          position: _entrySlide,
+          child: Column(
+            children: [
+              // ── Top bar ──────────────────────────────────────────────
+              SafeArea(
+                bottom: false,
+                child: Container(
+                  color: isDark ? null : Colors.white,
+                  padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                  child: Row(
+                    children: [
+                      _IconBtn(
+                        icon: Icons.arrow_back_ios_new_rounded,
+                        onTap: _mayPop,
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: _titleCtrl,
                           style: TextStyle(
-                            fontSize: 15,
-                            height: 1.65,
-                            color: isDark
-                                ? Colors.white.withAlpha(220)
-                                : kDark0,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? kLight0 : kDark0,
+                            letterSpacing: -0.4,
                           ),
                           decoration: InputDecoration(
-                            hintText: 'Write something...',
+                            hintText: 'Title',
                             hintStyle: TextStyle(
-                              color: isDark ? Colors.white38 : Colors.black26,
-                              fontSize: 15,
+                              color: isDark ? Colors.white38 : Colors.black45,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 20,
                             ),
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.zero,
                           ),
                           textCapitalization: TextCapitalization.sentences,
                         ),
-
-                        // ── AI Summary block ─────────────────────────────
-                        if (_summaryText != null) ...[
-                          const SizedBox(height: 20),
-                          GlassCard(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    ShaderMask(
-                                      shaderCallback: (b) =>
-                                          kGradientTeal.createShader(b),
-                                      child: const Icon(
-                                        Icons.auto_awesome_rounded,
-                                        color: Colors.white,
-                                        size: 18,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                      'AI Summary',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    GestureDetector(
-                                      onTap: () =>
-                                          setState(() => _summaryText = null),
-                                      child: Icon(
-                                        Icons.close_rounded,
-                                        size: 16,
-                                        color: isDark
-                                            ? Colors.white38
-                                            : Colors.black38,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _summaryText!,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    height: 1.5,
-                                    color: isDark
-                                        ? Colors.white70
-                                        : const Color(0xFF5A5A6A),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-
-                        // ── Tags ─────────────────────────────────────────
-                        if (_tags.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _tags
-                                .map(
-                                  (t) => Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 5,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: kIndigo.withAlpha(
-                                        isDark ? 40 : 20,
-                                      ),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      '#$t',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: kIndigo,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ],
-
-                        // ── Linked Tasks ─────────────────────────────
-                        if (widget.note != null) ...[
-                          const SizedBox(height: 16),
-                          _LinkedTasksSection(note: widget.note!),
-                        ],
-
-                        const SizedBox(height: 80),
-                      ],
-                    ),
+                      ),
+                      _IconBtn(
+                        icon: Icons.check_rounded,
+                        onTap: _save,
+                        gradient: kGradientMain,
+                      ),
+                    ],
                   ),
                 ),
+              ),
 
-                // ── Bottom toolbar ───────────────────────────────────────
-                SafeArea(
-                  top: false,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? kDark1.withAlpha(220)
-                          : Colors.white.withAlpha(220),
-                      border: Border(
-                        top: BorderSide(
-                          color: isDark
-                              ? Colors.white12
-                              : Colors.black.withAlpha(12),
+              Divider(
+                color: isDark ? Colors.white10 : Colors.black.withAlpha(12),
+                height: 1,
+              ),
+
+              // ── Content area ─────────────────────────────────────────
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: _contentCtrl,
+                        maxLines: null,
+                        style: TextStyle(
+                          fontSize: 15,
+                          height: 1.65,
+                          color: isDark ? Colors.white.withAlpha(220) : kDark0,
                         ),
+                        decoration: InputDecoration(
+                          hintText: 'Write something...',
+                          hintStyle: TextStyle(
+                            color: isDark ? Colors.white38 : Colors.black45,
+                            fontSize: 15,
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        textCapitalization: TextCapitalization.sentences,
                       ),
-                    ),
-                    child: ClipRect(
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Row(
-                          children: [
-                            GhostBtn(
-                              label: _summarizing
-                                  ? 'Analyzing...'
-                                  : 'AI Summarize',
-                              icon: _summarizing
-                                  ? null
-                                  : Icons.auto_awesome_rounded,
-                              onTap: _summarizing ? null : _summarize,
-                            ),
-                            const Spacer(),
-                            if (_summarizing)
-                              const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: kIndigo,
+
+                      // ── AI Summary block ─────────────────────────────
+                      if (_summaryText != null) ...[
+                        const SizedBox(height: 20),
+                        GlassCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  ShaderMask(
+                                    shaderCallback: (b) =>
+                                        kGradientTeal.createShader(b),
+                                    child: const Icon(
+                                      Icons.auto_awesome_rounded,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'AI Summary',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  GestureDetector(
+                                    onTap: () =>
+                                        setState(() => _summaryText = null),
+                                    child: Icon(
+                                      Icons.close_rounded,
+                                      size: 16,
+                                      color: isDark
+                                          ? Colors.white38
+                                          : Colors.black38,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _summaryText!,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  height: 1.5,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : const Color(0xFF5A5A6A),
                                 ),
                               ),
-                          ],
+                            ],
+                          ),
                         ),
+                      ],
+
+                      // ── Tags ─────────────────────────────────────────
+                      if (_tags.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _tags
+                              .map(
+                                (t) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: kIndigo.withAlpha(isDark ? 40 : 20),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    '#$t',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: kIndigo,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ],
+
+                      // ── Linked Tasks ─────────────────────────────
+                      if (widget.note != null) ...[
+                        const SizedBox(height: 16),
+                        _LinkedTasksSection(note: widget.note!),
+                      ],
+
+                      const SizedBox(height: 80),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ── Bottom toolbar ───────────────────────────────────────
+              SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark ? kDark1 : Colors.white,
+                    border: Border(
+                      top: BorderSide(
+                        color: isDark
+                            ? Colors.white12
+                            : Colors.black.withAlpha(20),
                       ),
                     ),
                   ),
+                  child: Row(
+                    children: [
+                      GhostBtn(
+                        label: _summarizing ? 'Analyzing...' : 'AI Summarize',
+                        icon: _summarizing ? null : Icons.auto_awesome_rounded,
+                        onTap: _summarizing ? null : _summarize,
+                      ),
+                      const Spacer(),
+                      if (_summarizing)
+                        const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: kIndigo,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

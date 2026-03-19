@@ -1,6 +1,6 @@
-/// Centralized Riverpod providers for the entire app.
-/// Single source of truth for all shared services and controllers.
-/// Every feature imports from here — no more duplicate providers.
+// Centralized Riverpod providers for the entire app.
+// Single source of truth for all shared services and controllers.
+// Every feature imports from here — no more duplicate providers.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/env_config.dart';
 import '../ai/ai_provider.dart';

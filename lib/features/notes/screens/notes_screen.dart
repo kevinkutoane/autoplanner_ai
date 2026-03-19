@@ -46,7 +46,10 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: _GlowFab(
-        onTap: () => Navigator.push(context, _route(const NoteEditorScreen())),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const NoteEditorScreen()),
+        ),
       ),
       body: OrbBackground(
         subtle: true,
@@ -566,18 +569,18 @@ class _GlowFabState extends State<_GlowFab>
           height: 60,
           decoration: BoxDecoration(
             gradient: kGradientMain,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: kIndigo.withAlpha(120),
-              blurRadius: 20,
-              spreadRadius: 2,
-            ),
-          ],
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: kIndigo.withAlpha(120),
+                blurRadius: 20,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
         ),
-        child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
       ),
     ),
-  ),
   );
 }

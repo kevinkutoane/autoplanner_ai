@@ -556,19 +556,15 @@ class _TaskRow extends ConsumerWidget {
                                             .read(
                                               taskControllerProvider.notifier,
                                             )
-                                            .addTask(task);
+                                            .addTask(task.copyWith());
                                       } catch (_) {
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Could not restore task.',
-                                              ),
+                                        messenger.showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Could not restore task.',
                                             ),
-                                          );
-                                        }
+                                          ),
+                                        );
                                       }
                                     },
                                   ),
@@ -1580,9 +1576,9 @@ class _TaskEditSheetState extends ConsumerState<_TaskEditSheet> {
         : 60;
     _durationMinutes = _durationOptions.contains(dur)
         ? dur
-        : (_durationOptions
-                ..sort((a, b) => (a - dur).abs().compareTo((b - dur).abs())))
-              .first;
+        : (List.of(
+            _durationOptions,
+          )..sort((a, b) => (a - dur).abs().compareTo((b - dur).abs()))).first;
     _recurrence = widget.task.recurrence;
   }
 
