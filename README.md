@@ -114,7 +114,7 @@ On first launch the onboarding walkthrough introduces the app. Add or update you
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `GEMINI_API_KEY` | (required) | Google AI Studio API key |
+| `GEMINI_API_KEY` | (optional) | Google AI Studio API key — enter here **or** in **Settings → AI Settings** |
 | `ENV` | `prod` | Environment: `dev` / `staging` / `prod` |
 | `USE_MOCK_AI` | `false` | Use canned AI responses (no API calls) |
 | `ENABLE_AI_LOGGING` | `true` | Log AI requests/responses |

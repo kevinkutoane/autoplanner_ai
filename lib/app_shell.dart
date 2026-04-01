@@ -188,62 +188,71 @@ class _AppShellState extends ConsumerState<AppShell>
   @override
   Widget build(BuildContext context) {
     if (_locked) {
-      return _LockOverlay(
-        authenticating: _authenticating,
-        onRetry: _triggerUnlock,
+      // canPop:false prevents Android back from bypassing the lock screen.
+      return PopScope(
+        canPop: false,
+        child: _LockOverlay(
+          authenticating: _authenticating,
+          onRetry: _triggerUnlock,
+        ),
       );
     }
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Column(
-        children: [
-          const _ConnectivityBanner(),
-          Expanded(
-            child: IndexedStack(
-              index: _currentIndex,
-              children: [
-                TickerMode(
-                  enabled: _currentIndex == 0,
-                  child: DashboardScreen(
-                    onNavigateTo: (i) => setState(() => _currentIndex = i),
+    // canPop:false absorbs Android back on every main tab so the app is never
+    // accidentally closed via the system back gesture.
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Column(
+          children: [
+            const _ConnectivityBanner(),
+            Expanded(
+              child: IndexedStack(
+                index: _currentIndex,
+                children: [
+                  TickerMode(
+                    enabled: _currentIndex == 0,
+                    child: DashboardScreen(
+                      onNavigateTo: (i) => setState(() => _currentIndex = i),
+                    ),
                   ),
-                ),
-                TickerMode(
-                  enabled: _currentIndex == 1,
-                  child: const PlannerScreen(),
-                ),
-                TickerMode(
-                  enabled: _currentIndex == 2,
-                  child: const NotesScreen(),
-                ),
-                TickerMode(
-                  enabled: _currentIndex == 3,
-                  child: const CalendarScreen(),
-                ),
-                TickerMode(
-                  enabled: _currentIndex == 4,
-                  child: const MemoryScreen(),
-                ),
-                TickerMode(
-                  enabled: _currentIndex == 5,
-                  child: const AnalyticsScreen(),
-                ),
-                TickerMode(
-                  enabled: _currentIndex == 6,
-                  child: const SettingsScreen(),
-                ),
-              ],
+                  TickerMode(
+                    enabled: _currentIndex == 1,
+                    child: const PlannerScreen(),
+                  ),
+                  TickerMode(
+                    enabled: _currentIndex == 2,
+                    child: const NotesScreen(),
+                  ),
+                  TickerMode(
+                    enabled: _currentIndex == 3,
+                    child: const CalendarScreen(),
+                  ),
+                  TickerMode(
+                    enabled: _currentIndex == 4,
+                    child: const MemoryScreen(),
+                  ),
+                  TickerMode(
+                    enabled: _currentIndex == 5,
+                    child: const AnalyticsScreen(),
+                  ),
+                  TickerMode(
+                    enabled: _currentIndex == 6,
+                    child: const SettingsScreen(),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-      floatingActionButton: _BrainDumpFab(),
-      floatingActionButtonLocation:
-          FloatingActionButtonLocation.miniCenterFloat,
-      bottomNavigationBar: _GlassNavBar(
-        currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
-        onMoreTap: _showMoreSheet,
+          ],
+        ),
+        floatingActionButton: _BrainDumpFab(),
+        floatingActionButtonLocation:
+            FloatingActionButtonLocation.miniCenterFloat,
+        bottomNavigationBar: _GlassNavBar(
+          currentIndex: _currentIndex,
+          onTap: (i) => setState(() => _currentIndex = i),
+          onMoreTap: _showMoreSheet,
+        ),
       ),
     );
   }
