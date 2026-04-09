@@ -85,6 +85,21 @@ class TaskController extends StateNotifier<List<TaskItem>> {
     _box!.put(task.id, task);
     _refreshState();
     _calendarCtrl.upsertTaskEvent(task);
+
+    // Handle recurrence change → refresh future calendar occurrences.
+    if (oldTask != null && oldTask.recurrence != task.recurrence) {
+      if (oldTask.recurrence != null) {
+        _removeFutureRecurrences(
+          oldTask.title,
+          oldTask.recurrence,
+          task.id,
+        );
+      }
+      if (task.recurrence != null) {
+        _populateFutureRecurrences(task);
+      }
+    }
+
     if (oldTask != null && !oldTask.isCompleted && task.isCompleted) {
       _createTaskMemory(task, 'completed');
       _notifications.cancelTaskReminder(task.id);
@@ -125,6 +140,13 @@ class TaskController extends StateNotifier<List<TaskItem>> {
   void _spawnNextRecurrence(TaskItem completed) {
     final next = _nextOccurrenceDate(completed);
     if (next == null) return;
+
+    // Skip if a pre-populated occurrence already exists on the next date.
+    final nextDay = DateTime(next.year, next.month, next.day);
+    if (_hasOccurrenceOnDay(completed.title, completed.recurrence, nextDay)) {
+      return;
+    }
+
     final duration = completed.endTime != null
         ? completed.endTime!.difference(completed.startTime)
         : const Duration(hours: 1);
@@ -169,6 +191,105 @@ class TaskController extends StateNotifier<List<TaskItem>> {
       default:
         return null;
     }
+  }
+
+  // ── Recurrence helpers ──────────────────────────────────────────────────
+
+  /// Returns `true` when the Hive box already contains a task with the given
+  /// [title] and [recurrence] on [day] (regardless of completion state).
+  bool _hasOccurrenceOnDay(String title, String? recurrence, DateTime day) {
+    if (_box == null) return false;
+    return _box!.values.any(
+      (t) =>
+          t.title == title &&
+          t.recurrence == recurrence &&
+          t.startTime.year == day.year &&
+          t.startTime.month == day.month &&
+          t.startTime.day == day.day,
+    );
+  }
+
+  /// Pre-creates task instances for the next 14 days so recurring tasks
+  /// appear on the calendar immediately when the user sets a recurrence.
+  void _populateFutureRecurrences(TaskItem template) {
+    if (_box == null || template.recurrence == null) return;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final horizon = today.add(const Duration(days: 14));
+
+    final duration = template.endTime != null
+        ? template.endTime!.difference(template.startTime)
+        : const Duration(hours: 1);
+
+    // Walk forward from the template, creating occurrences up to the horizon.
+    var cursor = template;
+    while (true) {
+      final nextDate = _nextOccurrenceDate(cursor);
+      if (nextDate == null) break;
+      final nextDay = DateTime(nextDate.year, nextDate.month, nextDate.day);
+      if (nextDay.isAfter(horizon)) break;
+
+      if (!_hasOccurrenceOnDay(
+        template.title,
+        template.recurrence,
+        nextDay,
+      )) {
+        final newTask = TaskItem(
+          id: _uuid.v4(),
+          title: template.title,
+          startTime: nextDate,
+          endTime: nextDate.add(duration),
+          note: template.note,
+          priority: template.priority,
+          tags: List.from(template.tags),
+          linkedNoteIds: List.from(template.linkedNoteIds),
+          recurrence: template.recurrence,
+          recurrenceDays: List.from(template.recurrenceDays),
+          linkedGoalId: template.linkedGoalId,
+        );
+        _box!.put(newTask.id, newTask);
+        _calendarCtrl.upsertTaskEvent(newTask);
+        _notifications.scheduleTaskReminder(newTask);
+      }
+
+      // Advance cursor to compute the following occurrence.
+      cursor = TaskItem(
+        id: '',
+        title: template.title,
+        startTime: nextDate,
+        recurrence: template.recurrence,
+        recurrenceDays: List.from(template.recurrenceDays),
+      );
+    }
+    _refreshState();
+  }
+
+  /// Removes all future pending occurrences that match [title]+[recurrence],
+  /// skipping the task with [excludeId] (the one being edited).
+  void _removeFutureRecurrences(
+    String title,
+    String? recurrence,
+    String excludeId,
+  ) {
+    if (_box == null) return;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final toRemove = _box!.values.where((t) {
+      if (t.id == excludeId) return false;
+      if (t.title != title || t.recurrence != recurrence) return false;
+      if (t.isCompleted) return false;
+      final tDay = DateTime(t.startTime.year, t.startTime.month, t.startTime.day);
+      return tDay.isAfter(today);
+    }).toList();
+
+    for (final t in toRemove) {
+      _box!.delete(t.id);
+      _calendarCtrl.removeTaskEvent(t.id);
+      _notifications.cancelTaskReminder(t.id);
+    }
+    _refreshState();
   }
 
   /// On startup, check each recurring task group and spawn a pending occurrence
@@ -248,25 +369,20 @@ class TaskController extends StateNotifier<List<TaskItem>> {
     state = [];
   }
 
-  /// Links a note ID to this task (bidirectional — caller should also call
-  /// NoteController.linkTask on the note side).
-  void linkNote(String taskId, String noteId) {
+  /// Links a goal ID to this task (bidirectional — caller should also call
+  /// GoalController.linkTask on the goal side).
+  void linkGoal(String taskId, String goalId) {
     final matches = state.where((t) => t.id == taskId);
     if (matches.isEmpty) return;
     final task = matches.first;
-    if (task.linkedNoteIds.contains(noteId)) return;
-    updateTask(task.copyWith(linkedNoteIds: [...task.linkedNoteIds, noteId]));
+    updateTask(task.copyWith(linkedGoalId: goalId));
   }
 
-  void unlinkNote(String taskId, String noteId) {
+  void unlinkGoal(String taskId) {
     final matches = state.where((t) => t.id == taskId);
     if (matches.isEmpty) return;
     final task = matches.first;
-    updateTask(
-      task.copyWith(
-        linkedNoteIds: task.linkedNoteIds.where((id) => id != noteId).toList(),
-      ),
-    );
+    updateTask(task.copyWith(linkedGoalId: null));
   }
 
   /// Saves a reordered list of tasks in-place without triggering AI memory extraction.

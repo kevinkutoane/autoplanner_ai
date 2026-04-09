@@ -255,13 +255,13 @@ void main() {
     });
 
     test(
-      'result has tasks, notes, and memories lists (possibly empty)',
+      'result has tasks, goals, and memories lists (possibly empty)',
       () async {
         final result = await service.brainDump(
           'schedule gym session and buy milk',
         );
         expect(result.tasks, isA<List<TaskItem>>());
-        expect(result.notes, isA<List<BrainNote>>());
+        expect(result.goals, isA<List<BrainGoal>>());
         expect(result.memories, isA<List<String>>());
       },
     );

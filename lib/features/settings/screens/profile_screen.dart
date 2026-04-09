@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/models/task_model.dart';
-import '../../../core/models/note_model.dart';
+import '../../../core/models/goal_model.dart';
 import '../../../core/models/memory_entry_model.dart';
 import '../../../core/providers/providers.dart';
 import '../controllers/settings_controller.dart';
@@ -111,14 +111,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final completed = Hive.box<TaskItem>(
       'tasksBox',
     ).values.where((t) => t.isCompleted).length;
-    final notes = Hive.box<NoteItem>('notesBox').length;
+    final goals = Hive.box<GoalItem>('goalsBox').length;
     final memories = Hive.box<MemoryEntry>('memoryBox').length;
     if (mounted) {
       setState(() {
         _stats = _ProfileStats(
           totalTasks: tasks,
           completedTasks: completed,
-          totalNotes: notes,
+          totalGoals: goals,
           totalMemories: memories,
         );
       });
@@ -702,9 +702,9 @@ class _StatsRow extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         _StatCard(
-          label: 'Notes',
-          value: isLoading ? 0 : stats!.totalNotes,
-          icon: Icons.sticky_note_2_rounded,
+          label: 'Goals',
+          value: isLoading ? 0 : stats!.totalGoals,
+          icon: Icons.flag_rounded,
           gradient: const [Color(0xFFFF6B6B), Color(0xFFFF8E8E)],
           countCtrl: countCtrl,
           isLoading: isLoading,
@@ -1779,13 +1779,13 @@ class _GlassTextField extends StatelessWidget {
 class _ProfileStats {
   final int totalTasks;
   final int completedTasks;
-  final int totalNotes;
+  final int totalGoals;
   final int totalMemories;
 
   const _ProfileStats({
     required this.totalTasks,
     required this.completedTasks,
-    required this.totalNotes,
+    required this.totalGoals,
     required this.totalMemories,
   });
 }

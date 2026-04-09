@@ -30,7 +30,17 @@ class SchedulerService {
     List<CalendarEvent> calendarBlocks = const [],
   }) {
     final workStart = DateTime(day.year, day.month, day.day, workStartHour);
-    final workEnd = workStart.add(Duration(hours: workHoursPerDay));
+    var workEnd = workStart.add(Duration(hours: workHoursPerDay));
+
+    // When scheduling "today" after the normal work window has closed,
+    // extend the end-of-day to 23:59 so tasks can still be placed.
+    final now = DateTime.now();
+    final isToday = day.year == now.year &&
+        day.month == now.month &&
+        day.day == now.day;
+    if (isToday && now.isAfter(workEnd)) {
+      workEnd = DateTime(day.year, day.month, day.day, 23, 59);
+    }
 
     final completed = tasks.where((t) => t.isCompleted).toList();
     final pending = List<TaskItem>.from(tasks.where((t) => !t.isCompleted))
@@ -81,7 +91,17 @@ class SchedulerService {
     int count = 6,
   }) {
     final workStart = DateTime(day.year, day.month, day.day, workStartHour);
-    final workEnd = workStart.add(Duration(hours: workHoursPerDay));
+    var workEnd = workStart.add(Duration(hours: workHoursPerDay));
+
+    // When scheduling "today" after the normal work window has closed,
+    // extend the end-of-day to 23:59 so tasks can still be placed.
+    final now = DateTime.now();
+    final isToday = day.year == now.year &&
+        day.month == now.month &&
+        day.day == now.day;
+    if (isToday && now.isAfter(workEnd)) {
+      workEnd = DateTime(day.year, day.month, day.day, 23, 59);
+    }
 
     final occupied = <_Interval>[
       for (final t in busyTasks)

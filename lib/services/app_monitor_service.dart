@@ -1,19 +1,22 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+import '../core/diagnostics/crash_reporter.dart';
 
 part 'app_monitor_service.g.dart';
 
 // ── Event type constants ───────────────────────────────────────────────────
 const _kSession = 'session';
+const _kWarning = 'warning';
 const _kError = 'error';
 const _kFatal = 'fatal';
 
 /// A single monitoring event persisted in the encrypted `appEventsBox`.
 ///
-/// Three event types are recorded:
+/// Four event types are recorded:
 /// - `'session'` — foreground session; [durationMs] is set when the session
 ///   ends via [AppMonitorService.logSessionEnd].
+/// - `'warning'` — startup configuration warning captured during app boot.
 /// - `'error'`   — non-fatal Flutter framework error captured via
 ///   [FlutterError.onError].
 /// - `'fatal'`   — unhandled async error captured via
@@ -82,8 +85,12 @@ class AppEvent extends HiveObject {
 /// ```
 class AppMonitorService {
   static const _uuid = Uuid();
+  final CrashReporter _reporter;
   Box<AppEvent>? _box;
   DateTime? _sessionStart;
+
+  AppMonitorService({CrashReporter? reporter})
+    : _reporter = reporter ?? const NoOpCrashReporter();
 
   /// Opens (or reuses) the `appEventsBox` and prunes events > 30 days old.
   Future<void> init({HiveAesCipher? cipher}) async {
@@ -117,7 +124,22 @@ class AppMonitorService {
       timestamp: start,
       durationMs: durationMs,
     );
-    await _box?.put(e.id, e);
+    await _writeEvent(e);
+  }
+
+  /// Persists non-fatal startup warnings so release config issues are visible.
+  Future<void> logStartupWarnings(List<String> warnings) async {
+    for (final warning in warnings) {
+      final event = AppEvent(
+        id: _uuid.v4(),
+        type: _kWarning,
+        message: warning,
+        detail: '',
+        timestamp: DateTime.now(),
+      );
+      await _writeEvent(event);
+      _reporter.addBreadcrumb(warning, category: 'startup-warning');
+    }
   }
 
   // ── Error logging ──────────────────────────────────────────────────────────
@@ -133,7 +155,8 @@ class AppMonitorService {
       detail: stack.length > 500 ? '${stack.substring(0, 500)}…' : stack,
       timestamp: DateTime.now(),
     );
-    await _box?.put(e.id, e);
+    await _writeEvent(e);
+    await _reporter.captureFlutterError(details);
   }
 
   /// Logs an unhandled async error (hook into [PlatformDispatcher.onError]).
@@ -147,15 +170,18 @@ class AppMonitorService {
       detail: st.length > 500 ? '${st.substring(0, 500)}…' : st,
       timestamp: DateTime.now(),
     );
-    await _box?.put(e.id, e);
+    await _writeEvent(e);
+    await _reporter.captureException(error, stack);
   }
 
   // ── Stats ──────────────────────────────────────────────────────────────────
 
-  /// All error and fatal events, sorted most-recent-first.
-  List<AppEvent> get recentErrors {
+  /// All warning, error, and fatal events, sorted most-recent-first.
+  List<AppEvent> get recentAlerts {
     return (_box?.values ?? const <AppEvent>[])
-        .where((e) => e.type == _kError || e.type == _kFatal)
+        .where(
+          (e) => e.type == _kWarning || e.type == _kError || e.type == _kFatal,
+        )
         .toList()
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
   }
@@ -210,6 +236,10 @@ class AppMonitorService {
         .map((e) => e.key)
         .toList();
     if (oldKeys.isNotEmpty) await _box?.deleteAll(oldKeys);
+  }
+
+  Future<void> _writeEvent(AppEvent event) async {
+    await _box?.put(event.id, event);
   }
 
   // ── Debug helpers ─────────────────────────────────────────────────────────

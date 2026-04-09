@@ -11,12 +11,13 @@ import 'core/providers/providers.dart';
 import 'features/brain_dump/brain_dump_sheet.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
 import 'features/planner/screens/planner_screen.dart';
-import 'features/notes/screens/notes_screen.dart';
+import 'features/goals/screens/goals_screen.dart';
 import 'features/calendar/screens/calendar_screen.dart';
 import 'features/memory/screens/memory_screen.dart';
 import 'features/analytics/screens/analytics_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
 import 'features/planner/controllers/task_controller.dart';
+import 'features/goals/controllers/goal_controller.dart';
 
 // ── Nav item descriptor ──────────────────────────────────────────────────────
 class _NavItem {
@@ -47,9 +48,9 @@ const _primaryNavItems = [
     gradient: [kCyan, Color(0xFF00B894)],
   ),
   _NavItem(
-    icon: Icons.note_alt_outlined,
-    activeIcon: Icons.note_alt_rounded,
-    label: 'Notes',
+    icon: Icons.flag_outlined,
+    activeIcon: Icons.flag_rounded,
+    label: 'Goals',
     gradient: [kCoral, Color(0xFFFF8E8E)],
   ),
   _NavItem(
@@ -84,7 +85,9 @@ const _overflowNavItems = [
 
 // ── Shell ────────────────────────────────────────────────────────────────────
 class AppShell extends ConsumerStatefulWidget {
-  const AppShell({super.key});
+  final bool startLocked;
+
+  const AppShell({super.key, this.startLocked = false});
   @override
   ConsumerState<AppShell> createState() => _AppShellState();
 }
@@ -100,12 +103,16 @@ class _AppShellState extends ConsumerState<AppShell>
   @override
   void initState() {
     super.initState();
+    _locked = widget.startLocked;
     WidgetsBinding.instance.addObserver(this);
     // Run the first overdue check after the first frame so all providers
     // are fully initialised.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(appMonitorServiceProvider).logSessionStart();
       _checkReschedule();
+      if (widget.startLocked) {
+        _triggerUnlock();
+      }
     });
   }
 
@@ -143,11 +150,13 @@ class _AppShellState extends ConsumerState<AppShell>
           : <CalendarEvent>[];
       final memories = ref.read(memoryServiceProvider).contextMemories();
       final settings = ref.read(settingsProvider);
+      final goals = ref.read(goalControllerProvider);
       final suggestion = await service.checkOverdue(
         tasks: tasks,
         calendarEvents: calendarEvents,
         memories: memories,
         settings: settings,
+        goals: goals,
       );
       if (mounted && suggestion != null) {
         ref.read(rescheduleSuggestionProvider.notifier).state = suggestion;
@@ -222,7 +231,7 @@ class _AppShellState extends ConsumerState<AppShell>
                   ),
                   TickerMode(
                     enabled: _currentIndex == 2,
-                    child: const NotesScreen(),
+                    child: const GoalsScreen(),
                   ),
                   TickerMode(
                     enabled: _currentIndex == 3,

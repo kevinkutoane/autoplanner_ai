@@ -1,6 +1,7 @@
 import '../core/models/task_model.dart';
 import '../core/models/calendar_event_model.dart';
 import '../core/models/memory_entry_model.dart';
+import '../core/models/goal_model.dart';
 import '../features/settings/models/app_settings_model.dart';
 import 'ai_service.dart';
 import 'scheduler_service.dart';
@@ -64,6 +65,7 @@ class RescheduleService {
     required List<CalendarEvent> calendarEvents,
     required List<MemoryEntry> memories,
     required AppSettings settings,
+    List<GoalItem> goals = const [],
   }) async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -118,10 +120,19 @@ class RescheduleService {
 
     if (slots.isEmpty) return null;
 
+    // Look up the linked goal (if any) so the AI can factor in its deadline.
+    final linkedGoal = task.linkedGoalId != null
+        ? goals.cast<GoalItem?>().firstWhere(
+              (g) => g!.id == task.linkedGoalId,
+              orElse: () => null,
+            )
+        : null;
+
     final proposed = await _ai.suggestReschedule(
       task: task,
       slots: slots,
       memories: memories,
+      linkedGoal: linkedGoal,
     );
 
     if (proposed == null) return null;

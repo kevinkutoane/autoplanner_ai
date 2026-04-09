@@ -59,7 +59,7 @@ dependencies:
   workmanager: ^0.9.0
   share_plus: ^12.0.1
   file_picker: ^10.3.10
-  msal_flutter: ^2.0.1
+  sentry_flutter: ^9.7.0
 
 
 
@@ -88,6 +88,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - .env
     - lib/Assets/autoplanner_logo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see

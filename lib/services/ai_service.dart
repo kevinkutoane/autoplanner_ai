@@ -4,48 +4,53 @@ import 'package:uuid/uuid.dart';
 import '../core/ai/ai_provider.dart';
 import '../core/ai/token_tracker.dart';
 import '../core/models/task_model.dart';
-import '../core/models/note_model.dart';
+import '../core/models/goal_model.dart';
 import '../core/models/memory_entry_model.dart';
 
 // ── Brain Dump result types ───────────────────────────────────────────────
 
-/// A note entity produced by the brain-dump AI pass.
+/// A goal entity produced by the brain-dump AI pass.
 ///
-/// Distinct from [NoteItem] because it has not yet been persisted to Hive;
+/// Distinct from [GoalItem] because it has not yet been persisted to Hive;
 /// the caller (BrainDumpSheet) writes it after the AI stream completes.
-class BrainNote {
-  /// Short descriptive title for the note.
+class BrainGoal {
+  /// Short descriptive title for the goal.
   final String title;
 
-  /// Full body text of the note.
-  final String content;
+  /// Optional description / notes for the goal.
+  final String description;
 
-  const BrainNote({required this.title, required this.content});
+  const BrainGoal({required this.title, this.description = ''});
 }
 
 /// Aggregated output of a single brain-dump AI invocation.
 ///
 /// Contains three categories of structured items extracted from free-form
-/// user input — tasks, notes, and long-term memory strings — which are
+/// user input — tasks, goals, and long-term memory strings — which are
 /// persisted to their respective Hive boxes by the caller.
 class BrainDumpResult {
   /// Tasks extracted from the brain dump, ready to be written to `tasksBox`.
   final List<TaskItem> tasks;
 
-  /// Notes extracted from the brain dump, ready to be written to `notesBox`.
-  final List<BrainNote> notes;
+  /// Goals extracted from the brain dump, ready to be written to `goalsBox`.
+  final List<BrainGoal> goals;
 
   /// Raw memory strings to be stored in `memoryBox` as [MemoryEntry] records.
   final List<String> memories;
 
+  /// Maps task index → goal title (from `goalTitle` field in AI output).
+  /// Only present for tasks that the AI linked to a goal.
+  final Map<int, String> taskGoalLinks;
+
   const BrainDumpResult({
     required this.tasks,
-    required this.notes,
+    required this.goals,
     required this.memories,
+    this.taskGoalLinks = const {},
   });
 
   /// True when all three result lists are empty (model produced nothing useful).
-  bool get isEmpty => tasks.isEmpty && notes.isEmpty && memories.isEmpty;
+  bool get isEmpty => tasks.isEmpty && goals.isEmpty && memories.isEmpty;
 }
 
 /// Unified AI service layer.
@@ -201,6 +206,7 @@ Respond ONLY with a valid JSON array — no markdown, no explanation:
     required TaskItem task,
     required List<DateTime> slots,
     List<MemoryEntry>? memories,
+    GoalItem? linkedGoal,
   }) async {
     if (slots.isEmpty) return null;
 
@@ -210,17 +216,22 @@ Respond ONLY with a valid JSON array — no markdown, no explanation:
         .map((e) => '  ${e.key + 1}. ${_formatSlot(e.value)}')
         .join('\n');
     final memCtx = _buildMemoryContext(memories, maxEntries: 5);
+    final goalCtx = linkedGoal != null
+        ? '\nThis task is linked to the goal "${_sanitize(linkedGoal.title)}"'
+            '${linkedGoal.deadline != null ? ' with a deadline of ${linkedGoal.deadline!.day}/${linkedGoal.deadline!.month}/${linkedGoal.deadline!.year}' : ''}.'
+            ' Prioritise accordingly.\n'
+        : '';
     final prompt =
         '''
 You are AutoPlanner AI. A task was missed and needs rescheduling.
 
 Task: "${_sanitize(task.title)}" [${task.priorityLabel}]
 Duration: ${_taskDurationMinutes(task)} min
-
+$goalCtx
 Available slots today:
 $slotLines
 $memCtx
-Pick the single best slot number considering priority, the user's energy patterns from memory, and realistic buffer time.
+Pick the single best slot number considering priority, goal urgency, the user's energy patterns from memory, and realistic buffer time.
 Respond with ONLY the slot number as a single integer (e.g. "2"). No explanation.
 ''';
 
@@ -254,7 +265,7 @@ Respond with ONLY the slot number as a single integer (e.g. "2"). No explanation
   /// Returns a 1–3 sentence summary of [content], or `null` if the content
   /// is shorter than 50 characters or the model returns an empty string.
   ///
-  /// Useful for automatically populating [NoteItem.summary] after saving.
+  /// Useful for automatically populating [GoalItem.description] after saving.
   Future<String?> summarizeNote(String content) async {
     if (content.trim().length < 50) return null;
     final prompt =
@@ -305,8 +316,9 @@ ${_sanitize(content)}
   /// debug mode but not rethrown, so callers can treat it as optional UI.
   Future<String?> generateDailyInsight(
     List<TaskItem> tasks,
-    List<MemoryEntry> memories,
-  ) async {
+    List<MemoryEntry> memories, {
+    List<GoalItem> goals = const [],
+  }) async {
     final taskDesc = tasks.isEmpty
         ? 'No tasks yet.'
         : tasks
@@ -320,15 +332,25 @@ ${_sanitize(content)}
         ? 'No past context.'
         : memories.take(5).map((m) => '- ${m.content}').join('\n');
 
+    final goalDesc = goals.isEmpty
+        ? ''
+        : '\nActive goals:\n${goals.take(5).map((g) {
+            final dl = g.deadline != null
+                ? ' (deadline: ${g.deadline!.day}/${g.deadline!.month}/${g.deadline!.year})'
+                : '';
+            return '- ${g.emoji} ${g.title}$dl — ${g.linkedTaskIds.length} linked tasks';
+          }).join('\n')}\n';
+
     final prompt =
         '''
 Generate a brief, motivating daily insight (2-3 sentences) based on
-the user's tasks and context. Include a productivity tip.
+the user's tasks, goals, and context. Reference active goals when relevant.
+Include a productivity tip.
 Respond with ONLY the insight text.
 
 Tasks:
 $taskDesc
-
+$goalDesc
 Context:
 $memDesc
 ''';
@@ -385,22 +407,23 @@ ${_sanitize(context)}
     final prompt =
         '''
 You are AutoPlanner AI. Parse this stream-of-consciousness brain dump.
-Classify every piece into tasks, notes, or memories.
+Classify every piece into tasks, goals, or memories.
 
 Respond ONLY with valid JSON (no markdown fences):
 {
-  "tasks": [{"title":"...","startTime":"HH:mm","estimatedMinutes":60,"priority":0,"tags":[]}],
-  "notes": [{"title":"...","content":"..."}],
+  "tasks": [{"title":"...","startTime":"HH:mm","estimatedMinutes":60,"priority":0,"tags":[],"goalTitle":""}],
+  "goals": [{"title":"...","description":"..."}],
   "memories": ["one-sentence fact worth remembering long-term"]
 }
 
 Rules:
-- tasks = concrete actions or to-dos
-- notes = ideas, reference info, meeting context, longer thoughts
+- tasks = concrete actions or to-dos with a clear completion state
+- goals = aspirational outcomes, bigger intentions, projects to pursue, ideas to develop
 - memories = recurring preferences, key life facts, important patterns
 - startTime = best suggested time in HH:mm (default "09:00")
 - estimatedMinutes = realistic time to complete (15–240)
 - priority = 0 low, 1 medium, 2 high, 3 urgent
+- goalTitle = if a task clearly belongs to one of the extracted goals, set this to the exact goal title; otherwise ""
 - Use [] for any empty category
 
 Brain dump:
@@ -435,7 +458,7 @@ ${_sanitize(input)}
       return _parseBrainDumpResult(fullText);
     } catch (e) {
       if (kDebugMode) debugPrint('brainDump failed: $e');
-      return const BrainDumpResult(tasks: [], notes: [], memories: []);
+      return const BrainDumpResult(tasks: [], goals: [], memories: []);
     }
   }
   // ── Behavioural pattern extraction ──────────────────────────────────────
@@ -563,7 +586,7 @@ Rules:
   /// Generates a structured weekly review with highlights, patterns, and tips.
   Future<String?> generateWeeklyReview({
     required List<TaskItem> weekTasks,
-    required List<NoteItem> weekNotes,
+    required List<GoalItem> weekGoals,
     required List<MemoryEntry> memories,
   }) async {
     final completed = weekTasks.where((t) => t.isCompleted).length;
@@ -580,9 +603,20 @@ Rules:
               )
               .join('\n');
 
-    final noteSummary = weekNotes.isEmpty
+    final goalSummary = weekGoals.isEmpty
         ? '  (none)'
-        : weekNotes.take(5).map((n) => '  - "${n.title}"').join('\n');
+        : weekGoals.take(5).map((g) {
+            final linked = weekTasks.where(
+              (t) => (g.linkedTaskIds).contains(t.id),
+            );
+            final done = linked.where((t) => t.isCompleted).length;
+            final total = linked.length;
+            final pct = total > 0 ? (done / total * 100).round() : 0;
+            final deadlineStr = g.deadline != null
+                ? ' (deadline: ${g.deadline!.day}/${g.deadline!.month}/${g.deadline!.year})'
+                : '';
+            return '  - "${g.title}" — $done/$total linked tasks done ($pct%)$deadlineStr';
+          }).join('\n');
 
     final memCtx = _buildMemoryContext(memories, maxEntries: 5);
 
@@ -595,13 +629,14 @@ This week's stats: $completed/$total tasks completed ($rate% completion rate)
 Tasks:
 $taskSummary
 
-Notes created:
-$noteSummary
+Active goals:
+$goalSummary
 $memCtx
 Write a structured weekly review with these sections:
 1. **Highlights** — what went well
 2. **Patterns noticed** — productivity trends or habits
-3. **Suggestions for next week** — 2-3 actionable tips
+3. **Goal progress** — how active goals are tracking and what to focus on
+4. **Suggestions for next week** — 2-3 actionable tips
 
 Keep it encouraging, concise, and actionable. Use markdown formatting.
 Respond with ONLY the review text.
@@ -621,16 +656,26 @@ Respond with ONLY the review text.
     try {
       final jsonStr = _extractJsonObject(text);
       if (jsonStr == null) {
-        return const BrainDumpResult(tasks: [], notes: [], memories: []);
+        return const BrainDumpResult(tasks: [], goals: [], memories: []);
       }
       final data = jsonDecode(jsonStr) as Map<String, dynamic>;
 
-      final tasks = _parseTasksFromJson(jsonEncode(data['tasks'] ?? []));
-      final notes = (data['notes'] as List<dynamic>? ?? [])
+      // Extract goal-title links before they are lost during task parsing.
+      final rawTasks = data['tasks'] as List<dynamic>? ?? [];
+      final taskGoalLinks = <int, String>{};
+      for (var i = 0; i < rawTasks.length; i++) {
+        final gt = (rawTasks[i] as Map<String, dynamic>?)?['goalTitle'];
+        if (gt is String && gt.trim().isNotEmpty) {
+          taskGoalLinks[i] = gt.trim();
+        }
+      }
+
+      final tasks = _parseTasksFromJson(jsonEncode(rawTasks));
+      final goals = (data['goals'] as List<dynamic>? ?? [])
           .map(
-            (n) => BrainNote(
-              title: (n['title'] as String?)?.trim() ?? 'Note',
-              content: (n['content'] as String?)?.trim() ?? '',
+            (g) => BrainGoal(
+              title: (g['title'] as String?)?.trim() ?? 'Goal',
+              description: (g['description'] as String?)?.trim() ?? '',
             ),
           )
           .toList();
@@ -639,10 +684,15 @@ Respond with ONLY the review text.
           .where((m) => m.isNotEmpty)
           .toList();
 
-      return BrainDumpResult(tasks: tasks, notes: notes, memories: memories);
+      return BrainDumpResult(
+        tasks: tasks,
+        goals: goals,
+        memories: memories,
+        taskGoalLinks: taskGoalLinks,
+      );
     } catch (e) {
       if (kDebugMode) debugPrint('_parseBrainDumpResult error: $e');
-      return const BrainDumpResult(tasks: [], notes: [], memories: []);
+      return const BrainDumpResult(tasks: [], goals: [], memories: []);
     }
   }
 

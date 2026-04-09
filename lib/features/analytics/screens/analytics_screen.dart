@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../planner/controllers/task_controller.dart';
+import '../../goals/controllers/goal_controller.dart';
 import 'weekly_review_screen.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
@@ -115,6 +116,7 @@ class _PerformanceTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(taskControllerProvider);
+    final goals = ref.watch(goalControllerProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // ── Weekly completion data (last 7 days) ─────────────────────────────────
@@ -446,7 +448,7 @@ class _PerformanceTab extends ConsumerWidget {
 
         // ── Priority breakdown ───────────────────────────────
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           sliver: SliverToBoxAdapter(
             child: GlassCard(
               child: Column(
@@ -513,7 +515,156 @@ class _PerformanceTab extends ConsumerWidget {
             ),
           ),
         ),
+
+        // ── Goals overview ───────────────────────────────────
+        if (goals.isNotEmpty)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+            sliver: SliverToBoxAdapter(
+              child: _GoalsOverviewCard(
+                goals: goals,
+                tasks: tasks,
+                isDark: isDark,
+              ),
+            ),
+          ),
       ],
+    );
+  }
+}
+
+class _GoalsOverviewCard extends StatelessWidget {
+  final List<dynamic> goals;
+  final List<dynamic> tasks;
+  final bool isDark;
+
+  const _GoalsOverviewCard({
+    required this.goals,
+    required this.tasks,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final activeGoals = goals.where((g) => !g.isCompleted).length;
+    final completedGoals = goals.where((g) => g.isCompleted).length;
+
+    // Compute average task completion across all goals with linked tasks.
+    double avgCompletion = 0;
+    int goalsWithTasks = 0;
+    for (final g in goals) {
+      final linked = (g.linkedTaskIds as List<String>?) ?? [];
+      if (linked.isEmpty) continue;
+      final linkedTasks = tasks.where((t) => linked.contains(t.id));
+      if (linkedTasks.isEmpty) continue;
+      goalsWithTasks++;
+      avgCompletion += linkedTasks.where((t) => t.isCompleted).length /
+          linkedTasks.length;
+    }
+    if (goalsWithTasks > 0) avgCompletion /= goalsWithTasks;
+
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ShaderMask(
+                shaderCallback: (b) => kGradientWarm.createShader(b),
+                child: const Icon(
+                  Icons.flag_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Goals Overview',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _GoalStatChip(
+                  label: 'Active',
+                  value: '$activeGoals',
+                  color: kCoral,
+                  isDark: isDark,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _GoalStatChip(
+                  label: 'Completed',
+                  value: '$completedGoals',
+                  color: kCyan,
+                  isDark: isDark,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _GoalStatChip(
+                  label: 'Avg Progress',
+                  value: '${(avgCompletion * 100).toInt()}%',
+                  color: kIndigo,
+                  isDark: isDark,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GoalStatChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  final bool isDark;
+
+  const _GoalStatChip({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: color.withAlpha(isDark ? 25 : 18),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withAlpha(50)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: color,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white54 : Colors.black45,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -921,7 +1072,7 @@ class _AppHealthTab extends ConsumerWidget {
     final sessions7 = monitor.sessionsInDays(7).length;
     final errors7 = monitor.errorCountInDays(7);
     final avgDur = monitor.avgSessionDuration;
-    final recentErrors = monitor.recentErrors.take(10).toList();
+    final recentAlerts = monitor.recentAlerts.take(10).toList();
 
     String durStr(Duration d) {
       if (d == Duration.zero) return '—';
@@ -1148,11 +1299,11 @@ class _AppHealthTab extends ConsumerWidget {
             ),
           ),
         ),
-        // Recent errors list
+        // Recent alerts list
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
           sliver: SliverToBoxAdapter(
-            child: recentErrors.isEmpty
+            child: recentAlerts.isEmpty
                 ? GlassCard(
                     child: Center(
                       child: Padding(
@@ -1170,7 +1321,7 @@ class _AppHealthTab extends ConsumerWidget {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'No errors recorded',
+                              'No alerts recorded',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -1187,14 +1338,14 @@ class _AppHealthTab extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Recent Errors',
+                          'Recent Alerts',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(height: 12),
-                        ...recentErrors.map(
+                        ...recentAlerts.map(
                           (e) => Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: Row(
@@ -1206,9 +1357,11 @@ class _AppHealthTab extends ConsumerWidget {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: e.type == 'fatal'
-                                        ? kCoral.withAlpha(40)
-                                        : kAmber.withAlpha(40),
+                                    color: switch (e.type) {
+                                      'fatal' => kCoral.withAlpha(40),
+                                      'warning' => kCyan.withAlpha(40),
+                                      _ => kAmber.withAlpha(40),
+                                    },
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
@@ -1216,9 +1369,11 @@ class _AppHealthTab extends ConsumerWidget {
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w700,
-                                      color: e.type == 'fatal'
-                                          ? kCoral
-                                          : kAmber,
+                                      color: switch (e.type) {
+                                        'fatal' => kCoral,
+                                        'warning' => kCyan,
+                                        _ => kAmber,
+                                      },
                                       letterSpacing: 0.5,
                                     ),
                                   ),

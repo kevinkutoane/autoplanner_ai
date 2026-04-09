@@ -28,8 +28,8 @@ void main() {
       expect(EnvConfig.fromDotEnv().geminiApiKey, equals(''));
     });
 
-    test('azureClientId falls back to empty string', () {
-      expect(EnvConfig.fromDotEnv().azureClientId, equals(''));
+    test('sentryDsn falls back to empty string', () {
+      expect(EnvConfig.fromDotEnv().sentryDsn, equals(''));
     });
 
     test('maxTokensPerDay falls back to 100000', () {
@@ -64,9 +64,12 @@ void main() {
       expect(EnvConfig.fromDotEnv().geminiApiKey, equals('test-key-123'));
     });
 
-    test('reads AZURE_CLIENT_ID', () async {
-      dotenv.testLoad(fileInput: 'AZURE_CLIENT_ID=azure-id-abc');
-      expect(EnvConfig.fromDotEnv().azureClientId, equals('azure-id-abc'));
+    test('reads SENTRY_DSN', () async {
+      dotenv.testLoad(fileInput: 'SENTRY_DSN=https://dsn.example/123');
+      expect(
+        EnvConfig.fromDotEnv().sentryDsn,
+        equals('https://dsn.example/123'),
+      );
     });
 
     test('reads USE_MOCK_AI = true', () async {
@@ -82,6 +85,14 @@ void main() {
     test('invalid MAX_TOKENS_PER_DAY falls back to 100000', () async {
       dotenv.testLoad(fileInput: 'MAX_TOKENS_PER_DAY=not-a-number');
       expect(EnvConfig.fromDotEnv().maxTokensPerDay, equals(100000));
+    });
+
+    test('validate reports missing release monitoring config', () async {
+      dotenv.testLoad(fileInput: 'ENV=prod');
+      expect(
+        EnvConfig.fromDotEnv().validate(),
+        contains('SENTRY_DSN is not set. Production crash reporting is disabled.'),
+      );
     });
   });
 }

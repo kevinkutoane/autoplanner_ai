@@ -4,11 +4,11 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:uuid/uuid.dart';
 import '../../core/theme/ui_kit.dart';
 import '../../core/providers/providers.dart';
-import '../../core/models/note_model.dart';
+import '../../core/models/goal_model.dart';
 import '../../core/models/memory_entry_model.dart';
 import '../../services/ai_service.dart';
 import '../planner/controllers/task_controller.dart';
-import '../notes/controllers/note_controller.dart';
+import '../goals/controllers/goal_controller.dart';
 import '../memory/controllers/memory_controller.dart';
 
 const _uuid = Uuid();
@@ -51,7 +51,7 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
 
   // Toggle which individual items are selected for saving
   late List<bool> _taskSel;
-  late List<bool> _noteSel;
+  late List<bool> _goalSel;
   late List<bool> _memorySel;
 
   static const _examples = [
@@ -126,7 +126,7 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
 
   void _initSelections(BrainDumpResult r) {
     _taskSel = List.filled(r.tasks.length, true);
-    _noteSel = List.filled(r.notes.length, true);
+    _goalSel = List.filled(r.goals.length, true);
     _memorySel = List.filled(r.memories.length, true);
   }
 
@@ -156,7 +156,7 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
     if (r == null) return;
 
     final taskCtrl = ref.read(taskControllerProvider.notifier);
-    final noteCtrl = ref.read(noteControllerProvider.notifier);
+    final goalCtrl = ref.read(goalControllerProvider.notifier);
     final memoryCtrl = ref.read(memoryControllerProvider.notifier);
 
     // Save selected tasks
@@ -164,20 +164,35 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
       if (_taskSel[i]) taskCtrl.addTask(r.tasks[i]);
     }
 
-    // Save selected notes
+    // Save selected goals and build title→id lookup for auto-linking.
     final now = DateTime.now();
-    for (var i = 0; i < r.notes.length; i++) {
-      if (_noteSel[i]) {
-        await noteCtrl.addNote(
-          NoteItem(
-            id: _uuid.v4(),
-            title: r.notes[i].title,
-            content: r.notes[i].content,
+    final goalTitleToId = <String, String>{};
+    for (var i = 0; i < r.goals.length; i++) {
+      if (_goalSel[i]) {
+        final goalId = _uuid.v4();
+        goalCtrl.addGoal(
+          GoalItem(
+            id: goalId,
+            title: r.goals[i].title,
+            description: r.goals[i].description,
             createdAt: now,
             updatedAt: now,
           ),
         );
+        goalTitleToId[r.goals[i].title.toLowerCase()] = goalId;
       }
+    }
+
+    // Auto-link tasks to their matching goals (by title from AI output).
+    for (final entry in r.taskGoalLinks.entries) {
+      final taskIndex = entry.key;
+      if (taskIndex >= r.tasks.length || !_taskSel[taskIndex]) continue;
+      final goalId = goalTitleToId[entry.value.toLowerCase()];
+      if (goalId == null) continue;
+
+      final task = r.tasks[taskIndex];
+      taskCtrl.linkGoal(task.id, goalId);
+      goalCtrl.linkTask(goalId, task.id);
     }
 
     // Save selected memories
@@ -610,7 +625,7 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
           ),
           const SizedBox(height: 6),
           Text(
-            'Extracting tasks, notes & memories',
+            'Extracting tasks, goals & memories',
             style: TextStyle(
               fontSize: 13,
               color: isDark ? Colors.white38 : Colors.black38,
@@ -685,25 +700,27 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
           ),
         const SizedBox(height: 16),
         _ResultSectionLabel(
-          icon: Icons.sticky_note_2_rounded,
-          label: 'Notes',
-          count: r.notes.length,
+          icon: Icons.flag_rounded,
+          label: 'Goals',
+          count: r.goals.length,
           color: kCoral,
           isDark: isDark,
         ),
-        if (r.notes.isEmpty)
-          _EmptyCategory(label: 'No notes found', isDark: isDark)
+        if (r.goals.isEmpty)
+          _EmptyCategory(label: 'No goals found', isDark: isDark)
         else
           ...List.generate(
-            r.notes.length,
+            r.goals.length,
             (i) => _CheckableResultTile(
-              selected: _noteSel[i],
-              onChanged: (v) => setState(() => _noteSel[i] = v),
-              title: r.notes[i].title,
-              subtitle: r.notes[i].content.length > 60
-                  ? '${r.notes[i].content.substring(0, 60)}…'
-                  : r.notes[i].content,
-              icon: Icons.note_outlined,
+              selected: _goalSel[i],
+              onChanged: (v) => setState(() => _goalSel[i] = v),
+              title: r.goals[i].title,
+              subtitle: r.goals[i].description.isEmpty
+                  ? 'Saved as a new goal'
+                  : (r.goals[i].description.length > 60
+                      ? '${r.goals[i].description.substring(0, 60)}…'
+                      : r.goals[i].description),
+              icon: Icons.flag_outlined,
               color: kCoral,
               isDark: isDark,
               tags: const [],
@@ -742,7 +759,7 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
   Widget _buildSaveButton(bool isDark) {
     final selCount =
         (_taskSel.where((b) => b).length) +
-        (_noteSel.where((b) => b).length) +
+        (_goalSel.where((b) => b).length) +
         (_memorySel.where((b) => b).length);
 
     if (_saved) {

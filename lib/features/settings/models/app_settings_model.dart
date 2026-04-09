@@ -48,9 +48,6 @@ class AppSettings {
   /// Email of the connected Google account (empty when not connected).
   final String googleAccountEmail;
 
-  /// Whether Microsoft Outlook Calendar is currently connected.
-  final bool isOutlookConnected;
-
   const AppSettings({
     required this.userName,
     required this.userEmail,
@@ -71,7 +68,6 @@ class AppSettings {
     this.morningBriefingMinute = 0,
     this.isGoogleCalendarConnected = false,
     this.googleAccountEmail = '',
-    this.isOutlookConnected = false,
   });
 
   factory AppSettings.defaults() => AppSettings(
@@ -94,7 +90,6 @@ class AppSettings {
     morningBriefingMinute: 0,
     isGoogleCalendarConnected: false,
     googleAccountEmail: '',
-    isOutlookConnected: false,
   );
 
   AppSettings copyWith({
@@ -117,7 +112,6 @@ class AppSettings {
     int? morningBriefingMinute,
     bool? isGoogleCalendarConnected,
     String? googleAccountEmail,
-    bool? isOutlookConnected,
   }) {
     return AppSettings(
       userName: userName ?? this.userName,
@@ -142,7 +136,6 @@ class AppSettings {
       isGoogleCalendarConnected:
           isGoogleCalendarConnected ?? this.isGoogleCalendarConnected,
       googleAccountEmail: googleAccountEmail ?? this.googleAccountEmail,
-      isOutlookConnected: isOutlookConnected ?? this.isOutlookConnected,
     );
   }
 
@@ -166,7 +159,6 @@ class AppSettings {
   static const String kMorningBriefingMinute = 'morningBriefingMinute';
   static const String kIsGoogleCalendarConnected = 'isGoogleCalendarConnected';
   static const String kGoogleAccountEmail = 'googleAccountEmail';
-  static const String kIsOutlookConnected = 'isOutlookConnected';
 
   // ── Serialization helpers ──────────────────────────────────────────
   static ThemeMode _parseThemeMode(String? v) => switch (v) {
@@ -207,7 +199,6 @@ class AppSettings {
     kMorningBriefingMinute: morningBriefingMinute,
     kIsGoogleCalendarConnected: isGoogleCalendarConnected,
     kGoogleAccountEmail: googleAccountEmail,
-    kIsOutlookConnected: isOutlookConnected,
   };
 
   factory AppSettings.fromMap(Map<dynamic, dynamic> map) => AppSettings(
@@ -230,7 +221,6 @@ class AppSettings {
     isGoogleCalendarConnected:
         (map[kIsGoogleCalendarConnected] as bool?) ?? false,
     googleAccountEmail: (map[kGoogleAccountEmail] as String?) ?? '',
-    isOutlookConnected: (map[kIsOutlookConnected] as bool?) ?? false,
   );
 
   /// Convenience: human-friendly display name (falls back to 'You').

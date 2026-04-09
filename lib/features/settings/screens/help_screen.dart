@@ -50,13 +50,15 @@ class HelpScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 14),
-                        const Text(
-                          'Help & Guide',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
+                        Expanded(
+                          child: Text(
+                            'Help & Guide',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                            ),
                           ),
                         ),
                       ],
@@ -306,12 +308,14 @@ class HelpScreen extends StatelessWidget {
                                     size: 16,
                                   ),
                                   SizedBox(width: 8),
-                                  Text(
-                                    'Copy aistudio.google.com',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
+                                  Flexible(
+                                    child: Text(
+                                      'Copy aistudio.google.com',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -339,13 +343,13 @@ class HelpScreen extends StatelessWidget {
                           color: kIndigo,
                           title: 'Brain Dump',
                           summary:
-                              'Freeform text or voice → AI-structured tasks & notes',
+                              'Freeform text or voice → AI-structured tasks, goals & memories',
                           detail:
                               'Open Brain Dump from the floating "+" button on any screen. '
                               'Type or dictate anything — a list, a paragraph, random thoughts. '
                               'The AI streams the response in real time, classifying each item '
-                              'as a task (with time + priority), a note, or a long-term memory. '
-                              'All items land in the planner and notes screen instantly.',
+                              'as a task (with time + priority), a goal, or a long-term memory. '
+                              'Tasks are auto-linked to their matching goals.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),
@@ -381,16 +385,17 @@ class HelpScreen extends StatelessWidget {
                         ),
                         _FeatureDivider(isDark: isDark),
                         _FeatureTile(
-                          icon: Icons.note_alt_rounded,
-                          color: kAmber,
-                          title: 'Notes',
+                          icon: Icons.flag_rounded,
+                          color: kCoral,
+                          title: 'Goals & Projects',
                           summary:
-                              'Rich editor with AI summaries, tags, and task linking',
+                              'Set goals, link tasks, and track progress',
                           detail:
-                              'Write notes in the Notes screen. Tap the AI wand to generate '
-                              'a summary, auto-tags, or to extract action items directly into '
-                              'the planner. Link a note to one or more tasks — the connection '
-                              'appears in the task detail sheet so you always have context.',
+                              'Create goals in the Goals tab — each goal can have a description, '
+                              'deadline, and emoji. Link tasks to goals from the Planner to track '
+                              'progress with completion rings. Brain Dump auto-extracts goals from '
+                              'your thoughts and links related tasks automatically. Projects let '
+                              'you group work under a parent goal.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),
@@ -414,13 +419,12 @@ class HelpScreen extends StatelessWidget {
                           color: kCyan,
                           title: 'Calendar Sync',
                           summary:
-                              'Two-way sync with Google Calendar (and Outlook)',
+                              'Two-way sync with Google Calendar',
                           detail:
                               'Connect your Google account in Settings → Integrations. '
                               'The app syncs your calendar events and uses them as blocks '
                               'when scheduling tasks — so you\'re never double-booked. '
-                              'Changes you make in the app push back to Google Calendar. '
-                              'Microsoft Outlook can also be connected via MSAL sign-in.',
+                              'Changes you make in the app push back to Google Calendar.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),
@@ -608,13 +612,15 @@ class _SectionLabel extends StatelessWidget {
         children: [
           Icon(icon, size: 16, color: color),
           const SizedBox(width: 8),
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.1,
-              color: color,
+          Flexible(
+            child: Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.1,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -727,12 +733,14 @@ class _FlowStep extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : kDark0,
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : kDark0,
+                      ),
                     ),
                   ),
                 ],

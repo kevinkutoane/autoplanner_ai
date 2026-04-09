@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,8 +6,8 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../planner/controllers/task_controller.dart';
-import '../../notes/controllers/note_controller.dart';
-import '../../notes/screens/note_editor_screen.dart';
+import '../../../core/models/task_model.dart';
+import '../../goals/controllers/goal_controller.dart';
 import '../../calendar/controllers/calendar_controller.dart';
 import '../../memory/controllers/memory_controller.dart';
 import '../../../core/utils/date_utils.dart';
@@ -19,8 +20,9 @@ final dailyInsightProvider = FutureProvider.autoDispose<String?>((ref) async {
   ref.keepAlive();
   final tasks = ref.read(taskControllerProvider);
   final memories = ref.read(memoryControllerProvider);
+  final goals = ref.read(goalControllerProvider);
   final ai = ref.read(aiServiceProvider);
-  return ai.generateDailyInsight(tasks, memories);
+  return ai.generateDailyInsight(tasks, memories, goals: goals);
 });
 
 class DashboardScreen extends ConsumerWidget {
@@ -50,7 +52,8 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(taskControllerProvider);
-    final notes = ref.watch(noteControllerProvider);
+    final goals = ref.watch(goalControllerProvider);
+    final activeGoals = goals.where((g) => !g.isArchived && !g.isCompleted).toList();
     final events = ref.watch(calendarControllerProvider);
     final memories = ref.watch(memoryControllerProvider);
     final insightAsync = ref.watch(dailyInsightProvider);
@@ -206,9 +209,9 @@ class DashboardScreen extends ConsumerWidget {
                         ),
                         const SizedBox(width: 10),
                         GradStatCard(
-                          icon: Icons.sticky_note_2_rounded,
-                          label: 'Notes',
-                          value: '${notes.length}',
+                          icon: Icons.flag_rounded,
+                          label: 'Goals',
+                          value: '${activeGoals.length}',
                           gradient: const [kCoral, Color(0xFFFF8E8E)],
                         ),
                         const SizedBox(width: 10),
@@ -411,114 +414,53 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
 
-              // ── Recent notes ────────────────────────────────────
+              // ── Active goals ────────────────────────────────────
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverToBoxAdapter(
                   child: Stagger(
                     index: 4,
                     child: BodySectionHeader(
-                      title: 'Recent Notes',
-                      trailing: notes.isEmpty ? null : 'See all',
-                      onTrailingTap: notes.isEmpty
+                      title: 'Active Goals',
+                      trailing: activeGoals.isEmpty ? null : 'See all',
+                      onTrailingTap: activeGoals.isEmpty
                           ? null
                           : () => onNavigateTo(2),
                     ),
                   ),
                 ),
               ),
-              if (notes.isEmpty)
+              if (activeGoals.isEmpty)
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   sliver: SliverToBoxAdapter(
                     child: Stagger(
                       index: 5,
                       child: EmptyState(
-                        icon: Icons.sticky_note_2_rounded,
-                        message: 'No notes yet. Capture your first idea!',
+                        icon: Icons.flag_rounded,
+                        message: 'No active goals. Add one in the Goals tab!',
                       ),
                     ),
                   ),
                 )
               else
-                SliverToBoxAdapter(
-                  child: Stagger(
-                    index: 5,
-                    child: SizedBox(
-                      height: 150,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: notes.length > 5 ? 5 : notes.length,
-                        itemBuilder: (ctx, i) {
-                          final note = notes[i];
-                          return Semantics(
-                            button: true,
-                            label: 'Open note: ${note.title}',
-                            child: GestureDetector(
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => NoteEditorScreen(note: note),
-                                ),
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: Stagger(
+                      index: 5,
+                      child: Column(
+                        children: activeGoals
+                            .take(3)
+                            .map(
+                              (g) => _GoalProgressCard(
+                                goal: g,
+                                tasks: tasks,
+                                isDark: isDark,
+                                onTap: () => onNavigateTo(2),
                               ),
-                              child: Container(
-                                width: 200,
-                                margin: const EdgeInsets.only(right: 12),
-                                child: GlassCard(
-                                  padding: const EdgeInsets.all(14),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          if (note.isPinned)
-                                            const Padding(
-                                              padding: EdgeInsets.only(
-                                                right: 4,
-                                              ),
-                                              child: Icon(
-                                                Icons.push_pin_rounded,
-                                                size: 13,
-                                                color: kCoral,
-                                              ),
-                                            ),
-                                          Expanded(
-                                            child: Text(
-                                              note.title,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 13,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Expanded(
-                                        child: Text(
-                                          note.summary ?? note.content,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: isDark
-                                                ? Colors.white60
-                                                : const Color(0xFF7C7C8A),
-                                            height: 1.4,
-                                          ),
-                                          maxLines: 4,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
+                            )
+                            .toList(),
                       ),
                     ),
                   ),
@@ -761,4 +703,143 @@ class _ShimmerLine extends StatelessWidget {
       borderRadius: BorderRadius.circular(6),
     ),
   );
+}
+
+// ── Goal progress card for dashboard ──────────────────────────────────────
+
+class _GoalProgressCard extends StatelessWidget {
+  final dynamic goal; // GoalItem
+  final List<TaskItem> tasks;
+  final bool isDark;
+  final VoidCallback onTap;
+  const _GoalProgressCard({
+    required this.goal,
+    required this.tasks,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final linkedIds = (goal.linkedTaskIds as List<String>);
+    final total = linkedIds.length;
+    final completed = total == 0
+        ? 0
+        : tasks.where((t) => linkedIds.contains(t.id) && t.isCompleted).length;
+    final fraction = total == 0 ? 0.0 : completed / total;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: GestureDetector(
+        onTap: onTap,
+        child: GlassCard(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: CustomPaint(
+                  painter: _GoalRingPainter(
+                    fraction: fraction,
+                    trackColor: isDark
+                        ? Colors.white.withAlpha(20)
+                        : Colors.black.withAlpha(15),
+                    progressColor: total == 0
+                        ? Colors.grey
+                        : fraction >= 1.0
+                            ? kCyan
+                            : kCoral,
+                  ),
+                  child: Center(
+                    child:
+                        Text(goal.emoji, style: const TextStyle(fontSize: 18)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      goal.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      total == 0
+                          ? 'No linked tasks'
+                          : '$completed / $total tasks done',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: total == 0
+                            ? (isDark ? Colors.white38 : Colors.black38)
+                            : (fraction >= 1.0 ? kCyan : kCoral),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GoalRingPainter extends CustomPainter {
+  final double fraction;
+  final Color trackColor;
+  final Color progressColor;
+
+  _GoalRingPainter({
+    required this.fraction,
+    required this.trackColor,
+    required this.progressColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.shortestSide / 2) - 3;
+    const strokeWidth = 3.5;
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+    final progressPaint = Paint()
+      ..color = progressColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    // Track
+    canvas.drawCircle(center, radius, trackPaint);
+    // Progress arc
+    if (fraction > 0) {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        -math.pi / 2,
+        2 * math.pi * fraction.clamp(0.0, 1.0),
+        false,
+        progressPaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GoalRingPainter old) =>
+      old.fraction != fraction ||
+      old.trackColor != trackColor ||
+      old.progressColor != progressColor;
 }

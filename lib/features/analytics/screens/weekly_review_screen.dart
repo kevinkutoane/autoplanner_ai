@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../planner/controllers/task_controller.dart';
-import '../../notes/controllers/note_controller.dart';
+import '../../goals/controllers/goal_controller.dart';
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
@@ -13,7 +13,7 @@ import '../../notes/controllers/note_controller.dart';
 final weeklyReviewProvider = FutureProvider.autoDispose<String>((ref) async {
   final aiService = ref.watch(aiServiceProvider);
   final tasks = ref.watch(taskControllerProvider);
-  final notes = ref.watch(noteControllerProvider);
+  final goals = ref.watch(goalControllerProvider);
   final memoryService = ref.watch(memoryServiceProvider);
 
   final now = DateTime.now();
@@ -22,14 +22,14 @@ final weeklyReviewProvider = FutureProvider.autoDispose<String>((ref) async {
   final weekTasks = tasks
       .where((t) => t.startTime.isAfter(weekAgo) && t.startTime.isBefore(now))
       .toList();
-  final weekNotes = notes
-      .where((n) => n.createdAt.isAfter(weekAgo) && n.createdAt.isBefore(now))
+  final weekGoals = goals
+      .where((g) => g.createdAt.isAfter(weekAgo) && g.createdAt.isBefore(now))
       .toList();
   final memories = memoryService.recentMemories.take(8).toList();
 
   final result = await aiService.generateWeeklyReview(
     weekTasks: weekTasks,
-    weekNotes: weekNotes,
+    weekGoals: weekGoals,
     memories: memories,
   );
   return result ??

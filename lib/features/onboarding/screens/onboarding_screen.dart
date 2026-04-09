@@ -129,9 +129,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   Future<void> _finish() async {
-    if (!widget.isReplay) {
-      await ref.read(settingsProvider.notifier).completeOnboarding();
+    if (widget.isReplay) {
+      // Replay mode — just pop back to wherever the user came from (Settings,
+      // HelpScreen, etc.). Do not touch onboarding state or the nav stack.
+      if (mounted) Navigator.of(context).pop();
+      return;
     }
+    await ref.read(settingsProvider.notifier).completeOnboarding();
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         PageRouteBuilder(
@@ -508,13 +512,15 @@ class _ApiKeyPageState extends ConsumerState<_ApiKeyPage>
                         color: kCyan.withAlpha(180),
                       ),
                       const SizedBox(width: 6),
-                      Text(
-                        'Get a free key at aistudio.google.com',
-                        style: TextStyle(
-                          color: kCyan.withAlpha(200),
-                          fontSize: 13,
-                          decoration: TextDecoration.underline,
-                          decorationColor: kCyan.withAlpha(120),
+                      Flexible(
+                        child: Text(
+                          'Get a free key at aistudio.google.com',
+                          style: TextStyle(
+                            color: kCyan.withAlpha(200),
+                            fontSize: 13,
+                            decoration: TextDecoration.underline,
+                            decorationColor: kCyan.withAlpha(120),
+                          ),
                         ),
                       ),
                     ],
@@ -580,10 +586,15 @@ class _PageContentState extends State<_PageContent>
   @override
   Widget build(BuildContext context) {
     final page = widget.page;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 0, 32, 140),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(32, 0, 32, 140),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Icon
           ScaleTransition(
@@ -698,7 +709,11 @@ class _PageContentState extends State<_PageContent>
             ),
           ),
         ],
-      ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

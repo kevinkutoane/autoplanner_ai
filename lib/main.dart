@@ -7,8 +7,10 @@ import 'package:workmanager/workmanager.dart';
 import 'core/providers/providers.dart';
 
 import 'core/config/env_config.dart';
+import 'core/diagnostics/crash_reporter.dart';
 import 'core/models/task_model.dart';
-import 'core/models/note_model.dart';
+import 'core/models/goal_model.dart';
+import 'core/models/project_model.dart';
 import 'core/models/calendar_event_model.dart';
 import 'core/models/memory_entry_model.dart';
 import 'core/ai/token_tracker.dart';
@@ -68,10 +70,11 @@ void callbackDispatcher() {
 /// 2. Init Workmanager with [callbackDispatcher].
 /// 3. Open all encrypted Hive boxes (AES key from OS keychain).
 /// 4. Initialise [TokenTracker] and [MemoryService] (require open boxes).
-/// 5. Restore Google + Outlook OAuth sessions silently.
+/// 5. Restore Google OAuth sessions silently.
 /// 6. Init [NotificationService] and schedule morning briefing if enabled.
-/// 7. Optionally initialise Firebase (graceful no-op when config is absent).
-/// 8. Wrap the widget tree in [ProviderScope] with service overrides, then
+/// 7. Initialise crash reporting when `SENTRY_DSN` is configured.
+/// 8. Log startup warnings for incomplete release configuration.
+/// 9. Wrap the widget tree in [ProviderScope] with service overrides, then
 ///    call [runApp].
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -82,7 +85,12 @@ void main() async {
   } catch (e) {
     if (kDebugMode) debugPrint('.env load failed: $e');
   }
-  appConfig = EnvConfig.fromDotEnv();
+  try {
+    appConfig = EnvConfig.fromDotEnv();
+  } catch (e) {
+    if (kDebugMode) debugPrint('EnvConfig.fromDotEnv() failed, using defaults: $e');
+    appConfig = const EnvConfig();
+  }
 
   // ── Workmanager (background tasks — Android/iOS only) ────
   try {
@@ -101,11 +109,12 @@ void main() async {
   // ── Hive ─────────────────────────────────────────────────
   await Hive.initFlutter();
   if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(TaskItemAdapter());
-  if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(NoteItemAdapter());
   if (!Hive.isAdapterRegistered(2)) {
     Hive.registerAdapter(CalendarEventAdapter());
   }
   if (!Hive.isAdapterRegistered(3)) Hive.registerAdapter(MemoryEntryAdapter());
+  if (!Hive.isAdapterRegistered(4)) Hive.registerAdapter(GoalItemAdapter());
+  if (!Hive.isAdapterRegistered(5)) Hive.registerAdapter(ProjectItemAdapter());
   if (!Hive.isAdapterRegistered(10)) Hive.registerAdapter(AILogEntryAdapter());
   if (!Hive.isAdapterRegistered(11)) Hive.registerAdapter(AppEventAdapter());
 
@@ -172,18 +181,26 @@ void main() async {
 
   // Pre-open data boxes with encryption so they're available via Hive.box().
   await _openBoxSafe<TaskItem>('tasksBox', hiveCipher);
-  await _openBoxSafe<NoteItem>('notesBox', hiveCipher);
+  await _openBoxSafe<GoalItem>('goalsBox', hiveCipher);
+  await _openBoxSafe<ProjectItem>('projectsBox', hiveCipher);
   await _openBoxSafe<CalendarEvent>('calendarBox', hiveCipher);
   // settingsBox: pre-open with cipher so SettingsController._init() inherits it.
   await _openBoxSafe<dynamic>('settingsBox', hiveCipher);
   await _openBoxSafe<AppEvent>('appEventsBox', hiveCipher);
 
   // ── App monitoring ────────────────────────────────────────────────────
-  final appMonitorService = AppMonitorService();
+  final crashReporter = appConfig.sentryDsn.isEmpty
+      ? const NoOpCrashReporter()
+      : SentryCrashReporter(dsn: appConfig.sentryDsn);
+  final appMonitorService = AppMonitorService(reporter: crashReporter);
   try {
     await appMonitorService.init(cipher: hiveCipher);
   } catch (e) {
     if (kDebugMode) debugPrint('AppMonitorService init failed: $e');
+  }
+  final startupWarnings = appConfig.validate();
+  if (startupWarnings.isNotEmpty) {
+    await appMonitorService.logStartupWarnings(startupWarnings);
   }
   final originalOnError = FlutterError.onError;
   FlutterError.onError = (details) {
@@ -196,18 +213,23 @@ void main() async {
   };
   appMonitorService.logSessionStart();
 
-  runApp(
-    ProviderScope(
-      overrides: [
-        tokenTrackerProvider.overrideWithValue(tokenTracker),
-        memoryServiceProvider.overrideWithValue(memoryService),
-        notificationServiceProvider.overrideWithValue(notificationService),
-        googleAuthServiceProvider.overrideWithValue(googleAuthService),
-        calendarSyncServiceProvider.overrideWithValue(calendarSyncService),
-        appMonitorServiceProvider.overrideWithValue(appMonitorService),
-      ],
-      child: const AutoPlannerApp(),
-    ),
+  final app = ProviderScope(
+    overrides: [
+      tokenTrackerProvider.overrideWithValue(tokenTracker),
+      memoryServiceProvider.overrideWithValue(memoryService),
+      notificationServiceProvider.overrideWithValue(notificationService),
+      googleAuthServiceProvider.overrideWithValue(googleAuthService),
+      calendarSyncServiceProvider.overrideWithValue(calendarSyncService),
+      appMonitorServiceProvider.overrideWithValue(appMonitorService),
+    ],
+    child: const AutoPlannerApp(),
+  );
+
+  await crashReporter.runApp(
+    () async {
+      runApp(app);
+    },
+    environment: appConfig.environment.name,
   );
 }
 

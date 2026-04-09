@@ -2,7 +2,6 @@
 // Single source of truth for all shared services and controllers.
 // Every feature imports from here — no more duplicate providers.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../config/env_config.dart';
 import '../ai/ai_provider.dart';
 import '../ai/gemini_provider.dart';
 import '../ai/mock_ai_provider.dart';
@@ -16,7 +15,6 @@ import '../../services/google_auth_service.dart';
 import '../../services/calendar_sync_service.dart';
 import '../../services/conflict_detector.dart';
 import '../../services/app_monitor_service.dart';
-import '../../services/msal_auth_service.dart';
 import '../../services/reschedule_service.dart';
 import '../../features/settings/models/app_settings_model.dart';
 import '../../features/settings/controllers/settings_controller.dart';
@@ -87,11 +85,6 @@ final conflictDetectorProvider = Provider<ConflictDetector>(
   (_) => ConflictDetector(),
 );
 
-/// Overridden in main() with the initialized MsalAuthService instance.
-final msalAuthServiceProvider = Provider<MsalAuthService>(
-  (_) => MsalAuthService(clientId: appConfig.azureClientId),
-);
-
 /// Overridden in main() with the initialized AppMonitorService instance.
 final appMonitorServiceProvider = Provider<AppMonitorService>(
   (_) => AppMonitorService(),
@@ -114,6 +107,10 @@ final rescheduleSuggestionProvider = StateProvider<RescheduleSuggestion?>(
 
 /// Search query for filtering tasks in the planner screen.
 final plannerSearchProvider = StateProvider<String>((_) => '');
+
+/// Optional goal-ID filter for the planner task list.
+/// When non-null, only tasks linked to this goal are shown.
+final plannerGoalFilterProvider = StateProvider<String?>((_) => null);
 
 /// Proactive task suggestions for an empty planner day.
 /// Auto-disposes and refetches when memory or task state changes.

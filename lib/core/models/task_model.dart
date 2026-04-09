@@ -44,7 +44,8 @@ class TaskItem extends HiveObject {
   @HiveField(7)
   List<String> tags;
 
-  /// IDs of [NoteItem]s linked to this task.
+  /// @deprecated Kept for Hive schema compatibility (field index 8).
+  /// No longer used — goals use [linkedGoalId] instead.
   @HiveField(8)
   List<String> linkedNoteIds;
 
@@ -55,6 +56,10 @@ class TaskItem extends HiveObject {
   /// For 'custom': list of weekday indices (1=Mon … 7=Sun).
   @HiveField(10)
   List<int> recurrenceDays;
+
+  /// ID of the [GoalItem] this task is linked to, if any.
+  @HiveField(11)
+  String? linkedGoalId;
 
   TaskItem({
     required this.id,
@@ -68,6 +73,7 @@ class TaskItem extends HiveObject {
     this.linkedNoteIds = const [],
     this.recurrence,
     this.recurrenceDays = const [],
+    this.linkedGoalId,
   });
 
   TaskItem copyWith({
@@ -82,6 +88,7 @@ class TaskItem extends HiveObject {
     List<String>? linkedNoteIds,
     Object? recurrence = _sentinel,
     List<int>? recurrenceDays,
+    Object? linkedGoalId = _sentinel,
   }) {
     return TaskItem(
       id: id ?? this.id,
@@ -97,6 +104,9 @@ class TaskItem extends HiveObject {
           ? this.recurrence
           : recurrence as String?,
       recurrenceDays: recurrenceDays ?? this.recurrenceDays,
+      linkedGoalId: linkedGoalId == _sentinel
+          ? this.linkedGoalId
+          : linkedGoalId as String?,
     );
   }
 

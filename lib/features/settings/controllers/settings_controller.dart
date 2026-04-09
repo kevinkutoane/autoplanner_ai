@@ -16,16 +16,21 @@ class SettingsController extends StateNotifier<AppSettings> {
   }
 
   Future<void> _init() async {
-    _box = await Hive.openBox<dynamic>(AppSettings.boxName);
-    if (_box.isNotEmpty) {
-      state = AppSettings.fromMap(_box.toMap());
+    try {
+      _box = await Hive.openBox<dynamic>(AppSettings.boxName);
+      if (_box.isNotEmpty) {
+        state = AppSettings.fromMap(_box.toMap());
+      }
+      // Load the user's Gemini API key from secure storage.
+      final savedKey = await SecureKeyService.getGeminiApiKey();
+      if (savedKey != null && savedKey.isNotEmpty) {
+        state = state.copyWith(geminiApiKey: savedKey);
+      }
+    } catch (e) {
+      debugPrint('SettingsController._init() failed: $e');
+    } finally {
+      if (!_initCompleter.isCompleted) _initCompleter.complete();
     }
-    // Load the user's Gemini API key from secure storage.
-    final savedKey = await SecureKeyService.getGeminiApiKey();
-    if (savedKey != null && savedKey.isNotEmpty) {
-      state = state.copyWith(geminiApiKey: savedKey);
-    }
-    _initCompleter.complete();
   }
 
   /// Resolves when the box has been loaded and state is ready.
@@ -170,11 +175,6 @@ class SettingsController extends StateNotifier<AppSettings> {
       isGoogleCalendarConnected: connected,
       googleAccountEmail: connected ? email : '',
     );
-  }
-
-  Future<void> updateOutlookConnection(bool connected) async {
-    await _box.put(AppSettings.kIsOutlookConnected, connected);
-    state = state.copyWith(isOutlookConnected: connected);
   }
 
   // ── Reset ────────────────────────────────────────────────────────

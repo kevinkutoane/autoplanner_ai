@@ -12,6 +12,7 @@ class EnvConfig {
   final Environment environment;
   final String geminiApiKey;
   final String appName;
+  final String sentryDsn;
 
   /// Whether to print each AI prompt/response to the debug console.
   final bool enableAILogging;
@@ -25,18 +26,27 @@ class EnvConfig {
   /// When true, [MockAIProvider] is used instead of the real Gemini model.
   final bool useMockAI;
 
-  /// Azure App Registration client ID for Microsoft MSAL sign-in.
-  final String azureClientId;
+  /// Safe defaults used when `.env` fails to load.
+  const EnvConfig({
+    this.environment = Environment.dev,
+    this.geminiApiKey = '',
+    this.appName = 'AutoPlanner AI [DEV]',
+    this.sentryDsn = '',
+    this.enableAILogging = true,
+    this.enableTokenTracking = true,
+    this.maxTokensPerDay = 100000,
+    this.useMockAI = false,
+  });
 
   const EnvConfig._({
     required this.environment,
     required this.geminiApiKey,
     required this.appName,
+    required this.sentryDsn,
     required this.enableAILogging,
     required this.enableTokenTracking,
     required this.maxTokensPerDay,
     required this.useMockAI,
-    required this.azureClientId,
   });
 
   bool get isDev => environment == Environment.dev;
@@ -63,6 +73,7 @@ class EnvConfig {
       environment: env,
       geminiApiKey: dotenv.get('GEMINI_API_KEY', fallback: ''),
       appName: appName,
+      sentryDsn: dotenv.get('SENTRY_DSN', fallback: ''),
       enableAILogging:
           dotenv.get('ENABLE_AI_LOGGING', fallback: 'true') == 'true',
       enableTokenTracking:
@@ -71,8 +82,28 @@ class EnvConfig {
           int.tryParse(dotenv.get('MAX_TOKENS_PER_DAY', fallback: '100000')) ??
           100000,
       useMockAI: dotenv.get('USE_MOCK_AI', fallback: 'false') == 'true',
-      azureClientId: dotenv.get('AZURE_CLIENT_ID', fallback: ''),
     );
+  }
+
+  /// Returns non-blocking startup warnings for incomplete release config.
+  List<String> validate() {
+    final warnings = <String>[];
+
+    if (geminiApiKey.isEmpty) {
+      warnings.add(
+        'GEMINI_API_KEY is not set. AI features will require a user key in Settings.',
+      );
+    }
+    if (environment != Environment.dev && sentryDsn.isEmpty) {
+      warnings.add(
+        'SENTRY_DSN is not set. Production crash reporting is disabled.',
+      );
+    }
+    if (useMockAI && environment == Environment.prod) {
+      warnings.add('USE_MOCK_AI is enabled in production.');
+    }
+
+    return warnings;
   }
 }
 

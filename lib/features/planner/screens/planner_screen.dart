@@ -7,8 +7,8 @@ import '../../../core/providers/providers.dart';
 import '../../planner/controllers/task_controller.dart';
 import '../../../core/models/task_model.dart';
 import '../../../core/ai/token_tracker.dart';
-import '../../notes/controllers/note_controller.dart';
-import '../../../core/models/note_model.dart';
+import '../../goals/controllers/goal_controller.dart';
+import '../../../core/models/goal_model.dart';
 import '../../../services/reschedule_service.dart';
 import '../../../core/models/memory_entry_model.dart';
 import '../../memory/controllers/memory_controller.dart';
@@ -20,6 +20,8 @@ class PlannerScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final allTasks = ref.watch(taskControllerProvider);
     final searchQuery = ref.watch(plannerSearchProvider).toLowerCase();
+    final goalFilter = ref.watch(plannerGoalFilterProvider);
+    final goals = ref.watch(goalControllerProvider);
     final now = DateTime.now();
     final tasks =
         allTasks
@@ -35,6 +37,9 @@ class PlannerScreen extends ConsumerWidget {
                   t.title.toLowerCase().contains(searchQuery) ||
                   (t.note?.toLowerCase().contains(searchQuery) ?? false) ||
                   t.tags.any((tag) => tag.toLowerCase().contains(searchQuery)),
+            )
+            .where(
+              (t) => goalFilter == null || t.linkedGoalId == goalFilter,
             )
             .toList()
           ..sort((a, b) => a.startTime.compareTo(b.startTime));
@@ -150,6 +155,42 @@ class PlannerScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+
+              // ── Goal filter chips ────────────────────────────────────────
+              if (goals.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: SizedBox(
+                      height: 34,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        children: [
+                          _GoalFilterChip(
+                            label: 'All',
+                            emoji: null,
+                            selected: goalFilter == null,
+                            onTap: () => ref
+                                .read(plannerGoalFilterProvider.notifier)
+                                .state = null,
+                          ),
+                          for (final g in goals.where((g) => !g.isCompleted))
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: _GoalFilterChip(
+                                label: g.title,
+                                emoji: g.emoji,
+                                selected: goalFilter == g.id,
+                                onTap: () => ref
+                                    .read(plannerGoalFilterProvider.notifier)
+                                    .state = goalFilter == g.id ? null : g.id,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
 
               // ── Empty search state ──────────────────────────────────────
               if (searchQuery.isNotEmpty &&
@@ -304,6 +345,16 @@ class _TaskRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final pColors = _priorityGradient(task.priority);
+    // Resolve linked goal (if any) for the badge
+    final linkedGoal = task.linkedGoalId != null
+        ? ref.watch(goalControllerProvider.select((goals) {
+            try {
+              return goals.firstWhere((g) => g.id == task.linkedGoalId);
+            } catch (_) {
+              return null;
+            }
+          }))
+        : null;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -483,6 +534,53 @@ class _TaskRow extends ConsumerWidget {
                                       ),
                                     )
                                     .toList(),
+                              ),
+                            ],
+                            // ── Linked goal badge ──────────────
+                            if (linkedGoal != null) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: kCoral.withAlpha(25),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: kCoral.withAlpha(60),
+                                        width: 0.5,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          linkedGoal.emoji,
+                                          style: const TextStyle(fontSize: 11),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 100,
+                                          ),
+                                          child: Text(
+                                            linkedGoal.title,
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              color: kCoral,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ],
@@ -1340,9 +1438,20 @@ class _PlanMyDaySheetState extends ConsumerState<_PlanMyDaySheet> {
       }
 
       if (!mounted) return;
+
+      // Re-read persisted tasks so the count includes both scheduler output
+      // and tasks that were already scheduled/completed earlier today.
+      final updatedAll = ref.read(taskControllerProvider);
+      final todayCount = updatedAll.where((t) {
+        return t.startTime.year == now.year &&
+            t.startTime.month == now.month &&
+            t.startTime.day == now.day &&
+            !t.isCompleted;
+      }).length;
+
       setState(() {
         _state = _PlanState.done;
-        _scheduledCount = scheduled.where((t) => !t.isCompleted).length;
+        _scheduledCount = todayCount;
       });
     } catch (e) {
       if (!mounted) return;
@@ -1892,7 +2001,7 @@ class _TaskEditSheetState extends ConsumerState<_TaskEditSheet> {
               const SizedBox(height: 16),
 
               // Linked Notes
-              _LinkedNotesSection(task: widget.task),
+              _LinkedGoalSection(task: widget.task),
               const SizedBox(height: 24),
 
               // Actions
@@ -1981,43 +2090,48 @@ class _RecurrenceChip extends StatelessWidget {
   }
 }
 
-// ── Linked Notes section ──────────────────────────────────────────────────────
+// ── Linked Goal section ───────────────────────────────────────────────────────
 
-class _LinkedNotesSection extends ConsumerWidget {
+class _LinkedGoalSection extends ConsumerWidget {
   final TaskItem task;
-  const _LinkedNotesSection({required this.task});
+  const _LinkedGoalSection({required this.task});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final allNotes = ref.watch(noteControllerProvider);
-    final linkedIds = task.linkedNoteIds;
+    final allGoals = ref.watch(goalControllerProvider);
+    final currentGoalId = task.linkedGoalId;
+    final currentGoal =
+        allGoals.where((g) => g.id == currentGoalId).firstOrNull;
 
-    void _unlink(String noteId) {
-      ref.read(taskControllerProvider.notifier).unlinkNote(task.id, noteId);
-      ref.read(noteControllerProvider.notifier).unlinkTask(noteId, task.id);
+    void unlink() {
+      ref.read(taskControllerProvider.notifier).unlinkGoal(task.id);
+      if (currentGoalId != null) {
+        ref
+            .read(goalControllerProvider.notifier)
+            .unlinkTask(currentGoalId, task.id);
+      }
     }
 
-    Future<void> _showAddDialog() async {
-      final available = allNotes
-          .where((n) => !linkedIds.contains(n.id))
-          .toList();
+    Future<void> showLinkDialog() async {
+      final available =
+          allGoals.where((g) => !g.isArchived && !g.isCompleted).toList();
       if (available.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No unlinked notes available.')),
+          const SnackBar(content: Text('No active goals available.')),
         );
         return;
       }
-      final chosen = await showDialog<NoteItem>(
+      final chosen = await showDialog<GoalItem>(
         context: context,
         builder: (ctx) => SimpleDialog(
-          title: const Text('Link a note'),
+          title: const Text('Link to a goal'),
           children: available
               .map(
-                (n) => SimpleDialogOption(
-                  onPressed: () => Navigator.pop(ctx, n),
+                (g) => SimpleDialogOption(
+                  onPressed: () => Navigator.pop(ctx, g),
                   child: Text(
-                    n.title.isEmpty ? 'Untitled' : n.title,
+                    '${g.emoji} ${g.title}',
                     style: const TextStyle(fontSize: 14),
                   ),
                 ),
@@ -2026,8 +2140,10 @@ class _LinkedNotesSection extends ConsumerWidget {
         ),
       );
       if (chosen != null) {
-        ref.read(taskControllerProvider.notifier).linkNote(task.id, chosen.id);
-        ref.read(noteControllerProvider.notifier).linkTask(chosen.id, task.id);
+        ref.read(taskControllerProvider.notifier).linkGoal(task.id, chosen.id);
+        ref
+            .read(goalControllerProvider.notifier)
+            .linkTask(chosen.id, task.id);
       }
     }
 
@@ -2037,12 +2153,12 @@ class _LinkedNotesSection extends ConsumerWidget {
         Row(
           children: [
             const Text(
-              'Linked Notes',
+              'Linked Goal',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             ),
             const Spacer(),
             GestureDetector(
-              onTap: _showAddDialog,
+              onTap: showLinkDialog,
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -2064,7 +2180,7 @@ class _LinkedNotesSection extends ConsumerWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Add',
+                      'Link',
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark ? Colors.white60 : Colors.black54,
@@ -2077,34 +2193,27 @@ class _LinkedNotesSection extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 8),
-        if (linkedIds.isEmpty)
+        if (currentGoal == null)
           Text(
-            'No linked notes',
+            'No linked goal',
             style: TextStyle(
               fontSize: 12,
               color: isDark ? Colors.white38 : Colors.black38,
             ),
           )
         else
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            children: linkedIds.map((id) {
-              final note = allNotes.where((n) => n.id == id).firstOrNull;
-              final label = note == null
-                  ? 'Unknown'
-                  : (note.title.isEmpty ? 'Untitled' : note.title);
-              return Chip(
-                label: Text(label, style: const TextStyle(fontSize: 12)),
-                deleteIcon: const Icon(Icons.close, size: 14),
-                onDeleted: () => _unlink(id),
-                backgroundColor: kIndigo.withAlpha(isDark ? 40 : 20),
-                side: BorderSide(color: kIndigo.withAlpha(80)),
-                labelStyle: const TextStyle(color: kIndigo),
-                deleteIconColor: kIndigo,
-                visualDensity: VisualDensity.compact,
-              );
-            }).toList(),
+          Chip(
+            label: Text(
+              '${currentGoal.emoji} ${currentGoal.title}',
+              style: const TextStyle(fontSize: 12),
+            ),
+            deleteIcon: const Icon(Icons.close, size: 14),
+            onDeleted: unlink,
+            backgroundColor: kCoral.withAlpha(isDark ? 40 : 20),
+            side: BorderSide(color: kCoral.withAlpha(80)),
+            labelStyle: const TextStyle(color: kCoral),
+            deleteIconColor: kCoral,
+            visualDensity: VisualDensity.compact,
           ),
       ],
     );
@@ -2297,6 +2406,67 @@ class _AiFeedbackBar extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Goal filter chip ──────────────────────────────────────────────────────────
+
+class _GoalFilterChip extends StatelessWidget {
+  final String label;
+  final String? emoji;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _GoalFilterChip({
+    required this.label,
+    required this.emoji,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected
+              ? kCoral.withAlpha(isDark ? 50 : 35)
+              : (isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(8)),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? kCoral.withAlpha(120) : Colors.transparent,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (emoji != null) ...[
+              Text(emoji!, style: const TextStyle(fontSize: 13)),
+              const SizedBox(width: 4),
+            ],
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 100),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected
+                      ? kCoral
+                      : (isDark ? Colors.white60 : Colors.black54),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

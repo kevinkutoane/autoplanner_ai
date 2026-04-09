@@ -83,10 +83,6 @@ void main() {
       expect(defaults.googleAccountEmail, '');
     });
 
-    test('isOutlookConnected defaults to false', () {
-      expect(defaults.isOutlookConnected, isFalse);
-    });
-
     test('workDays has exactly 7 elements', () {
       expect(defaults.workDays, hasLength(7));
     });
@@ -187,11 +183,6 @@ void main() {
       );
       expect(copy.isGoogleCalendarConnected, isTrue);
       expect(copy.googleAccountEmail, 'user@gmail.com');
-    });
-
-    test('copyWith can mark Outlook connected', () {
-      final copy = base.copyWith(isOutlookConnected: true);
-      expect(copy.isOutlookConnected, isTrue);
     });
 
     test('copyWith can update workDays to all-week', () {

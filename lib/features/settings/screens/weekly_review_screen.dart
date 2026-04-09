@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../../features/planner/controllers/task_controller.dart';
-import '../../../features/notes/controllers/note_controller.dart';
+import '../../../features/goals/controllers/goal_controller.dart';
 import '../../../features/memory/controllers/memory_controller.dart';
 
 class WeeklyReviewScreen extends ConsumerStatefulWidget {
@@ -35,20 +35,20 @@ class _WeeklyReviewScreenState extends ConsumerState<WeeklyReviewScreen> {
       final cutoff = DateTime(weekStart.year, weekStart.month, weekStart.day);
 
       final allTasks = ref.read(taskControllerProvider);
-      final allNotes = ref.read(noteControllerProvider);
+      final allGoals = ref.read(goalControllerProvider);
       final memories = ref.read(memoryControllerProvider);
 
       final weekTasks = allTasks
           .where((t) => !t.startTime.isBefore(cutoff))
           .toList();
-      final weekNotes = allNotes
-          .where((n) => !n.createdAt.isBefore(cutoff))
+      final weekGoals = allGoals
+          .where((g) => !g.createdAt.isBefore(cutoff))
           .toList();
 
       final ai = ref.read(aiServiceProvider);
       final result = await ai.generateWeeklyReview(
         weekTasks: weekTasks,
-        weekNotes: weekNotes,
+        weekGoals: weekGoals,
         memories: memories,
       );
 

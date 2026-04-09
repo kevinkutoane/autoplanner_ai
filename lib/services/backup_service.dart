@@ -8,7 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../core/models/task_model.dart';
-import '../core/models/note_model.dart';
+import '../core/models/goal_model.dart';
+import '../core/models/project_model.dart';
 import '../core/models/calendar_event_model.dart';
 import '../core/models/memory_entry_model.dart';
 
@@ -17,8 +18,11 @@ class BackupImportResult {
   /// Number of [TaskItem] records written to `tasksBox`.
   final int tasks;
 
-  /// Number of [NoteItem] records written to `notesBox`.
-  final int notes;
+  /// Number of [GoalItem] records written to `goalsBox`.
+  final int goals;
+
+  /// Number of [ProjectItem] records written to `projectsBox`.
+  final int projects;
 
   /// Number of [MemoryEntry] records written to `memoryBox`.
   final int memories;
@@ -28,13 +32,14 @@ class BackupImportResult {
 
   const BackupImportResult({
     required this.tasks,
-    required this.notes,
+    required this.goals,
+    required this.projects,
     required this.memories,
     required this.calendarEvents,
   });
 
-  /// Total items imported across all four collections.
-  int get total => tasks + notes + memories + calendarEvents;
+  /// Total items imported across all collections.
+  int get total => tasks + goals + projects + memories + calendarEvents;
 }
 
 /// Handles full-data export to JSON and import from JSON for backup/restore.
@@ -56,7 +61,9 @@ class BackupService {
       'version': _version,
       'exportedAt': DateTime.now().toIso8601String(),
       'tasks': Hive.box<TaskItem>('tasksBox').values.map(_taskToMap).toList(),
-      'notes': Hive.box<NoteItem>('notesBox').values.map(_noteToMap).toList(),
+      'goals': Hive.box<GoalItem>('goalsBox').values.map(_goalToMap).toList(),
+      'projects':
+          Hive.box<ProjectItem>('projectsBox').values.map(_projectToMap).toList(),
       'memories': Hive.box<MemoryEntry>(
         'memoryBox',
       ).values.map(_memoryToMap).toList(),
@@ -115,7 +122,8 @@ class BackupService {
     }
 
     final rawTasks = (data['tasks'] as List?) ?? [];
-    final rawNotes = (data['notes'] as List?) ?? [];
+    final rawGoals = (data['goals'] as List?) ?? [];
+    final rawProjects = (data['projects'] as List?) ?? [];
     final rawMemories = (data['memories'] as List?) ?? [];
     final rawEvents = (data['calendarEvents'] as List?) ?? [];
 
@@ -129,13 +137,23 @@ class BackupService {
       }
     }
 
-    final notesBox = Hive.box<NoteItem>('notesBox');
-    for (final n in rawNotes) {
+    final goalsBox = Hive.box<GoalItem>('goalsBox');
+    for (final g in rawGoals) {
       try {
-        final item = _noteFromMap(n as Map<String, dynamic>);
-        await notesBox.put(item.id, item);
+        final item = _goalFromMap(g as Map<String, dynamic>);
+        await goalsBox.put(item.id, item);
       } catch (e) {
-        if (kDebugMode) debugPrint('Skipping malformed note: $e');
+        if (kDebugMode) debugPrint('Skipping malformed goal: $e');
+      }
+    }
+
+    final projectsBox = Hive.box<ProjectItem>('projectsBox');
+    for (final p in rawProjects) {
+      try {
+        final item = _projectFromMap(p as Map<String, dynamic>);
+        await projectsBox.put(item.id, item);
+      } catch (e) {
+        if (kDebugMode) debugPrint('Skipping malformed project: $e');
       }
     }
 
@@ -161,7 +179,8 @@ class BackupService {
 
     return BackupImportResult(
       tasks: rawTasks.length,
-      notes: rawNotes.length,
+      goals: rawGoals.length,
+      projects: rawProjects.length,
       memories: rawMemories.length,
       calendarEvents: rawEvents.length,
     );
@@ -181,6 +200,7 @@ class BackupService {
     'linkedNoteIds': t.linkedNoteIds,
     'recurrence': t.recurrence,
     'recurrenceDays': t.recurrenceDays,
+    'linkedGoalId': t.linkedGoalId,
   };
 
   TaskItem _taskFromMap(Map<String, dynamic> m) => TaskItem(
@@ -197,31 +217,74 @@ class BackupService {
     linkedNoteIds: List<String>.from(m['linkedNoteIds'] as List? ?? []),
     recurrence: m['recurrence'] as String?,
     recurrenceDays: List<int>.from(m['recurrenceDays'] as List? ?? []),
+    linkedGoalId: m['linkedGoalId'] as String?,
   );
 
-  Map<String, dynamic> _noteToMap(NoteItem n) => {
-    'id': n.id,
-    'title': n.title,
-    'content': n.content,
-    'summary': n.summary,
-    'tags': n.tags,
-    'createdAt': n.createdAt.toIso8601String(),
-    'updatedAt': n.updatedAt.toIso8601String(),
-    'linkedTaskIds': n.linkedTaskIds,
-    'isPinned': n.isPinned,
+  Map<String, dynamic> _goalToMap(GoalItem g) => {
+    'id': g.id,
+    'title': g.title,
+    'description': g.description,
+    'emoji': g.emoji,
+    'deadline': g.deadline?.toIso8601String(),
+    'isCompleted': g.isCompleted,
+    'isArchived': g.isArchived,
+    'color': g.color,
+    'linkedTaskIds': g.linkedTaskIds,
+    'createdAt': g.createdAt.toIso8601String(),
+    'updatedAt': g.updatedAt.toIso8601String(),
   };
 
-  NoteItem _noteFromMap(Map<String, dynamic> m) => NoteItem(
-    id: m['id'] as String,
-    title: m['title'] as String? ?? '',
-    content: m['content'] as String? ?? '',
-    summary: m['summary'] as String?,
-    tags: List<String>.from(m['tags'] as List? ?? []),
-    createdAt: DateTime.parse(m['createdAt'] as String),
-    updatedAt: DateTime.parse(m['updatedAt'] as String),
-    linkedTaskIds: List<String>.from(m['linkedTaskIds'] as List? ?? []),
-    isPinned: m['isPinned'] as bool? ?? false,
-  );
+  GoalItem _goalFromMap(Map<String, dynamic> m) {
+    final now = DateTime.now();
+    return GoalItem(
+      id: m['id'] as String,
+      title: m['title'] as String? ?? '',
+      description: m['description'] as String? ?? '',
+      emoji: m['emoji'] as String? ?? '🎯',
+      deadline: m['deadline'] != null
+          ? DateTime.parse(m['deadline'] as String)
+          : null,
+      isCompleted: m['isCompleted'] as bool? ?? false,
+      isArchived: m['isArchived'] as bool? ?? false,
+      color: m['color'] as int? ?? 0xFF6C63FF,
+      linkedTaskIds: List<String>.from(m['linkedTaskIds'] as List? ?? []),
+      createdAt: m['createdAt'] != null
+          ? DateTime.parse(m['createdAt'] as String)
+          : now,
+      updatedAt: m['updatedAt'] != null
+          ? DateTime.parse(m['updatedAt'] as String)
+          : now,
+    );
+  }
+
+  Map<String, dynamic> _projectToMap(ProjectItem p) => {
+    'id': p.id,
+    'title': p.title,
+    'description': p.description,
+    'parentGoalId': p.parentGoalId,
+    'isCompleted': p.isCompleted,
+    'linkedTaskIds': p.linkedTaskIds,
+    'createdAt': p.createdAt.toIso8601String(),
+    'updatedAt': p.updatedAt.toIso8601String(),
+  };
+
+  ProjectItem _projectFromMap(Map<String, dynamic> m) {
+    final now = DateTime.now();
+    return ProjectItem(
+      id: m['id'] as String,
+      title: m['title'] as String? ?? '',
+      description: m['description'] as String? ?? '',
+      parentGoalId: m['parentGoalId'] as String?,
+      isCompleted: m['isCompleted'] as bool? ?? false,
+      linkedTaskIds: List<String>.from(m['linkedTaskIds'] as List? ?? []),
+      createdAt: m['createdAt'] != null
+          ? DateTime.parse(m['createdAt'] as String)
+          : now,
+      updatedAt: m['updatedAt'] != null
+          ? DateTime.parse(m['updatedAt'] as String)
+          : now,
+    );
+  }
 
   Map<String, dynamic> _memoryToMap(MemoryEntry m) => {
     'id': m.id,

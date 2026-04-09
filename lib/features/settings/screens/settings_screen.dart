@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/ui_kit.dart';
@@ -474,13 +473,6 @@ class SettingsScreen extends ConsumerWidget {
                       child: Column(
                         children: [
                           _GoogleCalendarTile(settings: settings, ctrl: ctrl),
-                          if (kDebugMode) ...[
-                            _GlassDivider(),
-                            _OutlookCalendarTile(
-                              settings: settings,
-                              ctrl: ctrl,
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -518,7 +510,7 @@ class SettingsScreen extends ConsumerWidget {
                             icon: Icons.auto_awesome_outlined,
                             title: 'AI Engine',
                             trailing: const Text(
-                              'Gemini 2.0 Flash',
+                              'Gemini 2.5 Flash',
                               style: TextStyle(
                                 color: kCyan,
                                 fontWeight: FontWeight.w600,
@@ -659,6 +651,7 @@ class SettingsScreen extends ConsumerWidget {
         final isDark = Theme.of(ctx).brightness == Brightness.dark;
         bool testing = false;
         bool? testResult;
+        bool saving = false;
         return StatefulBuilder(
           builder: (ctx, setSheetState) => Padding(
             padding: EdgeInsets.only(
@@ -742,7 +735,7 @@ class SettingsScreen extends ConsumerWidget {
                       label: 'API Key',
                       icon: Icons.vpn_key_outlined,
                       hintText: 'AIza...',
-                      keyboardType: TextInputType.visiblePassword,
+                      keyboardType: TextInputType.text,
                       autofocus: true,
                     ),
                     if (testResult != null) ...[
@@ -792,66 +785,118 @@ class SettingsScreen extends ConsumerWidget {
                         if (settings.geminiApiKey.isNotEmpty) ...[
                           GhostBtn(
                             label: 'Clear',
-                            onTap: () async {
-                              await ctrl.updateGeminiApiKey('');
-                              if (ctx.mounted) Navigator.pop(ctx);
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('API key cleared.'),
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
-                              }
-                            },
+                            onTap: saving
+                                ? null
+                                : () async {
+                                    setSheetState(() => saving = true);
+                                    try {
+                                      await ctrl.updateGeminiApiKey('');
+                                      if (ctx.mounted) Navigator.pop(ctx);
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('API key cleared.'),
+                                            duration: Duration(seconds: 2),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (ctx.mounted) {
+                                        setSheetState(() => saving = false);
+                                      }
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Failed to clear key: $e',
+                                            ),
+                                            backgroundColor: kCoral,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
                           ),
                           const SizedBox(width: 8),
                         ],
                         GhostBtn(
                           label: testing ? '…' : 'Test',
-                          onTap: () async {
-                            if (testing) return;
-                            setSheetState(() {
-                              testing = true;
-                              testResult = null;
-                            });
-                            try {
-                              await ref
-                                  .read(aiServiceProvider)
-                                  .generateDailyInsight([], []);
-                              setSheetState(() {
-                                testing = false;
-                                testResult = true;
-                              });
-                            } catch (_) {
-                              setSheetState(() {
-                                testing = false;
-                                testResult = false;
-                              });
-                            }
-                          },
+                          onTap: (saving || testing)
+                              ? null
+                              : () async {
+                                  setSheetState(() {
+                                    testing = true;
+                                    testResult = null;
+                                  });
+                                  try {
+                                    await ref
+                                        .read(aiServiceProvider)
+                                        .generateDailyInsight([], []);
+                                    setSheetState(() {
+                                      testing = false;
+                                      testResult = true;
+                                    });
+                                  } catch (_) {
+                                    setSheetState(() {
+                                      testing = false;
+                                      testResult = false;
+                                    });
+                                  }
+                                },
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: GradBtn(
-                            label: 'Save',
-                            icon: Icons.check_rounded,
+                            label: saving ? '…' : 'Save',
+                            icon: saving ? null : Icons.check_rounded,
                             gradient: kGradientMain,
-                            onTap: () async {
-                              await ctrl.updateGeminiApiKey(keyCtrl.text);
-                              if (ctx.mounted) Navigator.pop(ctx);
-                              if (context.mounted) {
-                                final msg = keyCtrl.text.trim().isEmpty
-                                    ? 'API key cleared.'
-                                    : 'API key saved successfully.';
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(msg),
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
-                              }
-                            },
+                            onTap: saving
+                                ? null
+                                : () async {
+                                    setSheetState(() => saving = true);
+                                    try {
+                                      await ctrl.updateGeminiApiKey(
+                                        keyCtrl.text,
+                                      );
+                                      if (ctx.mounted) Navigator.pop(ctx);
+                                      if (context.mounted) {
+                                        final msg =
+                                            keyCtrl.text.trim().isEmpty
+                                                ? 'API key cleared.'
+                                                : 'API key saved successfully.';
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(msg),
+                                            duration: const Duration(
+                                              seconds: 2,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (ctx.mounted) {
+                                        setSheetState(() => saving = false);
+                                      }
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Failed to save key: $e',
+                                            ),
+                                            backgroundColor: kCoral,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
                           ),
                         ),
                       ],
@@ -971,8 +1016,9 @@ class SettingsScreen extends ConsumerWidget {
           SnackBar(
             content: Text(
               'Imported ${result.total} items '
-              '(${result.tasks} tasks, ${result.notes} notes, '
-              '${result.calendarEvents} events, ${result.memories} memories)',
+              '(${result.tasks} tasks, ${result.goals} goals, '
+              '${result.projects} projects, ${result.calendarEvents} events, '
+              '${result.memories} memories)',
             ),
             duration: const Duration(seconds: 4),
           ),
@@ -1487,15 +1533,25 @@ class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
     setState(() => _loading = true);
     try {
       final googleAuth = ref.read(googleAuthServiceProvider);
+      final syncService = ref.read(calendarSyncServiceProvider);
       final email = await googleAuth.signIn();
       if (!mounted) return;
-      setState(() => _loading = false);
       if (email != null) {
         await widget.ctrl.updateGoogleCalendarConnection(
           connected: true,
           email: email,
         );
+        final syncResult = await syncService.fullSync();
+        if (!mounted) return;
+        setState(() => _loading = false);
+        final message = syncResult.hasError
+            ? 'Connected to $email, but the first sync failed: ${syncResult.error}'
+            : 'Connected to $email. Imported ${syncResult.pulled} event${syncResult.pulled == 1 ? '' : 's'}.';
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       } else {
+        setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Google sign-in cancelled.')),
         );
@@ -1558,125 +1614,6 @@ class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-      ),
-      trailing: _loading
-          ? null
-          : connected
-          ? TextButton(
-              onPressed: _disconnect,
-              child: const Text(
-                'Disconnect',
-                style: TextStyle(color: kCoral, fontSize: 12),
-              ),
-            )
-          : TextButton(
-              onPressed: _connect,
-              child: ShaderMask(
-                shaderCallback: (b) => kGradientMain.createShader(b),
-                child: const Text(
-                  'Connect',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-    );
-  }
-}
-
-// ── Outlook Calendar tile ─────────────────────────────────────────
-
-class _OutlookCalendarTile extends ConsumerStatefulWidget {
-  final AppSettings settings;
-  final SettingsController ctrl;
-
-  const _OutlookCalendarTile({required this.settings, required this.ctrl});
-
-  @override
-  ConsumerState<_OutlookCalendarTile> createState() =>
-      _OutlookCalendarTileState();
-}
-
-class _OutlookCalendarTileState extends ConsumerState<_OutlookCalendarTile> {
-  bool _loading = false;
-
-  Future<void> _connect() async {
-    setState(() => _loading = true);
-    try {
-      final msalAuth = ref.read(msalAuthServiceProvider);
-      final email = await msalAuth.signIn();
-      if (!mounted) return;
-      setState(() => _loading = false);
-      if (email != null) {
-        await widget.ctrl.updateOutlookConnection(true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Microsoft sign-in cancelled.')),
-        );
-      }
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Microsoft sign-in failed. Please try again.'),
-        ),
-      );
-    }
-  }
-
-  Future<void> _disconnect() async {
-    setState(() => _loading = true);
-    try {
-      final msalAuth = ref.read(msalAuthServiceProvider);
-      await msalAuth.signOut();
-      await widget.ctrl.updateOutlookConnection(false);
-    } catch (_) {
-      // Sign-out best-effort — clear local state regardless.
-    }
-    if (!mounted) return;
-    setState(() => _loading = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final connected = widget.settings.isOutlookConnected;
-
-    return ListTile(
-      leading: _loading
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(
-              Icons.mail_outline_rounded,
-              size: 20,
-              color: connected
-                  ? kCyan
-                  : (isDark ? Colors.white60 : Colors.black54),
-            ),
-      title: Text(
-        'Outlook Calendar',
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white : kDark0,
-        ),
-      ),
-      subtitle: Text(
-        connected
-            ? 'Connected to Microsoft account'
-            : 'Sync events with Outlook Calendar',
-        style: TextStyle(
-          fontSize: 12,
-          color: connected ? kCyan : (isDark ? Colors.white38 : Colors.black38),
-        ),
       ),
       trailing: _loading
           ? null

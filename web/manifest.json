@@ -1,11 +1,11 @@
 {
-    "name": "autoplanner_ai",
-    "short_name": "autoplanner_ai",
+    "name": "AutoPlanner AI",
+    "short_name": "AutoPlanner",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "AI-powered daily planner with smart scheduling and Google Calendar sync.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

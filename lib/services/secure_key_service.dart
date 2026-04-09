@@ -4,7 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Wrapper around [FlutterSecureStorage] for secrets that must never
 /// live in plain-text on disk (Gemini API key, Hive encryption key,
-/// Google OAuth tokens, Microsoft OAuth tokens).
+/// Google OAuth tokens).
 class SecureKeyService {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -13,7 +13,6 @@ class SecureKeyService {
   static const _kGeminiKey = 'gemini_api_key';
   static const _kHiveKey = 'hive_encryption_key';
   static const _kGoogleTokens = 'google_oauth_tokens';
-  static const _kMsalTokens = 'msal_oauth_tokens';
 
   // ── Gemini API key ──────────────────────────────────────────────────
 
@@ -58,23 +57,4 @@ class SecureKeyService {
 
   static Future<void> deleteGoogleTokens() =>
       _storage.delete(key: _kGoogleTokens);
-
-  // ── Microsoft (MSAL) OAuth tokens ──────────────────────────────────
-
-  static Future<void> saveMsalTokens(Map<String, String> tokens) =>
-      _storage.write(key: _kMsalTokens, value: jsonEncode(tokens));
-
-  static Future<Map<String, String>?> getMsalTokens() async {
-    final raw = await _storage.read(key: _kMsalTokens);
-    if (raw == null) return null;
-    try {
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      return map.map((k, v) => MapEntry(k, v.toString()));
-    } catch (_) {
-      return null;
-    }
-  }
-
-  static Future<void> deleteMsalTokens() =>
-      _storage.delete(key: _kMsalTokens);
 }
