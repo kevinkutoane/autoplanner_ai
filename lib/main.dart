@@ -10,6 +10,7 @@ import 'core/config/env_config.dart';
 import 'core/diagnostics/crash_reporter.dart';
 import 'core/models/task_model.dart';
 import 'core/models/goal_model.dart';
+import 'core/models/note_model.dart';
 import 'core/models/project_model.dart';
 import 'core/models/calendar_event_model.dart';
 import 'core/models/memory_entry_model.dart';
@@ -109,6 +110,7 @@ void main() async {
   // ── Hive ─────────────────────────────────────────────────
   await Hive.initFlutter();
   if (!Hive.isAdapterRegistered(0)) Hive.registerAdapter(TaskItemAdapter());
+  if (!Hive.isAdapterRegistered(1)) Hive.registerAdapter(NoteItemAdapter());
   if (!Hive.isAdapterRegistered(2)) {
     Hive.registerAdapter(CalendarEventAdapter());
   }
@@ -181,6 +183,7 @@ void main() async {
 
   // Pre-open data boxes with encryption so they're available via Hive.box().
   await _openBoxSafe<TaskItem>('tasksBox', hiveCipher);
+  await _openBoxSafe<NoteItem>('notesBox', hiveCipher);
   await _openBoxSafe<GoalItem>('goalsBox', hiveCipher);
   await _openBoxSafe<ProjectItem>('projectsBox', hiveCipher);
   await _openBoxSafe<CalendarEvent>('calendarBox', hiveCipher);

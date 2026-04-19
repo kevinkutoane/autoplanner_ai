@@ -10,6 +10,9 @@ import '../../../core/models/task_model.dart';
 import '../../goals/controllers/goal_controller.dart';
 import '../../calendar/controllers/calendar_controller.dart';
 import '../../memory/controllers/memory_controller.dart';
+import '../../notes/controllers/note_controller.dart';
+import '../../settings/screens/help_screen.dart';
+import '../../search/screens/search_screen.dart';
 import '../../../core/utils/date_utils.dart';
 
 // ── Daily insight provider ───────────────────────────────────────────────────
@@ -87,7 +90,9 @@ class DashboardScreen extends ConsumerWidget {
       body: OrbBackground(
         subtle: true,
         child: RefreshIndicator(
-          onRefresh: () => Future.delayed(const Duration(milliseconds: 400)),
+          onRefresh: () async {
+            ref.invalidate(dailyInsightProvider);
+          },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
@@ -124,6 +129,54 @@ class DashboardScreen extends ConsumerWidget {
                                   ),
                                 ),
                               ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const HelpScreen(),
+                              ),
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withAlpha(22),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white.withAlpha(40),
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.help_outline_rounded,
+                                color: Colors.white,
+                                size: 22,
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SearchScreen(),
+                              ),
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withAlpha(22),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white.withAlpha(40),
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.search_rounded,
+                                color: Colors.white,
+                                size: 22,
+                              ),
                             ),
                           ),
                           _AIPulseIcon(
@@ -228,6 +281,13 @@ class DashboardScreen extends ConsumerWidget {
                           value: '${memories.length}',
                           gradient: const [kAmber, Color(0xFFFFB347)],
                         ),
+                        const SizedBox(width: 10),
+                        GradStatCard(
+                          icon: Icons.sticky_note_2_rounded,
+                          label: 'Notes',
+                          value: '${ref.watch(notesControllerProvider).length}',
+                          gradient: const [Color(0xFF00B894), kCyan],
+                        ),
                       ],
                     ),
                   ),
@@ -255,7 +315,7 @@ class DashboardScreen extends ConsumerWidget {
                     child: BodySectionHeader(
                       title: "Today's Tasks",
                       trailing: todayTasks.isEmpty
-                          ? null
+                          ? '+ Add'
                           : '${(completedCount / todayTasks.length * 100).toInt()}% · See all',
                       onTrailingTap: () => onNavigateTo(1),
                     ),

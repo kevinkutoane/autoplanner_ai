@@ -440,6 +440,7 @@ class GhostBtn extends StatelessWidget {
           ),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null) ...[

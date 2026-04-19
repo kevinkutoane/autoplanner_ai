@@ -3,6 +3,8 @@ import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/models/goal_model.dart';
 import '../../../core/models/project_model.dart';
+import '../../../core/providers/providers.dart';
+import '../../../services/notification_service.dart';
 
 const _uuid = Uuid();
 
@@ -10,8 +12,11 @@ const _uuid = Uuid();
 
 class GoalController extends StateNotifier<List<GoalItem>> {
   late final Box<GoalItem> _box;
+  final NotificationService _notifications;
 
-  GoalController() : super([]) {
+  GoalController({NotificationService? notifications})
+    : _notifications = notifications ?? NotificationService(),
+      super([]) {
     _box = Hive.box<GoalItem>('goalsBox');
     _refreshState();
   }
@@ -28,6 +33,9 @@ class GoalController extends StateNotifier<List<GoalItem>> {
   void addGoal(GoalItem goal) {
     _box.put(goal.id, goal);
     _refreshState();
+    if (!goal.isCompleted && !goal.isArchived) {
+      _notifications.scheduleGoalDeadlineReminder(goal);
+    }
   }
 
   void createGoal({
@@ -50,29 +58,40 @@ class GoalController extends StateNotifier<List<GoalItem>> {
     );
     _box.put(goal.id, goal);
     _refreshState();
+    _notifications.scheduleGoalDeadlineReminder(goal);
   }
 
   void updateGoal(GoalItem updated) {
     _box.put(updated.id, updated.copyWith(updatedAt: DateTime.now()));
     _refreshState();
+    // Re-schedule deadline reminder with potentially new deadline.
+    _notifications.cancelGoalDeadlineReminder(updated.id);
+    if (!updated.isCompleted && !updated.isArchived) {
+      _notifications.scheduleGoalDeadlineReminder(updated);
+    }
   }
 
   void removeGoal(String goalId) {
     _box.delete(goalId);
     _refreshState();
+    _notifications.cancelGoalDeadlineReminder(goalId);
   }
 
   void toggleComplete(String goalId) {
     final goal = _box.get(goalId);
     if (goal == null) return;
-    _box.put(
-      goalId,
-      goal.copyWith(
-        isCompleted: !goal.isCompleted,
-        updatedAt: DateTime.now(),
-      ),
+    final updated = goal.copyWith(
+      isCompleted: !goal.isCompleted,
+      updatedAt: DateTime.now(),
     );
+    _box.put(goalId, updated);
     _refreshState();
+    // Cancel reminder when completing; restore if un-completing.
+    if (updated.isCompleted) {
+      _notifications.cancelGoalDeadlineReminder(goalId);
+    } else {
+      _notifications.scheduleGoalDeadlineReminder(updated);
+    }
   }
 
   void toggleArchive(String goalId) {
@@ -115,7 +134,7 @@ class GoalController extends StateNotifier<List<GoalItem>> {
 
 final goalControllerProvider =
     StateNotifierProvider<GoalController, List<GoalItem>>(
-  (ref) => GoalController(),
+  (ref) => GoalController(notifications: ref.read(notificationServiceProvider)),
 );
 
 // ── ProjectController ──────────────────────────────────────────────────────

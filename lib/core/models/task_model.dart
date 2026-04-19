@@ -44,8 +44,9 @@ class TaskItem extends HiveObject {
   @HiveField(7)
   List<String> tags;
 
-  /// @deprecated Kept for Hive schema compatibility (field index 8).
+  /// Kept for Hive schema compatibility (field index 8).
   /// No longer used — goals use [linkedGoalId] instead.
+  @Deprecated('No longer used. Hive field 8 reserved for schema compatibility.')
   @HiveField(8)
   List<String> linkedNoteIds;
 

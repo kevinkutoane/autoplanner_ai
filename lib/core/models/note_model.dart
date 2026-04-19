@@ -44,6 +44,15 @@ class NoteItem extends HiveObject {
   @HiveField(8)
   bool isPinned;
 
+  /// When true, an immediate push notification fires to alert the user.
+  @HiveField(9)
+  bool isUrgent;
+
+  /// Optional one-shot reminder time. When set, a scheduled notification
+  /// fires at this datetime and is cancelled once it fires or is cleared.
+  @HiveField(10)
+  DateTime? reminderAt;
+
   NoteItem({
     required this.id,
     required this.title,
@@ -54,6 +63,8 @@ class NoteItem extends HiveObject {
     required this.updatedAt,
     this.linkedTaskIds = const [],
     this.isPinned = false,
+    this.isUrgent = false,
+    this.reminderAt,
   });
 
   /// Returns a new [NoteItem] with the given fields replaced.
@@ -68,6 +79,8 @@ class NoteItem extends HiveObject {
     DateTime? updatedAt,
     List<String>? linkedTaskIds,
     bool? isPinned,
+    bool? isUrgent,
+    DateTime? reminderAt,
   }) {
     return NoteItem(
       id: id ?? this.id,
@@ -79,6 +92,8 @@ class NoteItem extends HiveObject {
       updatedAt: updatedAt ?? this.updatedAt,
       linkedTaskIds: linkedTaskIds ?? this.linkedTaskIds,
       isPinned: isPinned ?? this.isPinned,
+      isUrgent: isUrgent ?? this.isUrgent,
+      reminderAt: reminderAt ?? this.reminderAt,
     );
   }
 }

@@ -26,13 +26,15 @@ class NoteItemAdapter extends TypeAdapter<NoteItem> {
       updatedAt: fields[6] as DateTime,
       linkedTaskIds: (fields[7] as List).cast<String>(),
       isPinned: fields[8] as bool,
+      isUrgent: fields[9] as bool,
+      reminderAt: fields[10] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, NoteItem obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -50,7 +52,11 @@ class NoteItemAdapter extends TypeAdapter<NoteItem> {
       ..writeByte(7)
       ..write(obj.linkedTaskIds)
       ..writeByte(8)
-      ..write(obj.isPinned);
+      ..write(obj.isPinned)
+      ..writeByte(9)
+      ..write(obj.isUrgent)
+      ..writeByte(10)
+      ..write(obj.reminderAt);
   }
 
   @override

@@ -69,6 +69,13 @@ class TaskController extends StateNotifier<List<TaskItem>> {
     _calendarCtrl.upsertTaskEvent(task);
     _createTaskMemory(task, 'created');
     _notifications.scheduleTaskReminder(task);
+    if (task.priority == 3) {
+      _notifications.scheduleUrgentAlert(
+        id: task.id,
+        title: task.title,
+        body: 'Urgent task added to your planner.',
+      );
+    }
   }
 
   void removeTask(String id) {
@@ -105,6 +112,15 @@ class TaskController extends StateNotifier<List<TaskItem>> {
       _notifications.cancelTaskReminder(task.id);
     } else if (!task.isCompleted) {
       _notifications.scheduleTaskReminder(task);
+      // Fire an immediate alert when priority rises to Urgent.
+      final wasUrgent = oldTask?.priority == 3;
+      if (task.priority == 3 && !wasUrgent) {
+        _notifications.scheduleUrgentAlert(
+          id: task.id,
+          title: task.title,
+          body: 'Task marked as Urgent.',
+        );
+      }
     }
   }
 

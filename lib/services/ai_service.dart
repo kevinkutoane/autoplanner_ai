@@ -72,10 +72,38 @@ class AIService {
 
   // ── Input sanitization ───────────────────────────────────────────────────
 
+  /// Max characters accepted from any single user-supplied string.
+  static const _maxInputLength = 8000;
+
   /// Neutralises prompt-injection vectors before interpolating user data.
-  /// Replaces triple-quote sequences (our delimiter) and strips null bytes.
-  String _sanitize(String input) =>
-      input.replaceAll('"""', "'''").replaceAll('\x00', '').trim();
+  ///
+  /// - Caps input length to [_maxInputLength] to prevent context flooding.
+  /// - Strips null bytes and our triple-quote delimiter.
+  /// - Removes common LLM role-switch markers used in injection attacks.
+  String _sanitize(String input) {
+    var s = input.length > _maxInputLength
+        ? input.substring(0, _maxInputLength)
+        : input;
+    // Strip injection role markers (case-insensitive via replaceAll patterns).
+    const injectionPatterns = [
+      '\nSystem:',
+      '\nsystem:',
+      '\nHuman:',
+      '\nhuman:',
+      '\nAssistant:',
+      '\nassistant:',
+      '[INST]',
+      '[/INST]',
+      '<s>',
+      '</s>',
+      '"""',
+      '\x00',
+    ];
+    for (final p in injectionPatterns) {
+      s = s.replaceAll(p, '');
+    }
+    return s.trim();
+  }
 
   // ── Retry wrapper ────────────────────────────────────────────────────────
 
