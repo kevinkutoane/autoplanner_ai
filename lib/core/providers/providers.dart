@@ -50,7 +50,6 @@ final aiServiceProvider = Provider<AIService>((ref) {
 // ── Services ──────────────────────────────────────────────────────────
 
 /// Overridden in main() with an already-initialized MemoryService instance.
-/// Overridden in main() with an already-initialized MemoryService instance.
 final memoryServiceProvider = Provider<MemoryService>((_) => MemoryService());
 
 /// Singleton deterministic scheduler. Stateless — safe to create inline,

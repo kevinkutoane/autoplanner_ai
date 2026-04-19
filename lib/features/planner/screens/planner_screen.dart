@@ -69,7 +69,11 @@ class PlannerScreen extends ConsumerWidget {
       body: OrbBackground(
         subtle: true,
         child: RefreshIndicator(
-          onRefresh: () => Future.delayed(const Duration(milliseconds: 400)),
+          onRefresh: () async {
+            // Invalidate task suggestions so they re-fetch from AI.
+            ref.invalidate(taskSuggestionsProvider);
+            await Future.delayed(const Duration(milliseconds: 400));
+          },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),

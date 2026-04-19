@@ -61,8 +61,12 @@ class _MemoryScreenState extends ConsumerState<MemoryScreen> {
     }
   }
 
-  Future<void> _onRefresh() =>
-      Future.delayed(const Duration(milliseconds: 400));
+  Future<void> _onRefresh() async {
+    // Force the memory controller to re-emit its current state so the
+    // UI rebuilds with any changes that occurred in the background.
+    ref.invalidate(memoryControllerProvider);
+    await Future.delayed(const Duration(milliseconds: 400));
+  }
 
   @override
   Widget build(BuildContext context) {

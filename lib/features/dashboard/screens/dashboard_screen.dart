@@ -64,8 +64,13 @@ class DashboardScreen extends ConsumerWidget {
     final completedCount = todayTasks.where((t) => t.isCompleted).length;
 
     // ── Streak: consecutive days with ≥1 completed task ─────────────────────
+    // If today already has completions, count today and look backwards.
+    // Otherwise start from yesterday so an early-morning check doesn't
+    // reset a legitimate streak to zero.
     int streak = 0;
-    for (var i = 0; i < 60; i++) {
+    final todayHasCompleted = todayTasks.any((t) => t.isCompleted);
+    final startOffset = todayHasCompleted ? 0 : 1;
+    for (var i = startOffset; i < 60; i++) {
       final d = DateTime(
         now.year,
         now.month,
@@ -87,7 +92,12 @@ class DashboardScreen extends ConsumerWidget {
       body: OrbBackground(
         subtle: true,
         child: RefreshIndicator(
-          onRefresh: () => Future.delayed(const Duration(milliseconds: 400)),
+          onRefresh: () async {
+            // Invalidate the daily insight so it re-fetches from AI.
+            ref.invalidate(dailyInsightProvider);
+            // Allow the spinner to show briefly for visual feedback.
+            await Future.delayed(const Duration(milliseconds: 400));
+          },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),

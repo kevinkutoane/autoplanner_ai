@@ -147,8 +147,19 @@ class _PerformanceTab extends ConsumerWidget {
     final maxY = (totalCounts.reduce((a, b) => a > b ? a : b) + 1).toDouble();
 
     // ── Streak calculation ───────────────────────────────────────────────────
+    // If today already has completions, count today and look backwards.
+    // Otherwise start from yesterday so an early-morning check doesn't
+    // reset a legitimate streak to zero.
     int streak = 0;
-    for (int i = 0; i < 30; i++) {
+    final todayHasCompleted = tasks.any(
+      (t) =>
+          t.isCompleted &&
+          t.startTime.year == today.year &&
+          t.startTime.month == today.month &&
+          t.startTime.day == today.day,
+    );
+    final startOffset = todayHasCompleted ? 0 : 1;
+    for (int i = startOffset; i < 30; i++) {
       final d = DateTime(
         today.year,
         today.month,
