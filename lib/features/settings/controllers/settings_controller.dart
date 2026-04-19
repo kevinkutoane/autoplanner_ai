@@ -17,7 +17,12 @@ class SettingsController extends StateNotifier<AppSettings> {
 
   Future<void> _init() async {
     try {
-      _box = await Hive.openBox<dynamic>(AppSettings.boxName);
+      // Use Hive.box() to grab the already-opened encrypted box from main().
+      // Calling openBox<dynamic>() without a cipher would create an
+      // unencrypted instance if it ran before main()'s _openBoxSafe.
+      _box = Hive.isBoxOpen(AppSettings.boxName)
+          ? Hive.box<dynamic>(AppSettings.boxName)
+          : await Hive.openBox<dynamic>(AppSettings.boxName);
       if (_box.isNotEmpty) {
         state = AppSettings.fromMap(_box.toMap());
       }

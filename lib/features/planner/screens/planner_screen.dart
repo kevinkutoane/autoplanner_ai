@@ -69,7 +69,11 @@ class PlannerScreen extends ConsumerWidget {
       body: OrbBackground(
         subtle: true,
         child: RefreshIndicator(
-          onRefresh: () => Future.delayed(const Duration(milliseconds: 400)),
+          onRefresh: () async {
+            // Invalidate task suggestions so they re-fetch from AI.
+            ref.invalidate(taskSuggestionsProvider);
+            await Future.delayed(const Duration(milliseconds: 400));
+          },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
@@ -1670,6 +1674,7 @@ class _TaskEditSheetState extends ConsumerState<_TaskEditSheet> {
   late TimeOfDay _startTime;
   late int _durationMinutes;
   late String? _recurrence;
+  late List<int> _customDays;
 
   static const _durationOptions = [15, 30, 60, 90, 120];
 
@@ -1689,6 +1694,7 @@ class _TaskEditSheetState extends ConsumerState<_TaskEditSheet> {
             _durationOptions,
           )..sort((a, b) => (a - dur).abs().compareTo((b - dur).abs()))).first;
     _recurrence = widget.task.recurrence;
+    _customDays = List<int>.from(widget.task.recurrenceDays);
   }
 
   @override
@@ -1716,6 +1722,7 @@ class _TaskEditSheetState extends ConsumerState<_TaskEditSheet> {
       endTime: start.add(Duration(minutes: _durationMinutes)),
       note: _noteCtrl.text.trim().isNotEmpty ? _noteCtrl.text.trim() : null,
       recurrence: _recurrence,
+      recurrenceDays: _recurrence == 'custom' ? _customDays : [],
     );
     ref.read(taskControllerProvider.notifier).updateTask(updated);
     Navigator.pop(context);
@@ -1987,8 +1994,63 @@ class _TaskEditSheetState extends ConsumerState<_TaskEditSheet> {
                     onTap: () => setState(() => _recurrence = 'weekly'),
                     isDark: isDark,
                   ),
+                  _RecurrenceChip(
+                    label: 'Biweekly',
+                    selected: _recurrence == 'biweekly',
+                    onTap: () => setState(() => _recurrence = 'biweekly'),
+                    isDark: isDark,
+                  ),
+                  _RecurrenceChip(
+                    label: 'Monthly',
+                    selected: _recurrence == 'monthly',
+                    onTap: () => setState(() => _recurrence = 'monthly'),
+                    isDark: isDark,
+                  ),
+                  _RecurrenceChip(
+                    label: 'Custom',
+                    selected: _recurrence == 'custom',
+                    onTap: () => setState(() => _recurrence = 'custom'),
+                    isDark: isDark,
+                  ),
                 ],
               ),
+              // Custom day picker — shown only when recurrence == 'custom'
+              if (_recurrence == 'custom') ...[                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final entry in {
+                      1: 'Mon',
+                      2: 'Tue',
+                      3: 'Wed',
+                      4: 'Thu',
+                      5: 'Fri',
+                      6: 'Sat',
+                      7: 'Sun',
+                    }.entries)
+                      _RecurrenceChip(
+                        label: entry.value,
+                        selected: _customDays.contains(entry.key),
+                        onTap: () {
+                          setState(() {
+                            final days = List<int>.from(_customDays);
+                            if (days.contains(entry.key)) {
+                              days.remove(entry.key);
+                            } else {
+                              days.add(entry.key);
+                            }
+                            // We need to persist recurrenceDays via the task update
+                            // but the edit sheet only saves on 'Save'. Store in a
+                            // local field that _save() reads.
+                            _customDays = days;
+                          });
+                        },
+                        isDark: isDark,
+                      ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 16),
 
               // Note

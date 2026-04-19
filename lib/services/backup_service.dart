@@ -12,6 +12,7 @@ import '../core/models/goal_model.dart';
 import '../core/models/project_model.dart';
 import '../core/models/calendar_event_model.dart';
 import '../core/models/memory_entry_model.dart';
+import '../core/models/note_model.dart';
 
 /// Summary returned after a successful import so the UI can confirm counts.
 class BackupImportResult {
@@ -30,16 +31,20 @@ class BackupImportResult {
   /// Number of [CalendarEvent] records written to `calendarBox`.
   final int calendarEvents;
 
+  /// Number of [NoteItem] records written to `notesBox`.
+  final int notes;
+
   const BackupImportResult({
     required this.tasks,
     required this.goals,
     required this.projects,
     required this.memories,
     required this.calendarEvents,
+    this.notes = 0,
   });
 
   /// Total items imported across all collections.
-  int get total => tasks + goals + projects + memories + calendarEvents;
+  int get total => tasks + goals + projects + memories + calendarEvents + notes;
 }
 
 /// Handles full-data export to JSON and import from JSON for backup/restore.
@@ -70,6 +75,7 @@ class BackupService {
       'calendarEvents': Hive.box<CalendarEvent>(
         'calendarBox',
       ).values.map(_calEventToMap).toList(),
+      'notes': Hive.box<NoteItem>('notesBox').values.map(_noteToMap).toList(),
     };
 
     final json = const JsonEncoder.withIndent('  ').convert(payload);
@@ -126,6 +132,7 @@ class BackupService {
     final rawProjects = (data['projects'] as List?) ?? [];
     final rawMemories = (data['memories'] as List?) ?? [];
     final rawEvents = (data['calendarEvents'] as List?) ?? [];
+    final rawNotes = (data['notes'] as List?) ?? [];
 
     final tasksBox = Hive.box<TaskItem>('tasksBox');
     for (final t in rawTasks) {
@@ -177,12 +184,23 @@ class BackupService {
       }
     }
 
+    final notesBox = Hive.box<NoteItem>('notesBox');
+    for (final n in rawNotes) {
+      try {
+        final item = _noteFromMap(n as Map<String, dynamic>);
+        await notesBox.put(item.id, item);
+      } catch (e) {
+        if (kDebugMode) debugPrint('Skipping malformed note: $e');
+      }
+    }
+
     return BackupImportResult(
       tasks: rawTasks.length,
       goals: rawGoals.length,
       projects: rawProjects.length,
       memories: rawMemories.length,
       calendarEvents: rawEvents.length,
+      notes: rawNotes.length,
     );
   }
 
@@ -333,4 +351,36 @@ class BackupService {
     isAllDay: m['isAllDay'] as bool? ?? false,
     syncStatus: m['syncStatus'] as String? ?? 'local',
   );
+
+  // ── Notes serialisation ──────────────────────────────────────────────────
+  Map<String, dynamic> _noteToMap(NoteItem n) => {
+    'id': n.id,
+    'title': n.title,
+    'content': n.content,
+    'tags': n.tags,
+    'isPinned': n.isPinned,
+    'summary': n.summary,
+    'linkedTaskIds': n.linkedTaskIds,
+    'createdAt': n.createdAt.toIso8601String(),
+    'updatedAt': n.updatedAt.toIso8601String(),
+  };
+
+  NoteItem _noteFromMap(Map<String, dynamic> m) {
+    final now = DateTime.now();
+    return NoteItem(
+      id: m['id'] as String,
+      title: m['title'] as String? ?? '',
+      content: m['content'] as String? ?? '',
+      tags: List<String>.from(m['tags'] as List? ?? []),
+      isPinned: m['isPinned'] as bool? ?? false,
+      summary: m['summary'] as String?,
+      linkedTaskIds: List<String>.from(m['linkedTaskIds'] as List? ?? []),
+      createdAt: m['createdAt'] != null
+          ? DateTime.parse(m['createdAt'] as String)
+          : now,
+      updatedAt: m['updatedAt'] != null
+          ? DateTime.parse(m['updatedAt'] as String)
+          : now,
+    );
+  }
 }

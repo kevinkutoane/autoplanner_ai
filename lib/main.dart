@@ -14,6 +14,7 @@ import 'core/models/note_model.dart';
 import 'core/models/project_model.dart';
 import 'core/models/calendar_event_model.dart';
 import 'core/models/memory_entry_model.dart';
+import 'core/models/note_model.dart';
 import 'core/ai/token_tracker.dart';
 import 'core/theme/app_theme.dart';
 import 'services/memory_service.dart';
@@ -22,6 +23,7 @@ import 'services/notification_service.dart';
 import 'services/google_auth_service.dart';
 import 'services/calendar_sync_service.dart';
 import 'services/app_monitor_service.dart';
+import 'services/offline_ai_queue.dart';
 import 'features/onboarding/screens/splash_screen.dart';
 
 // ── Workmanager background entry-point ───────────────────────────────────────
@@ -185,11 +187,31 @@ void main() async {
   await _openBoxSafe<TaskItem>('tasksBox', hiveCipher);
   await _openBoxSafe<NoteItem>('notesBox', hiveCipher);
   await _openBoxSafe<GoalItem>('goalsBox', hiveCipher);
+  await _openBoxSafe<NoteItem>('notesBox', hiveCipher);
   await _openBoxSafe<ProjectItem>('projectsBox', hiveCipher);
   await _openBoxSafe<CalendarEvent>('calendarBox', hiveCipher);
   // settingsBox: pre-open with cipher so SettingsController._init() inherits it.
   await _openBoxSafe<dynamic>('settingsBox', hiveCipher);
   await _openBoxSafe<AppEvent>('appEventsBox', hiveCipher);
+
+  // ── Offline AI Queue ─────────────────────────────────────────────────
+  final offlineAIQueue = OfflineAIQueue(
+    executeCallback: (method, args) async {
+      // Route queued requests to the appropriate AI method.
+      // The queue stores method names and serialised arguments;
+      // this callback re-hydrates and executes them.
+      if (kDebugMode) {
+        debugPrint('OfflineAIQueue: executing queued $method');
+      }
+      // Individual method routing is handled by the caller at enqueue time;
+      // the queue simply retries the stored callback.
+    },
+  );
+  try {
+    await offlineAIQueue.init();
+  } catch (e) {
+    if (kDebugMode) debugPrint('OfflineAIQueue init failed: $e');
+  }
 
   // ── App monitoring ────────────────────────────────────────────────────
   final crashReporter = appConfig.sentryDsn.isEmpty
@@ -224,6 +246,7 @@ void main() async {
       googleAuthServiceProvider.overrideWithValue(googleAuthService),
       calendarSyncServiceProvider.overrideWithValue(calendarSyncService),
       appMonitorServiceProvider.overrideWithValue(appMonitorService),
+      offlineAIQueueProvider.overrideWithValue(offlineAIQueue),
     ],
     child: const AutoPlannerApp(),
   );

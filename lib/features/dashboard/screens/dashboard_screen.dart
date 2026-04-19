@@ -14,6 +14,7 @@ import '../../notes/controllers/note_controller.dart';
 import '../../settings/screens/help_screen.dart';
 import '../../search/screens/search_screen.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../core/utils/streak_calculator.dart';
 
 // ── Daily insight provider ───────────────────────────────────────────────────
 // keepAlive() ensures the insight is fetched exactly once per app session and
@@ -67,23 +68,7 @@ class DashboardScreen extends ConsumerWidget {
     final completedCount = todayTasks.where((t) => t.isCompleted).length;
 
     // ── Streak: consecutive days with ≥1 completed task ─────────────────────
-    int streak = 0;
-    for (var i = 0; i < 60; i++) {
-      final d = DateTime(
-        now.year,
-        now.month,
-        now.day,
-      ).subtract(Duration(days: i));
-      final hasCompleted = tasks.any(
-        (t) =>
-            t.isCompleted &&
-            t.startTime.year == d.year &&
-            t.startTime.month == d.month &&
-            t.startTime.day == d.day,
-      );
-      if (!hasCompleted) break;
-      streak++;
-    }
+    final streak = calculateStreak(tasks);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -91,7 +76,14 @@ class DashboardScreen extends ConsumerWidget {
         subtle: true,
         child: RefreshIndicator(
           onRefresh: () async {
+<<<<<<< HEAD
             ref.invalidate(dailyInsightProvider);
+=======
+            // Invalidate the daily insight so it re-fetches from AI.
+            ref.invalidate(dailyInsightProvider);
+            // Allow the spinner to show briefly for visual feedback.
+            await Future.delayed(const Duration(milliseconds: 400));
+>>>>>>> 01d288189b7546abc54d1782f3d0152a60f39575
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(

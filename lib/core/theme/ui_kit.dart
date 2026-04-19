@@ -469,6 +469,7 @@ class GhostBtn extends StatelessWidget {
 class GlassChip extends StatelessWidget {
   final String label;
   final IconData? icon;
+  final IconData? trailing;
   final bool selected;
   final VoidCallback onTap;
   final List<Color> activeGradient;
@@ -476,6 +477,7 @@ class GlassChip extends StatelessWidget {
     super.key,
     required this.label,
     this.icon,
+    this.trailing,
     required this.selected,
     required this.onTap,
     this.activeGradient = const [kIndigo, kCyan],
@@ -530,6 +532,17 @@ class GlassChip extends StatelessWidget {
                           : const Color(0xFF7C7C8A)),
               ),
             ),
+            if (trailing != null) ...[              const SizedBox(width: 4),
+              Icon(
+                trailing,
+                size: 13,
+                color: selected
+                    ? Colors.white
+                    : (d
+                          ? Colors.white.withAlpha(120)
+                          : const Color(0xFF7C7C8A)),
+              ),
+            ],
           ],
         ),
       ),
