@@ -15,6 +15,7 @@ import 'features/goals/screens/goals_screen.dart';
 import 'features/calendar/screens/calendar_screen.dart';
 import 'features/memory/screens/memory_screen.dart';
 import 'features/analytics/screens/analytics_screen.dart';
+import 'features/notes/screens/notes_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
 import 'features/planner/controllers/task_controller.dart';
 import 'features/goals/controllers/goal_controller.dart';
@@ -69,6 +70,12 @@ const _primaryNavItems = [
 
 // Overflow items revealed in the "More" glass sheet (screen indices 5-6)
 const _overflowNavItems = [
+  _NavItem(
+    icon: Icons.sticky_note_2_outlined,
+    activeIcon: Icons.sticky_note_2_rounded,
+    label: 'Notes',
+    gradient: [Color(0xFFE17055), kAmber],
+  ),
   _NavItem(
     icon: Icons.bar_chart_outlined,
     activeIcon: Icons.bar_chart_rounded,
@@ -243,10 +250,14 @@ class _AppShellState extends ConsumerState<AppShell>
                   ),
                   TickerMode(
                     enabled: _currentIndex == 5,
-                    child: const AnalyticsScreen(),
+                    child: const NotesScreen(),
                   ),
                   TickerMode(
                     enabled: _currentIndex == 6,
+                    child: const AnalyticsScreen(),
+                  ),
+                  TickerMode(
+                    enabled: _currentIndex == 7,
                     child: const SettingsScreen(),
                   ),
                 ],

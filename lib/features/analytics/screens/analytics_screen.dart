@@ -6,6 +6,7 @@ import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../planner/controllers/task_controller.dart';
 import '../../goals/controllers/goal_controller.dart';
+import '../../../core/utils/streak_calculator.dart';
 import 'weekly_review_screen.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
@@ -146,35 +147,9 @@ class _PerformanceTab extends ConsumerWidget {
     final totalCounts = days.map(totalOnDay).toList();
     final maxY = (totalCounts.reduce((a, b) => a > b ? a : b) + 1).toDouble();
 
-    // ── Streak calculation ───────────────────────────────────────────────────
-    // If today already has completions, count today and look backwards.
-    // Otherwise start from yesterday so an early-morning check doesn't
-    // reset a legitimate streak to zero.
-    int streak = 0;
-    final todayHasCompleted = tasks.any(
-      (t) =>
-          t.isCompleted &&
-          t.startTime.year == today.year &&
-          t.startTime.month == today.month &&
-          t.startTime.day == today.day,
-    );
-    final startOffset = todayHasCompleted ? 0 : 1;
-    for (int i = startOffset; i < 30; i++) {
-      final d = DateTime(
-        today.year,
-        today.month,
-        today.day,
-      ).subtract(Duration(days: i));
-      final completed = tasks.where(
-        (t) =>
-            t.isCompleted &&
-            t.startTime.year == d.year &&
-            t.startTime.month == d.month &&
-            t.startTime.day == d.day,
-      );
-      if (completed.isEmpty) break;
-      streak++;
-    }
+    // ── Streak calculation (shared utility) ──────────────────────────────────
+    final streak = calculateStreak(tasks);
+    final longestStreak = calculateLongestStreak(tasks);
 
     // ── All-time stats ───────────────────────────────────────────────────────
     final totalCompleted = tasks.where((t) => t.isCompleted).length;
@@ -236,6 +211,15 @@ class _PerformanceTab extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 13,
                             color: isDark ? Colors.white54 : Colors.black45,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Best: $longestStreak',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? Colors.white38 : Colors.black38,
                           ),
                         ),
                       ],

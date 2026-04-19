@@ -173,6 +173,15 @@ class TaskController extends StateNotifier<List<TaskItem>> {
         return base.add(const Duration(days: 1));
       case 'weekly':
         return base.add(const Duration(days: 7));
+      case 'biweekly':
+        return base.add(const Duration(days: 14));
+      case 'monthly':
+        // Same day next month; clamp to month-end for short months.
+        final nextMonth = base.month == 12 ? 1 : base.month + 1;
+        final nextYear = base.month == 12 ? base.year + 1 : base.year;
+        final daysInNextMonth = DateTime(nextYear, nextMonth + 1, 0).day;
+        final day = base.day > daysInNextMonth ? daysInNextMonth : base.day;
+        return DateTime(nextYear, nextMonth, day, base.hour, base.minute);
       case 'weekdays':
         var next = base.add(const Duration(days: 1));
         while (next.weekday == DateTime.saturday ||

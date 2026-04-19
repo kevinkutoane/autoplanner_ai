@@ -11,6 +11,7 @@ import '../../goals/controllers/goal_controller.dart';
 import '../../calendar/controllers/calendar_controller.dart';
 import '../../memory/controllers/memory_controller.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../core/utils/streak_calculator.dart';
 
 // ── Daily insight provider ───────────────────────────────────────────────────
 // keepAlive() ensures the insight is fetched exactly once per app session and
@@ -64,28 +65,7 @@ class DashboardScreen extends ConsumerWidget {
     final completedCount = todayTasks.where((t) => t.isCompleted).length;
 
     // ── Streak: consecutive days with ≥1 completed task ─────────────────────
-    // If today already has completions, count today and look backwards.
-    // Otherwise start from yesterday so an early-morning check doesn't
-    // reset a legitimate streak to zero.
-    int streak = 0;
-    final todayHasCompleted = todayTasks.any((t) => t.isCompleted);
-    final startOffset = todayHasCompleted ? 0 : 1;
-    for (var i = startOffset; i < 60; i++) {
-      final d = DateTime(
-        now.year,
-        now.month,
-        now.day,
-      ).subtract(Duration(days: i));
-      final hasCompleted = tasks.any(
-        (t) =>
-            t.isCompleted &&
-            t.startTime.year == d.year &&
-            t.startTime.month == d.month &&
-            t.startTime.day == d.day,
-      );
-      if (!hasCompleted) break;
-      streak++;
-    }
+    final streak = calculateStreak(tasks);
 
     return Scaffold(
       backgroundColor: Colors.transparent,

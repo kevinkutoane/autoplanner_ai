@@ -19,6 +19,8 @@ import '../../services/reschedule_service.dart';
 import '../../features/settings/models/app_settings_model.dart';
 import '../../features/settings/controllers/settings_controller.dart';
 import '../../features/planner/controllers/task_controller.dart';
+// Re-export note controller provider so screens can import from providers.dart
+export '../../features/notes/controllers/note_controller.dart' show noteControllerProvider;
 
 // ── Settings & Profile ────────────────────────────────────────────
 /// Declared first so other providers can watch it without forward-reference
