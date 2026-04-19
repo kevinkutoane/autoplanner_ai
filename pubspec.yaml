@@ -60,6 +60,7 @@ dependencies:
   share_plus: ^12.0.1
   file_picker: ^10.3.10
   sentry_flutter: ^9.7.0
+  connectivity_plus: ^7.1.1
 
 
 

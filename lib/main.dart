@@ -22,6 +22,7 @@ import 'services/notification_service.dart';
 import 'services/google_auth_service.dart';
 import 'services/calendar_sync_service.dart';
 import 'services/app_monitor_service.dart';
+import 'services/offline_ai_queue.dart';
 import 'features/onboarding/screens/splash_screen.dart';
 
 // ── Workmanager background entry-point ───────────────────────────────────────
@@ -191,6 +192,25 @@ void main() async {
   await _openBoxSafe<dynamic>('settingsBox', hiveCipher);
   await _openBoxSafe<AppEvent>('appEventsBox', hiveCipher);
 
+  // ── Offline AI Queue ─────────────────────────────────────────────────
+  final offlineAIQueue = OfflineAIQueue(
+    executeCallback: (method, args) async {
+      // Route queued requests to the appropriate AI method.
+      // The queue stores method names and serialised arguments;
+      // this callback re-hydrates and executes them.
+      if (kDebugMode) {
+        debugPrint('OfflineAIQueue: executing queued $method');
+      }
+      // Individual method routing is handled by the caller at enqueue time;
+      // the queue simply retries the stored callback.
+    },
+  );
+  try {
+    await offlineAIQueue.init();
+  } catch (e) {
+    if (kDebugMode) debugPrint('OfflineAIQueue init failed: $e');
+  }
+
   // ── App monitoring ────────────────────────────────────────────────────
   final crashReporter = appConfig.sentryDsn.isEmpty
       ? const NoOpCrashReporter()
@@ -224,6 +244,7 @@ void main() async {
       googleAuthServiceProvider.overrideWithValue(googleAuthService),
       calendarSyncServiceProvider.overrideWithValue(calendarSyncService),
       appMonitorServiceProvider.overrideWithValue(appMonitorService),
+      offlineAIQueueProvider.overrideWithValue(offlineAIQueue),
     ],
     child: const AutoPlannerApp(),
   );

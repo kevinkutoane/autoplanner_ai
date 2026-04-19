@@ -16,6 +16,7 @@ import '../../services/calendar_sync_service.dart';
 import '../../services/conflict_detector.dart';
 import '../../services/app_monitor_service.dart';
 import '../../services/reschedule_service.dart';
+import '../../services/offline_ai_queue.dart';
 import '../../features/settings/models/app_settings_model.dart';
 import '../../features/settings/controllers/settings_controller.dart';
 import '../../features/planner/controllers/task_controller.dart';
@@ -104,6 +105,13 @@ final rescheduleServiceProvider = Provider<RescheduleService>((ref) {
 /// Set by [RescheduleService.checkOverdue] and cleared when accepted/dismissed.
 final rescheduleSuggestionProvider = StateProvider<RescheduleSuggestion?>(
   (ref) => null,
+);
+
+// ── Offline AI Queue ─────────────────────────────────────────────────────
+
+/// Overridden in main() with the initialized OfflineAIQueue instance.
+final offlineAIQueueProvider = Provider<OfflineAIQueue>(
+  (_) => OfflineAIQueue(executeCallback: (_, __) async {}),
 );
 
 /// Search query for filtering tasks in the planner screen.

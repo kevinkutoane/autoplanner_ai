@@ -16,6 +16,7 @@ import 'features/calendar/screens/calendar_screen.dart';
 import 'features/memory/screens/memory_screen.dart';
 import 'features/analytics/screens/analytics_screen.dart';
 import 'features/notes/screens/notes_screen.dart';
+import 'features/projects/screens/projects_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
 import 'features/planner/controllers/task_controller.dart';
 import 'features/goals/controllers/goal_controller.dart';
@@ -68,13 +69,19 @@ const _primaryNavItems = [
   ),
 ];
 
-// Overflow items revealed in the "More" glass sheet (screen indices 5-6)
+// Overflow items revealed in the "More" glass sheet (screen indices 5-7)
 const _overflowNavItems = [
   _NavItem(
     icon: Icons.sticky_note_2_outlined,
     activeIcon: Icons.sticky_note_2_rounded,
     label: 'Notes',
     gradient: [Color(0xFFE17055), kAmber],
+  ),
+  _NavItem(
+    icon: Icons.folder_outlined,
+    activeIcon: Icons.folder_rounded,
+    label: 'Projects',
+    gradient: [kIndigo, Color(0xFF8B5CF6)],
   ),
   _NavItem(
     icon: Icons.bar_chart_outlined,
@@ -254,10 +261,14 @@ class _AppShellState extends ConsumerState<AppShell>
                   ),
                   TickerMode(
                     enabled: _currentIndex == 6,
-                    child: const AnalyticsScreen(),
+                    child: const ProjectsScreen(),
                   ),
                   TickerMode(
                     enabled: _currentIndex == 7,
+                    child: const AnalyticsScreen(),
+                  ),
+                  TickerMode(
+                    enabled: _currentIndex == 8,
                     child: const SettingsScreen(),
                   ),
                 ],

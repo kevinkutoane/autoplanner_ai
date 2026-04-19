@@ -7,6 +7,7 @@ import '../../../core/models/memory_entry_model.dart';
 import '../../../core/providers/providers.dart';
 import '../../../services/ai_service.dart';
 import '../../../services/notification_service.dart';
+import '../../../services/home_widget_service.dart';
 import '../../memory/controllers/memory_controller.dart';
 import '../../calendar/controllers/calendar_controller.dart';
 
@@ -406,11 +407,14 @@ class TaskController extends StateNotifier<List<TaskItem>> {
   }
 
   void _refreshState() {
+    if (_box == null) return;
     state = _box!.values.toList()
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    // Push updated task data to the home screen widget.
+    HomeWidgetService.update(state);
   }
 
-  void _createTaskMemory(TaskItem task, String action) async {
+  Future<void> _createTaskMemory(TaskItem task, String action) async {
     try {
       final ctx =
           'Task "$action": "${task.title}" at ${task.startTime.hour}:${task.startTime.minute.toString().padLeft(2, '0')} [${task.priorityLabel}] tags: ${task.tags.join(', ')}';

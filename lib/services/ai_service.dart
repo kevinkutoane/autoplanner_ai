@@ -355,11 +355,13 @@ Context:
 $memDesc
 ''';
     try {
-      final response = await _provider.complete(prompt);
-      await _tracker.log(action: 'dailyInsight', response: response);
-      return response.text.trim();
+      return await _withRetry(() async {
+        final response = await _provider.complete(prompt);
+        await _tracker.log(action: 'dailyInsight', response: response);
+        return response.text.trim();
+      });
     } catch (e) {
-      if (kDebugMode) debugPrint('dailyInsight failed: $e');
+      if (kDebugMode) debugPrint('dailyInsight failed after retries: $e');
       return null;
     }
   }
@@ -386,14 +388,17 @@ ${_sanitize(context)}
 """
 ''';
     try {
-      final response = await _provider.complete(prompt);
-      await _tracker.log(action: 'extractMemory', response: response);
-      final text = response.text.trim();
-      if (text != 'NONE' && text.isNotEmpty) return text;
+      return await _withRetry(() async {
+        final response = await _provider.complete(prompt);
+        await _tracker.log(action: 'extractMemory', response: response);
+        final text = response.text.trim();
+        if (text != 'NONE' && text.isNotEmpty) return text;
+        return null;
+      });
     } catch (e) {
-      if (kDebugMode) debugPrint('extractMemory failed: $e');
+      if (kDebugMode) debugPrint('extractMemory failed after retries: $e');
+      return null;
     }
-    return null;
   }
 
   // ── Brain Dump ────────────────────────────────────────────────────────────
@@ -433,31 +438,33 @@ ${_sanitize(input)}
 ''';
 
     try {
-      String fullText;
-      if (onChunk != null) {
-        final buffer = StringBuffer();
-        await for (final chunk in _provider.streamComplete(prompt)) {
-          buffer.write(chunk);
-          onChunk(buffer.toString());
+      return await _withRetry(() async {
+        String fullText;
+        if (onChunk != null) {
+          final buffer = StringBuffer();
+          await for (final chunk in _provider.streamComplete(prompt)) {
+            buffer.write(chunk);
+            onChunk(buffer.toString());
+          }
+          fullText = buffer.toString();
+        } else {
+          final response = await _provider.complete(prompt);
+          fullText = response.text;
         }
-        fullText = buffer.toString();
-      } else {
-        final response = await _provider.complete(prompt);
-        fullText = response.text;
-      }
 
-      await _tracker.log(
-        action: 'brainDump',
-        response: AIResponse(
-          text: fullText,
-          promptTokens: (prompt.length / 4).ceil(),
-          completionTokens: (fullText.length / 4).ceil(),
-          model: _provider.modelName,
-        ),
-      );
-      return _parseBrainDumpResult(fullText);
+        await _tracker.log(
+          action: 'brainDump',
+          response: AIResponse(
+            text: fullText,
+            promptTokens: (prompt.length / 4).ceil(),
+            completionTokens: (fullText.length / 4).ceil(),
+            model: _provider.modelName,
+          ),
+        );
+        return _parseBrainDumpResult(fullText);
+      });
     } catch (e) {
-      if (kDebugMode) debugPrint('brainDump failed: $e');
+      if (kDebugMode) debugPrint('brainDump failed after retries: $e');
       return const BrainDumpResult(tasks: [], goals: [], memories: []);
     }
   }
@@ -572,11 +579,13 @@ Rules:
 ''';
 
     try {
-      final response = await _provider.complete(prompt);
-      await _tracker.log(action: 'suggestTasks', response: response);
-      return _parseStringList(response.text);
+      return await _withRetry(() async {
+        final response = await _provider.complete(prompt);
+        await _tracker.log(action: 'suggestTasks', response: response);
+        return _parseStringList(response.text);
+      });
     } catch (e) {
-      if (kDebugMode) debugPrint('suggestTasks failed: $e');
+      if (kDebugMode) debugPrint('suggestTasks failed after retries: $e');
       return [];
     }
   }
@@ -642,11 +651,13 @@ Keep it encouraging, concise, and actionable. Use markdown formatting.
 Respond with ONLY the review text.
 ''';
     try {
-      final response = await _provider.complete(prompt);
-      await _tracker.log(action: 'weeklyReview', response: response);
-      return response.text.trim();
+      return await _withRetry(() async {
+        final response = await _provider.complete(prompt);
+        await _tracker.log(action: 'weeklyReview', response: response);
+        return response.text.trim();
+      });
     } catch (e) {
-      if (kDebugMode) debugPrint('weeklyReview failed: $e');
+      if (kDebugMode) debugPrint('weeklyReview failed after retries: $e');
       return null;
     }
   }
