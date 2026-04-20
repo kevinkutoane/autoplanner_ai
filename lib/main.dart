@@ -14,7 +14,6 @@ import 'core/models/note_model.dart';
 import 'core/models/project_model.dart';
 import 'core/models/calendar_event_model.dart';
 import 'core/models/memory_entry_model.dart';
-import 'core/models/note_model.dart';
 import 'core/ai/token_tracker.dart';
 import 'core/theme/app_theme.dart';
 import 'services/memory_service.dart';

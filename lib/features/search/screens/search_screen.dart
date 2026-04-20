@@ -49,7 +49,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       }
 
       if (_filter == _Filter.all || _filter == _Filter.notes) {
-        for (final n in ref.watch(notesControllerProvider)) {
+        for (final n in ref.watch(noteControllerProvider)) {
           if (n.title.toLowerCase().contains(query) ||
               n.content.toLowerCase().contains(query)) {
             results.add(_SearchResult(
