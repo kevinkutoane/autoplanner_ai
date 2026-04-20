@@ -82,10 +82,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // ── Environment (.env) ───────────────────────────────────
+  // Try .env first (local overrides); fall back to .env.example (bundled asset).
   try {
     await dotenv.load(fileName: '.env');
-  } catch (e) {
-    if (kDebugMode) debugPrint('.env load failed: $e');
+  } catch (_) {
+    try {
+      await dotenv.load(fileName: '.env.example');
+    } catch (e) {
+      if (kDebugMode) debugPrint('.env load failed: $e');
+    }
   }
   try {
     appConfig = EnvConfig.fromDotEnv();
