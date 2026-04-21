@@ -14,13 +14,10 @@ import 'features/planner/screens/planner_screen.dart';
 import 'features/goals/screens/goals_screen.dart';
 import 'features/calendar/screens/calendar_screen.dart';
 import 'features/memory/screens/memory_screen.dart';
-import 'features/analytics/screens/analytics_screen.dart';
 import 'features/notes/screens/notes_screen.dart';
-import 'features/projects/screens/projects_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
 import 'features/planner/controllers/task_controller.dart';
 import 'features/goals/controllers/goal_controller.dart';
-import 'features/notes/screens/notes_screen.dart';
 
 // ── Nav item descriptor ──────────────────────────────────────────────────────
 class _NavItem {
@@ -72,10 +69,6 @@ const _overflowNavItems = [
     label: 'Memory',
     gradient: [kAmber, Color(0xFFFFB347)],
   ),
-];
-
-// Overflow items revealed in the "More" glass sheet (screen indices 5-6)
-const _overflowNavItems = [
   _NavItem(
     icon: Icons.bar_chart_outlined,
     activeIcon: Icons.bar_chart_rounded,

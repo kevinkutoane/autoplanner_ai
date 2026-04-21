@@ -1,0 +1,28 @@
+﻿1	                          children: [
+2	                            // Pinned section
+3	                            if (pinned.isNotEmpty) ...[                              const SectionLabel(icon: Icons.push_pin_rounded, label: 'Pinned'),
+4	                              const SizedBox(height: 8),
+5	                              ...pinned.asMap().entries.map(
+6	                                    (e) => AnimationConfiguration.staggeredList(
+7	                                      position: e.key,
+8	                                      duration:
+9	                                          const Duration(milliseconds: 350),
+10	                                      child: SlideAnimation(
+11	                                        verticalOffset: 30,
+12	                                        child: FadeInAnimation(
+13	                                          child: _NoteCard(
+14	                                            note: e.value,
+15	                                            isDark: isDark,
+16	                                          ),
+17	                                        ),
+18	                                      ),
+19	                                    ),
+20	                                  ),
+21	                              const SizedBox(height: 16),
+22	                            ],
+23	                            // Unpinned section
+24	                            if (unpinned.isNotEmpty) ...[                              if (pinned.isNotEmpty)
+25	                                const SectionLabel(icon: Icons.notes_rounded, label: 'Others'),
+26	                              const SizedBox(height: 8),
+27	                              ...unpinned.asMap().entries.map(
+28	                                    (e) => AnimationConfiguration.staggeredList(

@@ -57,7 +57,9 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(taskControllerProvider);
     final goals = ref.watch(goalControllerProvider);
-    final activeGoals = goals.where((g) => !g.isArchived && !g.isCompleted).toList();
+    final activeGoals = goals
+        .where((g) => !g.isArchived && !g.isCompleted)
+        .toList();
     final events = ref.watch(calendarControllerProvider);
     final memories = ref.watch(memoryControllerProvider);
     final insightAsync = ref.watch(dailyInsightProvider);
@@ -76,14 +78,11 @@ class DashboardScreen extends ConsumerWidget {
         subtle: true,
         child: RefreshIndicator(
           onRefresh: () async {
-<<<<<<< HEAD
             ref.invalidate(dailyInsightProvider);
-=======
             // Invalidate the daily insight so it re-fetches from AI.
             ref.invalidate(dailyInsightProvider);
             // Allow the spinner to show briefly for visual feedback.
             await Future.delayed(const Duration(milliseconds: 400));
->>>>>>> 01d288189b7546abc54d1782f3d0152a60f39575
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(
@@ -277,7 +276,7 @@ class DashboardScreen extends ConsumerWidget {
                         GradStatCard(
                           icon: Icons.sticky_note_2_rounded,
                           label: 'Notes',
-                          value: '${ref.watch(notesControllerProvider).length}',
+                          value: '${ref.watch(noteControllerProvider).length}',
                           gradient: const [Color(0xFF00B894), kCyan],
                         ),
                       ],
@@ -800,12 +799,14 @@ class _GoalProgressCard extends StatelessWidget {
                     progressColor: total == 0
                         ? Colors.grey
                         : fraction >= 1.0
-                            ? kCyan
-                            : kCoral,
+                        ? kCyan
+                        : kCoral,
                   ),
                   child: Center(
-                    child:
-                        Text(goal.emoji, style: const TextStyle(fontSize: 18)),
+                    child: Text(
+                      goal.emoji,
+                      style: const TextStyle(fontSize: 18),
+                    ),
                   ),
                 ),
               ),

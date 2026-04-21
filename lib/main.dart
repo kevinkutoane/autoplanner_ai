@@ -14,7 +14,6 @@ import 'core/models/note_model.dart';
 import 'core/models/project_model.dart';
 import 'core/models/calendar_event_model.dart';
 import 'core/models/memory_entry_model.dart';
-import 'core/models/note_model.dart';
 import 'core/ai/token_tracker.dart';
 import 'core/theme/app_theme.dart';
 import 'services/memory_service.dart';
@@ -91,7 +90,8 @@ void main() async {
   try {
     appConfig = EnvConfig.fromDotEnv();
   } catch (e) {
-    if (kDebugMode) debugPrint('EnvConfig.fromDotEnv() failed, using defaults: $e');
+    if (kDebugMode)
+      debugPrint('EnvConfig.fromDotEnv() failed, using defaults: $e');
     appConfig = const EnvConfig();
   }
 
@@ -251,12 +251,9 @@ void main() async {
     child: const AutoPlannerApp(),
   );
 
-  await crashReporter.runApp(
-    () async {
-      runApp(app);
-    },
-    environment: appConfig.environment.name,
-  );
+  await crashReporter.runApp(() async {
+    runApp(app);
+  }, environment: appConfig.environment.name);
 }
 
 /// Opens a Hive box; if the file is corrupt, deletes it and retries once.
