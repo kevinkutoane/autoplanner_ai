@@ -1,5 +1,4 @@
 import '../models/task_model.dart';
-import 'date_utils.dart';
 
 /// Calculates the current streak of consecutive days with at least one
 /// completed task.
@@ -8,20 +7,28 @@ import 'date_utils.dart';
 /// backwards from today. Otherwise the streak starts from yesterday so an
 /// early-morning check doesn't reset a legitimate streak to zero.
 ///
+/// Uses calendar-day arithmetic (not Duration subtraction) to avoid
+/// DST/timezone edge cases where subtracting 24h crosses a clock change.
+///
 /// [maxLookback] controls how many days to scan (default 60).
 int calculateStreak(List<TaskItem> tasks, {int maxLookback = 60}) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
 
   final todayHasCompleted = tasks.any(
-    (t) => t.isCompleted && isSameDay(t.startTime, now),
+    (t) =>
+        t.isCompleted &&
+        t.startTime.year == today.year &&
+        t.startTime.month == today.month &&
+        t.startTime.day == today.day,
   );
 
   int streak = 0;
   final startOffset = todayHasCompleted ? 0 : 1;
 
   for (var i = startOffset; i < maxLookback; i++) {
-    final d = today.subtract(Duration(days: i));
+    // Calendar-day subtraction: always produces midnight of the target day.
+    final d = DateTime(today.year, today.month, today.day - i);
     final hasCompleted = tasks.any(
       (t) =>
           t.isCompleted &&

@@ -8,6 +8,8 @@ import '../../../core/providers/providers.dart';
 import '../../../services/ai_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/home_widget_service.dart';
+import '../../../services/smart_notification_scheduler.dart';
+import '../../../features/settings/models/app_settings_model.dart';
 import '../../memory/controllers/memory_controller.dart';
 import '../../calendar/controllers/calendar_controller.dart';
 
@@ -428,6 +430,36 @@ class TaskController extends StateNotifier<List<TaskItem>> {
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
     // Push updated task data to the home screen widget.
     HomeWidgetService.update(state);
+    // Recalculate smart morning briefing based on current tasks.
+    _recalculateBriefing();
+  }
+
+  /// Fires the smart notification scheduler to adjust morning briefing
+  /// timing based on tomorrow's first task.
+  Future<void> _recalculateBriefing() async {
+    try {
+      final settingsBox = Hive.box('settingsBox');
+      final enabled =
+          settingsBox.get('morningBriefingEnabled', defaultValue: false) as bool;
+      if (!enabled) return;
+      final hour =
+          settingsBox.get('morningBriefingHour', defaultValue: 8) as int;
+      final minute =
+          settingsBox.get('morningBriefingMinute', defaultValue: 0) as int;
+      // Only auto-adjust if user hasn't set a custom time (default is 08:00).
+      if (hour != 8 || minute != 0) return;
+      final scheduler = SmartNotificationScheduler(_notifications);
+      await scheduler.recalculate(
+        tasks: state,
+        settings: AppSettings.defaults().copyWith(
+          morningBriefingEnabled: enabled,
+          morningBriefingHour: hour,
+          morningBriefingMinute: minute,
+        ),
+      );
+    } catch (_) {
+      // Non-critical — don't crash on scheduling failure.
+    }
   }
 
   Future<void> _createTaskMemory(TaskItem task, String action) async {

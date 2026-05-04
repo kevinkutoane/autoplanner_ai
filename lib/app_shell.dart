@@ -18,6 +18,8 @@ import 'features/notes/screens/notes_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
 import 'features/planner/controllers/task_controller.dart';
 import 'features/goals/controllers/goal_controller.dart';
+import 'features/analytics/screens/analytics_screen.dart';
+import 'features/projects/screens/projects_screen.dart';
 
 // ── Nav item descriptor ──────────────────────────────────────────────────────
 class _NavItem {
@@ -61,7 +63,7 @@ const _primaryNavItems = [
   ),
 ];
 
-// Overflow items revealed in the "More" glass sheet (screen indices 4-6)
+// Overflow items revealed in the "More" glass sheet (screen indices 4-8)
 const _overflowNavItems = [
   _NavItem(
     icon: Icons.psychology_outlined,
@@ -74,6 +76,18 @@ const _overflowNavItems = [
     activeIcon: Icons.sticky_note_2_rounded,
     label: 'Notes',
     gradient: [Color(0xFF00B894), kCyan],
+  ),
+  _NavItem(
+    icon: Icons.folder_outlined,
+    activeIcon: Icons.folder_rounded,
+    label: 'Projects',
+    gradient: [kCyan, Color(0xFF0984E3)],
+  ),
+  _NavItem(
+    icon: Icons.insights_outlined,
+    activeIcon: Icons.insights_rounded,
+    label: 'Insights',
+    gradient: [Color(0xFF9B59B6), Color(0xFFE056A0)],
   ),
   _NavItem(
     icon: Icons.settings_outlined,
@@ -247,6 +261,14 @@ class _AppShellState extends ConsumerState<AppShell>
                   ),
                   TickerMode(
                     enabled: _currentIndex == 6,
+                    child: const ProjectsScreen(),
+                  ),
+                  TickerMode(
+                    enabled: _currentIndex == 7,
+                    child: const AnalyticsScreen(),
+                  ),
+                  TickerMode(
+                    enabled: _currentIndex == 8,
                     child: const SettingsScreen(),
                   ),
                 ],
