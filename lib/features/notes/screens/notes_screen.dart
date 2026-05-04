@@ -169,10 +169,11 @@ class NotesScreen extends ConsumerWidget {
                             ],
                             // Unpinned section
                             if (unpinned.isNotEmpty) ...[
-                              const SectionLabel(
-                                icon: Icons.notes_rounded,
-                                label: 'Others',
-                              ),
+                              if (pinned.isNotEmpty)
+                                const SectionLabel(
+                                  icon: Icons.notes_rounded,
+                                  label: 'Others',
+                                ),
                               const SizedBox(height: 8),
                               ...unpinned.asMap().entries.map(
                                 (e) => AnimationConfiguration.staggeredList(
@@ -265,7 +266,7 @@ class NotesScreen extends ConsumerWidget {
   }
 }
 
-// ΓöÇΓöÇ Note card ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// ── Note card ─────────────────────────────────────────────────────────────────
 class _NoteCard extends ConsumerWidget {
   final NoteItem note;
   final bool isDark;

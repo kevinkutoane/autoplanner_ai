@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:autoplanner_ai/core/models/note_model.dart';
 import 'package:autoplanner_ai/features/notes/controllers/note_controller.dart';
+import 'package:autoplanner_ai/services/notification_service.dart';
 
 /// Unit tests for [NoteController].
 ///
@@ -26,21 +27,21 @@ void main() {
     String? summary,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) =>
-      NoteItem(
-        id: id ?? 'n-${boxCounter++}',
-        title: title,
-        content: content,
-        summary: summary,
-        tags: tags,
-        createdAt: createdAt ?? now,
-        updatedAt: updatedAt ?? now,
-        linkedTaskIds: linkedTaskIds,
-        isPinned: isPinned,
-      );
+  }) => NoteItem(
+    id: id ?? 'n-${boxCounter++}',
+    title: title,
+    content: content,
+    summary: summary,
+    tags: tags,
+    createdAt: createdAt ?? now,
+    updatedAt: updatedAt ?? now,
+    linkedTaskIds: linkedTaskIds,
+    isPinned: isPinned,
+  );
 
   setUpAll(() async {
-    final dir = '${Directory.systemTemp.path}/hive_note_test_${DateTime.now().millisecondsSinceEpoch}';
+    final dir =
+        '${Directory.systemTemp.path}/hive_note_test_${DateTime.now().millisecondsSinceEpoch}';
     Hive.init(dir);
     Hive.registerAdapter(NoteItemAdapter());
   });
@@ -49,7 +50,7 @@ void main() {
     boxCounter++;
     box = await Hive.openBox<NoteItem>('notesBox');
     await box.clear();
-    controller = NoteController();
+    controller = NoteController(notifications: NotificationService());
   });
 
   tearDown(() async {
@@ -88,7 +89,9 @@ void main() {
       // updatedAt should be newer than the original
       expect(
         controller.state.first.updatedAt.isAfter(original.createdAt) ||
-            controller.state.first.updatedAt.isAtSameMomentAs(original.createdAt),
+            controller.state.first.updatedAt.isAtSameMomentAs(
+              original.createdAt,
+            ),
         isTrue,
       );
     });
@@ -140,7 +143,9 @@ void main() {
       controller.createNote(title: 'Pinned');
       controller.createNote(title: 'Not pinned');
       // Find the note titled 'Pinned' by title (sort order is by updatedAt).
-      final pinnedId = controller.state.firstWhere((n) => n.title == 'Pinned').id;
+      final pinnedId = controller.state
+          .firstWhere((n) => n.title == 'Pinned')
+          .id;
       controller.togglePin(pinnedId);
       expect(controller.pinnedNotes, hasLength(1));
       expect(controller.pinnedNotes.first.title, 'Pinned');
@@ -155,11 +160,7 @@ void main() {
 
     test('pinned notes sort before unpinned in state', () {
       // Create two notes; pin the second one.
-      final older = makeNote(
-        id: 'older',
-        title: 'Older',
-        updatedAt: now,
-      );
+      final older = makeNote(id: 'older', title: 'Older', updatedAt: now);
       final newer = makeNote(
         id: 'newer',
         title: 'Newer',
@@ -190,7 +191,10 @@ void main() {
       controller.createNote(title: 'Tagged', tags: ['work']);
       final id = controller.state.first.id;
       controller.addTag(id, 'work');
-      expect(controller.state.first.tags.where((t) => t == 'work'), hasLength(1));
+      expect(
+        controller.state.first.tags.where((t) => t == 'work'),
+        hasLength(1),
+      );
     });
 
     test('removeTag removes the specified tag', () {
@@ -300,7 +304,10 @@ void main() {
     });
 
     test('unlinkTask removes a task ID from linkedTaskIds', () {
-      controller.createNote(title: 'Linked', linkedTaskIds: ['task-1', 'task-2']);
+      controller.createNote(
+        title: 'Linked',
+        linkedTaskIds: ['task-1', 'task-2'],
+      );
       final id = controller.state.first.id;
       controller.unlinkTask(id, 'task-1');
       expect(controller.state.first.linkedTaskIds, isNot(contains('task-1')));
@@ -338,11 +345,7 @@ void main() {
         title: 'Old',
         updatedAt: now.subtract(const Duration(days: 1)),
       );
-      final recent = makeNote(
-        id: 'recent',
-        title: 'Recent',
-        updatedAt: now,
-      );
+      final recent = makeNote(id: 'recent', title: 'Recent', updatedAt: now);
       // Add old first, then recent.
       controller.addNote(old);
       controller.addNote(recent);

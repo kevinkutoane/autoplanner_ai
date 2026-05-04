@@ -1,27 +1,29 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/models/note_model.dart';
+import '../../../core/providers/providers.dart';
+import '../../../services/notification_service.dart';
 
 const _uuid = Uuid();
 
-// ── NoteController ──────────────────────────────────────────────────────────
-
-/// Riverpod [StateNotifier] that owns all [NoteItem] CRUD operations.
+/// Riverpod [StateNotifier] that owns all [NoteItem] CRUD and notification wiring.
 ///
-/// State is a flat list of every note in the local Hive `notesBox`.
-/// Pinned notes always sort first, then by [updatedAt] descending.
+/// State is a flat list of every note in the local Hive box. Pinned notes are
+/// sorted to the top, followed by creation-date descending.
 class NoteController extends StateNotifier<List<NoteItem>> {
   late final Box<NoteItem> _box;
+  final NotificationService _notifications;
 
-  NoteController() : super([]) {
+  NoteController({required NotificationService notifications})
+      : _notifications = notifications,
+        super([]) {
     _box = Hive.box<NoteItem>('notesBox');
     _refreshState();
   }
 
   void _refreshState() {
     final all = _box.values.toList();
-    // Pinned first, then most-recently-updated first.
     all.sort((a, b) {
       if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
       return b.updatedAt.compareTo(a.updatedAt);
@@ -29,13 +31,10 @@ class NoteController extends StateNotifier<List<NoteItem>> {
     state = all;
   }
 
-  /// All pinned notes.
   List<NoteItem> get pinnedNotes => state.where((n) => n.isPinned).toList();
 
-  /// All unpinned notes.
   List<NoteItem> get unpinnedNotes => state.where((n) => !n.isPinned).toList();
 
-  /// Notes matching a search query (title, content, or tags).
   List<NoteItem> search(String query) {
     if (query.isEmpty) return state;
     final q = query.toLowerCase();
@@ -46,13 +45,11 @@ class NoteController extends StateNotifier<List<NoteItem>> {
     }).toList();
   }
 
-  /// Notes filtered by a specific tag.
   List<NoteItem> byTag(String tag) {
     final t = tag.toLowerCase();
     return state.where((n) => n.tags.any((nt) => nt.toLowerCase() == t)).toList();
   }
 
-  /// All unique tags across all notes, sorted alphabetically.
   List<String> get allTags {
     final tags = <String>{};
     for (final n in state) {
@@ -61,11 +58,20 @@ class NoteController extends StateNotifier<List<NoteItem>> {
     return tags.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
   }
 
+  void addNote(NoteItem note) {
+    _box.put(note.id, note);
+    _refreshState();
+    _scheduleNotifications(note);
+  }
+
   void createNote({
     required String title,
     String content = '',
     List<String> tags = const [],
     List<String> linkedTaskIds = const [],
+    bool isPinned = false,
+    bool isUrgent = false,
+    DateTime? reminderAt,
   }) {
     final now = DateTime.now();
     final note = NoteItem(
@@ -73,37 +79,65 @@ class NoteController extends StateNotifier<List<NoteItem>> {
       title: title,
       content: content,
       tags: tags,
+      linkedTaskIds: linkedTaskIds,
       createdAt: now,
       updatedAt: now,
-      linkedTaskIds: linkedTaskIds,
+      isPinned: isPinned,
+      isUrgent: isUrgent,
+      reminderAt: reminderAt,
     );
     _box.put(note.id, note);
     _refreshState();
-  }
-
-  void addNote(NoteItem note) {
-    _box.put(note.id, note);
-    _refreshState();
+    _scheduleNotifications(note);
   }
 
   void updateNote(NoteItem updated) {
+    final existing = _box.get(updated.id);
     _box.put(updated.id, updated.copyWith(updatedAt: DateTime.now()));
     _refreshState();
+
+    _cancelNotifications(updated.id);
+    _scheduleNotifications(updated);
+
+    final wasUrgent = existing?.isUrgent ?? false;
+    if (updated.isUrgent && !wasUrgent) {
+      _notifications.scheduleUrgentAlert(
+        id: 'note_${updated.id}',
+        title: updated.title,
+        body: 'Note marked as Urgent.',
+      );
+    }
   }
 
-  void removeNote(String noteId) {
-    _box.delete(noteId);
+  void removeNote(String id) {
+    _box.delete(id);
     _refreshState();
+    _cancelNotifications(id);
   }
 
-  void togglePin(String noteId) {
-    final note = _box.get(noteId);
+  void togglePin(String id) {
+    final note = _box.get(id);
     if (note == null) return;
-    _box.put(
-      noteId,
-      note.copyWith(isPinned: !note.isPinned, updatedAt: DateTime.now()),
-    );
+    _box.put(id, note.copyWith(isPinned: !note.isPinned, updatedAt: DateTime.now()));
     _refreshState();
+  }
+
+  void toggleUrgent(String id) {
+    final note = _box.get(id);
+    if (note == null) return;
+    final updated = note.copyWith(isUrgent: !note.isUrgent, updatedAt: DateTime.now());
+    _box.put(id, updated);
+    _refreshState();
+    if (updated.isUrgent) {
+      _notifications.scheduleUrgentAlert(
+        id: 'note_${updated.id}',
+        title: updated.title,
+        body: 'Note marked as Urgent.',
+      );
+    } else {
+      _cancelNotifications(id);
+      _scheduleNotifications(updated);
+    }
   }
 
   void addTag(String noteId, String tag) {
@@ -112,10 +146,7 @@ class NoteController extends StateNotifier<List<NoteItem>> {
     if (note.tags.contains(tag)) return;
     _box.put(
       noteId,
-      note.copyWith(
-        tags: [...note.tags, tag],
-        updatedAt: DateTime.now(),
-      ),
+      note.copyWith(tags: [...note.tags, tag], updatedAt: DateTime.now()),
     );
     _refreshState();
   }
@@ -160,7 +191,6 @@ class NoteController extends StateNotifier<List<NoteItem>> {
     _refreshState();
   }
 
-  /// Sets the AI-generated summary for a note.
   void setSummary(String noteId, String summary) {
     final note = _box.get(noteId);
     if (note == null) return;
@@ -175,9 +205,29 @@ class NoteController extends StateNotifier<List<NoteItem>> {
     _box.clear();
     state = [];
   }
+
+  void _scheduleNotifications(NoteItem note) {
+    if (note.isUrgent) {
+      _notifications.scheduleUrgentAlert(
+        id: 'note_${note.id}',
+        title: note.title,
+        body: 'Urgent note requires your attention.',
+      );
+    }
+    if (note.reminderAt != null) {
+      _notifications.scheduleNoteReminder(note);
+    }
+  }
+
+  void _cancelNotifications(String noteId) {
+    _notifications.cancelNoteReminder(noteId);
+  }
 }
 
 final noteControllerProvider =
     StateNotifierProvider<NoteController, List<NoteItem>>(
-  (ref) => NoteController(),
+  (ref) => NoteController(notifications: ref.read(notificationServiceProvider)),
 );
+
+/// Alias for backward compatibility — screens that still reference the old name.
+final notesControllerProvider = noteControllerProvider;

@@ -10,7 +10,6 @@ import '../../../core/models/task_model.dart';
 import '../../goals/controllers/goal_controller.dart';
 import '../../calendar/controllers/calendar_controller.dart';
 import '../../memory/controllers/memory_controller.dart';
-import '../../notes/controllers/note_controller.dart';
 import '../../settings/screens/help_screen.dart';
 import '../../search/screens/search_screen.dart';
 import '../../../core/utils/date_utils.dart';
@@ -78,7 +77,6 @@ class DashboardScreen extends ConsumerWidget {
         subtle: true,
         child: RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(dailyInsightProvider);
             // Invalidate the daily insight so it re-fetches from AI.
             ref.invalidate(dailyInsightProvider);
             // Allow the spinner to show briefly for visual feedback.
