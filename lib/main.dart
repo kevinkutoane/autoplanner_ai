@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:workmanager/workmanager.dart';
 import 'core/providers/providers.dart';
+import 'core/widgets/error_boundary.dart';
 
 import 'core/config/env_config.dart';
 import 'core/diagnostics/crash_reporter.dart';
@@ -195,7 +196,6 @@ void main() async {
   await _openBoxSafe<TaskItem>('tasksBox', hiveCipher);
   await _openBoxSafe<NoteItem>('notesBox', hiveCipher);
   await _openBoxSafe<GoalItem>('goalsBox', hiveCipher);
-  await _openBoxSafe<NoteItem>('notesBox', hiveCipher);
   await _openBoxSafe<ProjectItem>('projectsBox', hiveCipher);
   await _openBoxSafe<CalendarEvent>('calendarBox', hiveCipher);
   // settingsBox: pre-open with cipher so SettingsController._init() inherits it.
@@ -287,7 +287,7 @@ class AutoPlannerApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
-      home: const SplashScreen(),
+      home: const ErrorBoundary(child: SplashScreen()),
     );
   }
 }
