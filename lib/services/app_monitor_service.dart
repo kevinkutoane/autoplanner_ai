@@ -10,10 +10,11 @@ const _kSession = 'session';
 const _kWarning = 'warning';
 const _kError = 'error';
 const _kFatal = 'fatal';
+const _kAIError = 'ai_error';
 
 /// A single monitoring event persisted in the encrypted `appEventsBox`.
 ///
-/// Four event types are recorded:
+/// Five event types are recorded:
 /// - `'session'` — foreground session; [durationMs] is set when the session
 ///   ends via [AppMonitorService.logSessionEnd].
 /// - `'warning'` — startup configuration warning captured during app boot.
@@ -21,6 +22,7 @@ const _kFatal = 'fatal';
 ///   [FlutterError.onError].
 /// - `'fatal'`   — unhandled async error captured via
 ///   [PlatformDispatcher.onError].
+/// - `'ai_error'` — failure to parse LLM output or API error.
 @HiveType(typeId: 11)
 class AppEvent extends HiveObject {
   /// Unique identifier (UUID v4).
@@ -174,13 +176,40 @@ class AppMonitorService {
     await _reporter.captureException(error, stack);
   }
 
+  /// Logs an AI-related failure (parsing or API error).
+  Future<void> logAIError({
+    required String action,
+    required String message,
+    String? detail,
+  }) async {
+    final e = AppEvent(
+      id: _uuid.v4(),
+      type: _kAIError,
+      message: 'AI [$action]: $message',
+      detail: detail != null
+          ? (detail.length > 500 ? '${detail.substring(0, 500)}…' : detail)
+          : '',
+      timestamp: DateTime.now(),
+    );
+    await _writeEvent(e);
+    _reporter.addBreadcrumb(
+      message,
+      category: 'ai-error',
+      data: {'action': action},
+    );
+  }
+
   // ── Stats ──────────────────────────────────────────────────────────────────
 
   /// All warning, error, and fatal events, sorted most-recent-first.
   List<AppEvent> get recentAlerts {
     return (_box?.values ?? const <AppEvent>[])
         .where(
-          (e) => e.type == _kWarning || e.type == _kError || e.type == _kFatal,
+          (e) =>
+              e.type == _kWarning ||
+              e.type == _kError ||
+              e.type == _kFatal ||
+              e.type == _kAIError,
         )
         .toList()
       ..sort((a, b) => b.timestamp.compareTo(a.timestamp));

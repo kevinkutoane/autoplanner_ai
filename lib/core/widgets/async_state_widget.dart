@@ -54,15 +54,8 @@ class AsyncStateWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                valueColor: AlwaysStoppedAnimation(kIndigo),
-              ),
-            ),
-            const SizedBox(height: 12),
+            const BrandedLoader(),
+            const SizedBox(height: 16),
             Text(
               'Loading…',
               style: TextStyle(

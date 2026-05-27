@@ -446,8 +446,6 @@ class TaskController extends StateNotifier<List<TaskItem>> {
           settingsBox.get('morningBriefingHour', defaultValue: 8) as int;
       final minute =
           settingsBox.get('morningBriefingMinute', defaultValue: 0) as int;
-      // Only auto-adjust if user hasn't set a custom time (default is 08:00).
-      if (hour != 8 || minute != 0) return;
       final scheduler = SmartNotificationScheduler(_notifications);
       await scheduler.recalculate(
         tasks: state,

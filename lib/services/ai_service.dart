@@ -6,6 +6,7 @@ import '../core/ai/token_tracker.dart';
 import '../core/models/task_model.dart';
 import '../core/models/goal_model.dart';
 import '../core/models/memory_entry_model.dart';
+import 'app_monitor_service.dart';
 
 // ── Brain Dump result types ───────────────────────────────────────────────
 
@@ -64,11 +65,16 @@ class BrainDumpResult {
 class AIService {
   final AIProvider _provider;
   final TokenTracker _tracker;
+  final AppMonitorService? _monitor;
   static const _uuid = Uuid();
 
-  AIService({required AIProvider provider, required TokenTracker tracker})
-    : _provider = provider,
-      _tracker = tracker;
+  AIService({
+    required AIProvider provider,
+    required TokenTracker tracker,
+    AppMonitorService? monitor,
+  }) : _provider = provider,
+       _tracker = tracker,
+       _monitor = monitor;
 
   // ── Input sanitization ───────────────────────────────────────────────────
 
@@ -741,52 +747,68 @@ Respond with ONLY the review text.
   ) {
     try {
       final jsonStr = _extractJsonArray(text);
-      if (jsonStr == null) return existingTasks;
+      if (jsonStr == null) {
+        _monitor?.logAIError(
+          action: 'planDay',
+          message: 'Could not extract JSON array from output',
+          detail: text,
+        );
+        return existingTasks;
+      }
       final List<dynamic> jsonList = jsonDecode(jsonStr);
       final existingMap = {for (final t in existingTasks) t.id: t};
 
       final results = <TaskItem>[];
       for (final item in jsonList) {
-        final existingId = item['id'] as String?;
-        final estimatedMins =
-            ((item['estimatedMinutes'] as num?)?.toInt() ?? 60).clamp(15, 480);
-        final duration = Duration(minutes: estimatedMins);
+        try {
+          final existingId = item['id'] as String?;
+          final estimatedMins =
+              ((item['estimatedMinutes'] as num?)?.toInt() ?? 60).clamp(15, 480);
+          final duration = Duration(minutes: estimatedMins);
 
-        if (existingId != null && existingMap.containsKey(existingId)) {
-          final existing = existingMap[existingId]!;
-          results.add(
-            existing.copyWith(
-              title: (item['title'] as String?)?.trim() ?? existing.title,
-              priority:
-                  (item['priority'] as int?)?.clamp(0, 3) ?? existing.priority,
-              tags:
-                  (item['tags'] as List<dynamic>?)
-                      ?.map((e) => e.toString())
-                      .toList() ??
-                  existing.tags,
-              endTime: existing.startTime.add(duration),
-            ),
-          );
-        } else {
-          final now = DateTime.now();
-          results.add(
-            TaskItem(
-              id: _uuid.v4(),
-              title: (item['title'] as String?)?.trim() ?? 'New Task',
-              startTime: now,
-              endTime: now.add(duration),
-              priority: (item['priority'] as int?)?.clamp(0, 3) ?? 1,
-              tags:
-                  (item['tags'] as List<dynamic>?)
-                      ?.map((e) => e.toString())
-                      .toList() ??
-                  [],
-            ),
-          );
+          if (existingId != null && existingMap.containsKey(existingId)) {
+            final existing = existingMap[existingId]!;
+            results.add(
+              existing.copyWith(
+                title: (item['title'] as String?)?.trim() ?? existing.title,
+                priority:
+                    (item['priority'] as int?)?.clamp(0, 3) ?? existing.priority,
+                tags:
+                    (item['tags'] as List<dynamic>?)
+                        ?.map((e) => e.toString())
+                        .toList() ??
+                    existing.tags,
+                endTime: existing.startTime.add(duration),
+              ),
+            );
+          } else {
+            final now = DateTime.now();
+            results.add(
+              TaskItem(
+                id: _uuid.v4(),
+                title: (item['title'] as String?)?.trim() ?? 'New Task',
+                startTime: now,
+                endTime: now.add(duration),
+                priority: (item['priority'] as int?)?.clamp(0, 3) ?? 1,
+                tags:
+                    (item['tags'] as List<dynamic>?)
+                        ?.map((e) => e.toString())
+                        .toList() ??
+                    [],
+              ),
+            );
+          }
+        } catch (e) {
+          if (kDebugMode) debugPrint('Skipping malformed planDay item: $e');
         }
       }
       return results;
     } catch (e) {
+      _monitor?.logAIError(
+        action: 'planDay',
+        message: 'JSON decoding failed: $e',
+        detail: text,
+      );
       if (kDebugMode) debugPrint('_parsePlanDayResult error: $e');
       return existingTasks;
     }
@@ -795,36 +817,56 @@ Respond with ONLY the review text.
   List<TaskItem> _parseTasksFromJson(String text) {
     try {
       final jsonStr = _extractJsonArray(text);
-      if (jsonStr == null) return [];
+      if (jsonStr == null) {
+        _monitor?.logAIError(
+          action: 'parseTasks',
+          message: 'Could not extract JSON array from output',
+          detail: text,
+        );
+        return [];
+      }
       final List<dynamic> jsonList = jsonDecode(jsonStr);
       final now = DateTime.now();
-      return jsonList.map((task) {
-        final timeParts = ((task['startTime'] as String?) ?? '09:00').split(
-          ':',
-        );
-        final start = DateTime(
-          now.year,
-          now.month,
-          now.day,
-          int.tryParse(timeParts[0]) ?? 9,
-          int.tryParse(timeParts.elementAtOrNull(1) ?? '0') ?? 0,
-        );
-        final estimatedMins =
-            ((task['estimatedMinutes'] as num?)?.toInt() ?? 60).clamp(15, 480);
-        return TaskItem(
-          id: _uuid.v4(),
-          title: (task['title'] as String?)?.trim() ?? 'Task',
-          startTime: start,
-          endTime: start.add(Duration(minutes: estimatedMins)),
-          priority: (task['priority'] as int?)?.clamp(0, 3) ?? 1,
-          tags:
-              (task['tags'] as List<dynamic>?)
-                  ?.map((e) => e.toString())
-                  .toList() ??
-              [],
-        );
-      }).toList();
+      final results = <TaskItem>[];
+      for (final task in jsonList) {
+        try {
+          final timeParts = ((task['startTime'] as String?) ?? '09:00').split(
+            ':',
+          );
+          final start = DateTime(
+            now.year,
+            now.month,
+            now.day,
+            int.tryParse(timeParts[0]) ?? 9,
+            int.tryParse(timeParts.elementAtOrNull(1) ?? '0') ?? 0,
+          );
+          final estimatedMins =
+              ((task['estimatedMinutes'] as num?)?.toInt() ?? 60).clamp(15, 480);
+          results.add(
+            TaskItem(
+              id: _uuid.v4(),
+              title: (task['title'] as String?)?.trim() ?? 'Task',
+              startTime: start,
+              endTime: start.add(Duration(minutes: estimatedMins)),
+              priority: (task['priority'] as int?)?.clamp(0, 3) ?? 1,
+              tags:
+                  (task['tags'] as List<dynamic>?)
+                      ?.map((e) => e.toString())
+                      .toList() ??
+                  [],
+            ),
+          );
+        } catch (e) {
+          if (kDebugMode) debugPrint('Skipping malformed task item: $e');
+        }
+      }
+      return results;
     } catch (e) {
+      _monitor?.logAIError(
+        action: 'parseTasks',
+        message: 'JSON decoding failed: $e',
+        detail: text,
+      );
       if (kDebugMode) debugPrint('_parseTasksFromJson error: $e');
       return [];
     }

@@ -20,7 +20,11 @@ abstract class CrashReporter {
 
   Future<void> captureFlutterError(FlutterErrorDetails details);
 
-  void addBreadcrumb(String message, {String? category});
+  void addBreadcrumb(
+    String message, {
+    String? category,
+    Map<String, dynamic>? data,
+  });
 }
 
 class NoOpCrashReporter extends CrashReporter {
@@ -44,7 +48,11 @@ class NoOpCrashReporter extends CrashReporter {
   Future<void> captureFlutterError(FlutterErrorDetails details) async {}
 
   @override
-  void addBreadcrumb(String message, {String? category}) {}
+  void addBreadcrumb(
+    String message, {
+    String? category,
+    Map<String, dynamic>? data,
+  }) {}
 }
 
 class SentryCrashReporter extends CrashReporter {
@@ -86,9 +94,17 @@ class SentryCrashReporter extends CrashReporter {
   }
 
   @override
-  void addBreadcrumb(String message, {String? category}) {
+  void addBreadcrumb(
+    String message, {
+    String? category,
+    Map<String, dynamic>? data,
+  }) {
     Sentry.addBreadcrumb(
-      Breadcrumb(message: message, category: category ?? 'app'),
+      Breadcrumb(
+        message: message,
+        category: category ?? 'app',
+        data: data,
+      ),
     );
   }
 }

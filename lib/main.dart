@@ -23,6 +23,7 @@ import 'services/google_auth_service.dart';
 import 'services/calendar_sync_service.dart';
 import 'services/app_monitor_service.dart';
 import 'services/offline_ai_queue.dart';
+import 'core/diagnostics/provider_observer.dart';
 import 'features/onboarding/screens/splash_screen.dart';
 
 // ── Workmanager background entry-point ───────────────────────────────────────
@@ -170,7 +171,7 @@ void main() async {
     final briefingEnabled =
         settingsBox.get('morningBriefingEnabled', defaultValue: false) as bool;
     final briefingHour =
-        settingsBox.get('morningBriefingHour', defaultValue: 7) as int;
+        settingsBox.get('morningBriefingHour', defaultValue: 8) as int;
     final briefingMinute =
         settingsBox.get('morningBriefingMinute', defaultValue: 0) as int;
     if (briefingEnabled) {
@@ -247,6 +248,7 @@ void main() async {
   appMonitorService.logSessionStart();
 
   final app = ProviderScope(
+    observers: [AppProviderObserver(appMonitorService)],
     overrides: [
       tokenTrackerProvider.overrideWithValue(tokenTracker),
       memoryServiceProvider.overrideWithValue(memoryService),
@@ -256,7 +258,7 @@ void main() async {
       appMonitorServiceProvider.overrideWithValue(appMonitorService),
       offlineAIQueueProvider.overrideWithValue(offlineAIQueue),
     ],
-    child: const AutoPlannerApp(),
+    child: const ErrorBoundary(child: AutoPlannerApp()),
   );
 
   await crashReporter.runApp(() async {

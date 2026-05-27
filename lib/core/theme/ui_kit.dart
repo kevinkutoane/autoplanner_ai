@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 // ── Brand palette ─────────────────────────────────────────────────────────────
 const kIndigo = Color(0xFF6C63FF);
@@ -357,51 +358,56 @@ class _GradBtnState extends State<GradBtn> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _c.forward(),
-      onTapUp: (_) {
-        _c.reverse();
-        widget.onTap?.call();
-      },
-      onTapCancel: () => _c.reverse(),
-      child: AnimatedBuilder(
-        animation: _c,
-        builder: (_, child) =>
-            Transform.scale(scale: 1 - 0.02 * _c.value, child: child),
-        child: Container(
-          height: widget.height,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: BoxDecoration(
-            gradient: widget.gradient,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: widget.gradient.colors.first.withAlpha(70),
-                blurRadius: 18,
-                offset: const Offset(0, 5),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (widget.icon != null) ...[
-                Icon(widget.icon, color: Colors.white, size: 18),
-                const SizedBox(width: 8),
+    return Semantics(
+      button: true,
+      label: widget.label,
+      child: GestureDetector(
+        onTapDown: (_) => _c.forward(),
+        onTapUp: (_) {
+          _c.reverse();
+          HapticFeedback.lightImpact();
+          widget.onTap?.call();
+        },
+        onTapCancel: () => _c.reverse(),
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (_, child) =>
+              Transform.scale(scale: 1 - 0.02 * _c.value, child: child),
+          child: Container(
+            height: widget.height,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              gradient: widget.gradient,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: widget.gradient.colors.first.withAlpha(70),
+                  blurRadius: 18,
+                  offset: const Offset(0, 5),
+                ),
               ],
-              Flexible(
-                child: Text(
-                  widget.label,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.3,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (widget.icon != null) ...[
+                  Icon(widget.icon, color: Colors.white, size: 18),
+                  const SizedBox(width: 8),
+                ],
+                Flexible(
+                  child: Text(
+                    widget.label,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -427,38 +433,45 @@ class GhostBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = Theme.of(context).brightness == Brightness.dark;
     final fg = d ? Colors.white.withAlpha(160) : const Color(0xFF7C7C8A);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: height,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: d ? Colors.white.withAlpha(35) : Colors.black.withAlpha(22),
-            width: 1,
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap?.call();
+        },
+        child: Container(
+          height: height,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: d ? Colors.white.withAlpha(35) : Colors.black.withAlpha(22),
+              width: 1,
+            ),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 15, color: fg),
-              const SizedBox(width: 8),
-            ],
-            Flexible(
-              child: Text(
-                label,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: fg,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 15, color: fg),
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: fg,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -486,64 +499,74 @@ class GlassChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final d = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          gradient: selected ? LinearGradient(colors: activeGradient) : null,
-          color: selected
-              ? null
-              : (d ? Colors.white.withAlpha(14) : Colors.black.withAlpha(7)),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: selected ? LinearGradient(colors: activeGradient) : null,
             color: selected
-                ? activeGradient[0].withAlpha(0)
-                : (d ? Colors.white.withAlpha(22) : Colors.black.withAlpha(14)),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                size: 15,
-                color: selected
-                    ? Colors.white
-                    : (d
-                          ? Colors.white.withAlpha(160)
-                          : const Color(0xFF7C7C8A)),
-              ),
-              const SizedBox(width: 6),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                color: selected
-                    ? Colors.white
-                    : (d
-                          ? Colors.white.withAlpha(160)
-                          : const Color(0xFF7C7C8A)),
-              ),
+                ? null
+                : (d ? Colors.white.withAlpha(14) : Colors.black.withAlpha(7)),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: selected
+                  ? activeGradient[0].withAlpha(0)
+                  : (d
+                        ? Colors.white.withAlpha(22)
+                        : Colors.black.withAlpha(14)),
+              width: 1,
             ),
-            if (trailing != null) ...[              const SizedBox(width: 4),
-              Icon(
-                trailing,
-                size: 13,
-                color: selected
-                    ? Colors.white
-                    : (d
-                          ? Colors.white.withAlpha(120)
-                          : const Color(0xFF7C7C8A)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 15,
+                  color: selected
+                      ? Colors.white
+                      : (d
+                            ? Colors.white.withAlpha(160)
+                            : const Color(0xFF7C7C8A)),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: selected
+                      ? Colors.white
+                      : (d
+                            ? Colors.white.withAlpha(160)
+                            : const Color(0xFF7C7C8A)),
+                ),
               ),
+              if (trailing != null) ...[                const SizedBox(width: 4),
+                Icon(
+                  trailing,
+                  size: 13,
+                  color: selected
+                      ? Colors.white
+                      : (d
+                            ? Colors.white.withAlpha(120)
+                            : const Color(0xFF7C7C8A)),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -876,3 +899,36 @@ class EmptyState extends StatelessWidget {
     );
   }
 }
+
+// ── Branded Loader ──────────────────────────────────────────────────────────
+class BrandedLoader extends StatelessWidget {
+  const BrandedLoader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const SizedBox(
+            width: 50,
+            height: 50,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(kIndigo),
+            ),
+          ),
+          ShaderMask(
+            shaderCallback: (b) => kGradientMain.createShader(b),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              size: 24,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

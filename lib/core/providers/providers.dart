@@ -47,6 +47,7 @@ final aiServiceProvider = Provider<AIService>((ref) {
   return AIService(
     provider: ref.watch(aiProviderProvider),
     tracker: ref.watch(tokenTrackerProvider),
+    monitor: ref.watch(appMonitorServiceProvider),
   );
 });
 

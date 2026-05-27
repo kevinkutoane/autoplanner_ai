@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import '../core/models/task_model.dart';
@@ -42,6 +43,8 @@ class NotificationService {
 
   Future<void> init() async {
     tz.initializeTimeZones();
+    final String timeZoneName = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(timeZoneName));
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings(
@@ -84,7 +87,7 @@ class NotificationService {
       _briefingChannelId,
       _briefingChannelName,
       description: _briefingChannelDesc,
-      importance: Importance.defaultImportance,
+      importance: Importance.high,
     );
     await androidImpl?.createNotificationChannel(briefingChannel);
 
@@ -320,13 +323,13 @@ class NotificationService {
             _briefingChannelId,
             _briefingChannelName,
             channelDescription: _briefingChannelDesc,
-            importance: Importance.defaultImportance,
-            priority: Priority.defaultPriority,
+            importance: Importance.high,
+            priority: Priority.high,
             icon: '@mipmap/ic_launcher',
           ),
           iOS: DarwinNotificationDetails(),
         ),
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
