@@ -3,7 +3,6 @@ import 'package:autoplanner_ai/services/ai_service.dart';
 import 'package:autoplanner_ai/services/app_monitor_service.dart';
 import 'package:autoplanner_ai/core/ai/ai_provider.dart';
 import 'package:autoplanner_ai/core/ai/token_tracker.dart';
-import 'package:flutter/foundation.dart';
 
 class FakeAIProvider extends AIProvider {
   String responseText = '';

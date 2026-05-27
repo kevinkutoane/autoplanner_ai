@@ -100,6 +100,7 @@ class TaskItem extends HiveObject {
       isCompleted: isCompleted ?? this.isCompleted,
       priority: priority ?? this.priority,
       tags: tags ?? this.tags,
+      // ignore: deprecated_member_use_from_same_package
       linkedNoteIds: linkedNoteIds ?? this.linkedNoteIds,
       recurrence: recurrence == _sentinel
           ? this.recurrence

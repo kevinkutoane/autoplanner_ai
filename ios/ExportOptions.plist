@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Distribution method: app-store | ad-hoc | enterprise | development -->
+    <key>method</key>
+    <string>app-store</string>
+
+    <!-- Your Apple Developer Team ID (10-character alphanumeric) -->
+    <key>teamID</key>
+    <string>REPLACE_WITH_TEAM_ID</string>
+
+    <!-- Upload to App Store Connect automatically after export -->
+    <key>uploadBitcode</key>
+    <false/>
+    <key>uploadSymbols</key>
+    <true/>
+    <key>compileBitcode</key>
+    <false/>
+
+    <!-- Signing style: automatic or manual -->
+    <key>signingStyle</key>
+    <string>automatic</string>
+
+    <!-- Destination: export | upload -->
+    <key>destination</key>
+    <string>export</string>
+</dict>
+</plist>

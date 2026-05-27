@@ -53,6 +53,7 @@ class TaskItemAdapter extends TypeAdapter<TaskItem> {
       ..writeByte(7)
       ..write(obj.tags)
       ..writeByte(8)
+      // ignore: deprecated_member_use_from_same_package
       ..write(obj.linkedNoteIds)
       ..writeByte(9)
       ..write(obj.recurrence)

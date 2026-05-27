@@ -20,6 +20,7 @@ Map<String, dynamic> _taskToMap(TaskItem t) => {
   'isCompleted': t.isCompleted,
   'priority': t.priority,
   'tags': t.tags,
+  // ignore: deprecated_member_use_from_same_package
   'linkedNoteIds': t.linkedNoteIds,
   'recurrence': t.recurrence,
   'recurrenceDays': t.recurrenceDays,
@@ -163,6 +164,7 @@ void main() {
       expect(restored.isCompleted, original.isCompleted);
       expect(restored.priority, original.priority);
       expect(restored.tags, original.tags);
+      // ignore: deprecated_member_use_from_same_package
       expect(restored.linkedNoteIds, original.linkedNoteIds);
       expect(restored.recurrence, original.recurrence);
       expect(restored.recurrenceDays, original.recurrenceDays);

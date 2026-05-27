@@ -215,6 +215,7 @@ class BackupService {
     'isCompleted': t.isCompleted,
     'priority': t.priority,
     'tags': t.tags,
+    // ignore: deprecated_member_use_from_same_package
     'linkedNoteIds': t.linkedNoteIds,
     'recurrence': t.recurrence,
     'recurrenceDays': t.recurrenceDays,
