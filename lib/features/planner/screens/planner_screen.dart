@@ -6,6 +6,7 @@ import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../planner/controllers/task_controller.dart';
 import '../../../core/models/task_model.dart';
+import '../../../core/ai/ai_guard.dart';
 import '../../../core/ai/token_tracker.dart';
 import '../../goals/controllers/goal_controller.dart';
 import '../../../core/models/goal_model.dart';
@@ -1078,10 +1079,19 @@ class _TaskSuggestionsPanel extends ConsumerWidget {
                   return _SuggestionChip(
                     title: title,
                     onTap: () async {
-                      final ai = ref.read(aiServiceProvider);
-                      final tasks = await ai.parseTasks(title);
-                      for (final t in tasks) {
-                        ref.read(taskControllerProvider.notifier).addTask(t);
+                      try {
+                        final ai = ref.read(aiServiceProvider);
+                        final tasks = await ai.parseTasks(title);
+                        for (final t in tasks) {
+                          ref.read(taskControllerProvider.notifier).addTask(t);
+                        }
+                      } on ContentPolicyException {
+                        // Suggestion chips use pre-generated titles — policy
+                        // violations here are unexpected; silently skip.
+                      } on CallFrequencyException {
+                        // Rate-limited; user will see the error on next explicit action.
+                      } catch (_) {
+                        // Non-critical path — swallow silently.
                       }
                     },
                   );
@@ -1456,6 +1466,18 @@ class _PlanMyDaySheetState extends ConsumerState<_PlanMyDaySheet> {
       setState(() {
         _state = _PlanState.done;
         _scheduledCount = todayCount;
+      });
+    } on ContentPolicyException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _state = _PlanState.idle;
+        _error = e.reason;
+      });
+    } on CallFrequencyException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _state = _PlanState.idle;
+        _error = e.message;
       });
     } catch (e) {
       if (!mounted) return;

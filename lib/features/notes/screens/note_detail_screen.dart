@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/ui_kit.dart';
+import '../../../core/ai/ai_guard.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/models/note_model.dart';
 import '../../planner/controllers/task_controller.dart';
@@ -93,6 +94,25 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
             const SnackBar(content: Text('Summary generated ✓')),
           );
         }
+      }
+    } on ContentPolicyException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.reason),
+            backgroundColor: Colors.red.shade700,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } on CallFrequencyException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.orange.shade700,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

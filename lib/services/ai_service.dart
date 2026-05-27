@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
+import '../core/ai/ai_guard.dart';
 import '../core/ai/ai_provider.dart';
 import '../core/ai/token_tracker.dart';
 import '../core/models/task_model.dart';
@@ -66,6 +67,10 @@ class AIService {
   final AIProvider _provider;
   final TokenTracker _tracker;
   final AppMonitorService? _monitor;
+
+  /// Abuse-prevention guard — validates inputs, throttles calls, screens outputs.
+  final AIGuard _guard = AIGuard.instance;
+
   static const _uuid = Uuid();
 
   AIService({
@@ -119,7 +124,10 @@ class AIService {
     Future<T> Function() fn, {
     int maxAttempts = 3,
   }) async {
+    // Token-budget check (daily cap via TokenTracker)
     _tracker.guardRateLimit();
+    // Call-frequency throttle (per-minute / per-hour via AIGuard)
+    _guard.checkCallFrequency();
     var delay = const Duration(seconds: 1);
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       try {
@@ -141,9 +149,11 @@ class AIService {
   /// Parses natural language into a [TaskItem] list with time, duration,
   /// and priority. Includes recent user memories as context.
   Future<List<TaskItem>> parseTasks(
-    String input, {
+    String rawInput, {
     List<MemoryEntry>? memories,
   }) async {
+    // Validate and sanitise before building the prompt
+    final input = _guard.validateInput(rawInput, context: 'parseTasks');
     final memCtx = _buildMemoryContext(memories);
     final prompt =
         '''
@@ -164,6 +174,7 @@ estimatedMinutes: 15–240 (be realistic — not everything takes an hour)
 Return [] if the input is unparseable.
 
 User input: "${_sanitize(input)}"
+(Input pre-screened for safety)
 ''';
 
     return await _withRetry(() async {
@@ -189,6 +200,10 @@ User input: "${_sanitize(input)}"
     required int workHoursPerDay,
     String? additionalInput,
   }) async {
+    // Validate any free-text additional input before embedding in prompt
+    final safeAdditional = additionalInput != null && additionalInput.trim().isNotEmpty
+        ? _guard.validateInput(additionalInput, context: 'planDay')
+        : null;
     final pending = existingTasks.where((t) => !t.isCompleted).toList();
     final workEnd = workStartHour + workHoursPerDay;
 
@@ -198,8 +213,8 @@ User input: "${_sanitize(input)}"
               .map((t) => '  - [id: ${t.id}] "${t.title}" [${t.priorityLabel}]')
               .join('\n');
 
-    final additionalSection = (additionalInput?.trim().isNotEmpty ?? false)
-        ? '\nAdditional tasks from user input:\n  "${_sanitize(additionalInput!)}"\n'
+    final additionalSection = (safeAdditional?.trim().isNotEmpty ?? false)
+        ? '\nAdditional tasks from user input:\n  "${_sanitize(safeAdditional!)}"\n'
         : '';
 
     final memCtx = _buildMemoryContext(memories, maxEntries: 8);
@@ -300,7 +315,8 @@ Respond with ONLY the slot number as a single integer (e.g. "2"). No explanation
   /// is shorter than 50 characters or the model returns an empty string.
   ///
   /// Useful for automatically populating [GoalItem.description] after saving.
-  Future<String?> summarizeNote(String content) async {
+  Future<String?> summarizeNote(String rawContent) async {
+    final content = _guard.validateInput(rawContent, context: 'summarizeNote');
     if (content.trim().length < 50) return null;
     final prompt =
         '''
@@ -313,6 +329,8 @@ ${_sanitize(content)}
     return await _withRetry(() async {
       final response = await _provider.complete(prompt);
       await _tracker.log(action: 'summarizeNote', response: response);
+      // Screen output before returning to UI
+      _guard.validateOutput(response.text);
       return response.text.trim();
     });
   }
@@ -323,7 +341,8 @@ ${_sanitize(content)}
   ///
   /// Returns an empty list when [content] is shorter than 20 characters or
   /// when the model cannot produce a parseable JSON array.
-  Future<List<String>> generateTags(String content) async {
+  Future<List<String>> generateTags(String rawContent) async {
+    final content = _guard.validateInput(rawContent, context: 'generateTags');
     if (content.trim().length < 20) return [];
     final prompt =
         '''
@@ -392,6 +411,8 @@ $memDesc
       return await _withRetry(() async {
         final response = await _provider.complete(prompt);
         await _tracker.log(action: 'dailyInsight', response: response);
+        // Screen output before returning to UI
+        _guard.validateOutput(response.text);
         return response.text.trim();
       });
     } catch (e) {
@@ -440,9 +461,12 @@ ${_sanitize(context)}
   /// Parses a stream-of-consciousness brain dump into tasks, notes, and
   /// memories. Streams partial text via [onChunk] for real-time UI feedback.
   Future<BrainDumpResult> brainDump(
-    String input, {
+    String rawInput, {
     void Function(String accumulatedText)? onChunk,
   }) async {
+    // Validate and sanitise before building the prompt — this is the
+    // highest-risk user input path (free-form, long-form text).
+    final input = _guard.validateInput(rawInput, context: 'brainDump');
     final prompt =
         '''
 You are AutoPlanner AI. Parse this stream-of-consciousness brain dump.
@@ -688,6 +712,8 @@ Respond with ONLY the review text.
       return await _withRetry(() async {
         final response = await _provider.complete(prompt);
         await _tracker.log(action: 'weeklyReview', response: response);
+        // Screen output before returning to UI
+        _guard.validateOutput(response.text);
         return response.text.trim();
       });
     } catch (e) {
