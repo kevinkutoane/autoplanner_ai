@@ -155,7 +155,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen>
               if (goals.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 DropdownButtonFormField<GoalItem>(
-                  initialValue: selectedGoal,
+                  value: selectedGoal,
                   decoration: const InputDecoration(
                     labelText: 'Parent goal (optional)',
                     border: OutlineInputBorder(),

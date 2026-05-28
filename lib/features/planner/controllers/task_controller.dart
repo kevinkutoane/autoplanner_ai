@@ -178,6 +178,7 @@ class TaskController extends StateNotifier<List<TaskItem>> {
       note: completed.note,
       priority: completed.priority,
       tags: List.from(completed.tags),
+      // ignore: deprecated_member_use_from_same_package
       linkedNoteIds: List.from(completed.linkedNoteIds),
       recurrence: completed.recurrence,
       recurrenceDays: List.from(completed.recurrenceDays),
@@ -271,7 +272,9 @@ class TaskController extends StateNotifier<List<TaskItem>> {
           note: template.note,
           priority: template.priority,
           tags: List.from(template.tags),
-          linkedNoteIds: List.from(template.linkedNoteIds),
+          // ignore: deprecated_member_use_from_same_package
+          // ignore: deprecated_member_use_from_same_package
+      linkedNoteIds: List.from(template.linkedNoteIds),
           recurrence: template.recurrence,
           recurrenceDays: List.from(template.recurrenceDays),
           linkedGoalId: template.linkedGoalId,
@@ -384,6 +387,7 @@ class TaskController extends StateNotifier<List<TaskItem>> {
       note: template.note,
       priority: template.priority,
       tags: List.from(template.tags),
+      // ignore: deprecated_member_use_from_same_package
       linkedNoteIds: List.from(template.linkedNoteIds),
       recurrence: template.recurrence,
       recurrenceDays: List.from(template.recurrenceDays),

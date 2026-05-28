@@ -6,6 +6,7 @@ import '../../core/theme/ui_kit.dart';
 import '../../core/providers/providers.dart';
 import '../../core/models/goal_model.dart';
 import '../../core/models/memory_entry_model.dart';
+import '../../core/ai/ai_guard.dart';
 import '../../services/ai_service.dart';
 import '../planner/controllers/task_controller.dart';
 import '../goals/controllers/goal_controller.dart';
@@ -138,16 +139,48 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
       _result = null;
       _saved = false;
     });
-
-    final ai = ref.read(aiServiceProvider);
-    final result = await ai.brainDump(text);
-
-    if (mounted) {
-      setState(() {
-        _result = result;
-        _processing = false;
-        _initSelections(result);
-      });
+    try {
+      final ai = ref.read(aiServiceProvider);
+      final result = await ai.brainDump(text);
+      if (mounted) {
+        setState(() {
+          _result = result;
+          _processing = false;
+          _initSelections(result);
+        });
+      }
+    } on ContentPolicyException catch (e) {
+      if (mounted) {
+        setState(() => _processing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.reason),
+            backgroundColor: Colors.red.shade700,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } on CallFrequencyException catch (e) {
+      if (mounted) {
+        setState(() => _processing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.orange.shade700,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _processing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Something went wrong. Please try again.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 

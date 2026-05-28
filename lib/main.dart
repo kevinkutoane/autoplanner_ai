@@ -25,6 +25,7 @@ import 'services/app_monitor_service.dart';
 import 'services/offline_ai_queue.dart';
 import 'core/diagnostics/provider_observer.dart';
 import 'features/onboarding/screens/splash_screen.dart';
+import 'core/widgets/error_boundary.dart';
 
 // ── Workmanager background entry-point ───────────────────────────────────────
 /// Top-level entry point called by Workmanager in a background isolate.

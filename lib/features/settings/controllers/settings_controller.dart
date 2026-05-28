@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -32,7 +33,7 @@ class SettingsController extends StateNotifier<AppSettings> {
         state = state.copyWith(geminiApiKey: savedKey);
       }
     } catch (e) {
-      debugPrint('SettingsController._init() failed: $e');
+      if (kDebugMode) debugPrint('SettingsController._init() failed: $e');
     } finally {
       if (!_initCompleter.isCompleted) _initCompleter.complete();
     }

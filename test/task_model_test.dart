@@ -33,6 +33,7 @@ void main() {
     });
 
     test('linkedNoteIds defaults to empty list', () {
+      // ignore: deprecated_member_use_from_same_package
       expect(makeTask().linkedNoteIds, isEmpty);
     });
 
