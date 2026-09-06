@@ -10,20 +10,23 @@ const _uuid = Uuid();
 
 // ── GoalController ─────────────────────────────────────────────────────────
 
-class GoalController extends StateNotifier<List<GoalItem>> {
+class GoalController extends Notifier<List<GoalItem>> {
   late final Box<GoalItem> _box;
-  final NotificationService _notifications;
+  late final NotificationService _notifications;
 
-  GoalController({NotificationService? notifications})
-    : _notifications = notifications ?? NotificationService(),
-      super([]) {
+  @override
+  List<GoalItem> build() {
     _box = Hive.box<GoalItem>('goalsBox');
-    _refreshState();
+    _notifications = ref.read(notificationServiceProvider);
+    return _getSortedGoals();
+  }
+
+  List<GoalItem> _getSortedGoals() {
+    return _box.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   void _refreshState() {
-    state = _box.values.toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    state = _getSortedGoals();
   }
 
   /// Active (non-archived, non-completed) goals — used by dashboard and Brain Dump.
@@ -133,23 +136,25 @@ class GoalController extends StateNotifier<List<GoalItem>> {
 }
 
 final goalControllerProvider =
-    StateNotifierProvider<GoalController, List<GoalItem>>(
-  (ref) => GoalController(notifications: ref.read(notificationServiceProvider)),
-);
+    NotifierProvider<GoalController, List<GoalItem>>(GoalController.new);
 
 // ── ProjectController ──────────────────────────────────────────────────────
 
-class ProjectController extends StateNotifier<List<ProjectItem>> {
+class ProjectController extends Notifier<List<ProjectItem>> {
   late final Box<ProjectItem> _box;
 
-  ProjectController() : super([]) {
+  @override
+  List<ProjectItem> build() {
     _box = Hive.box<ProjectItem>('projectsBox');
-    _refreshState();
+    return _getSortedProjects();
+  }
+
+  List<ProjectItem> _getSortedProjects() {
+    return _box.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   void _refreshState() {
-    state = _box.values.toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    state = _getSortedProjects();
   }
 
   void createProject({
@@ -227,6 +232,4 @@ class ProjectController extends StateNotifier<List<ProjectItem>> {
 }
 
 final projectControllerProvider =
-    StateNotifierProvider<ProjectController, List<ProjectItem>>(
-  (ref) => ProjectController(),
-);
+    NotifierProvider<ProjectController, List<ProjectItem>>(ProjectController.new);

@@ -139,8 +139,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         PageRouteBuilder(
-          pageBuilder: (_, a, __) => const AppShell(),
-          transitionsBuilder: (_, a, __, child) =>
+          pageBuilder: (_, a, _) => const AppShell(),
+          transitionsBuilder: (_, a, _, child) =>
               FadeTransition(opacity: a, child: child),
           transitionDuration: const Duration(milliseconds: 600),
         ),
@@ -158,7 +158,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           // Per-page orb background
           AnimatedBuilder(
             animation: _orbAC,
-            builder: (_, __) => CustomPaint(
+            builder: (_, _) => CustomPaint(
               painter: _OnboardOrbPainter(_orbAC.value, _currentPage),
               child: const SizedBox.expand(),
             ),

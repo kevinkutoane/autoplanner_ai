@@ -26,7 +26,7 @@ MemoryEntry _memory(String id, String content) => MemoryEntry(
 void main() {
   setUpAll(() {
     // Disable token tracking so TokenTracker.log() is a no-op without Hive.
-    dotenv.testLoad(fileInput: 'ENABLE_TOKEN_TRACKING=false');
+    dotenv.loadFromString(envString: 'ENABLE_TOKEN_TRACKING=false');
     appConfig = EnvConfig.fromDotEnv();
   });
 

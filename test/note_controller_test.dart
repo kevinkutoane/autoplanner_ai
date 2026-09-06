@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:autoplanner_ai/core/models/note_model.dart';
 import 'package:autoplanner_ai/features/notes/controllers/note_controller.dart';
-import 'package:autoplanner_ai/services/notification_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Unit tests for [NoteController].
 ///
@@ -12,6 +12,7 @@ import 'package:autoplanner_ai/services/notification_service.dart';
 /// Each test gets a fresh box to avoid cross-contamination.
 void main() {
   late Box<NoteItem> box;
+  late ProviderContainer container;
   late NoteController controller;
   int boxCounter = 0;
 
@@ -50,12 +51,14 @@ void main() {
     boxCounter++;
     box = await Hive.openBox<NoteItem>('notesBox');
     await box.clear();
-    controller = NoteController(notifications: NotificationService());
+    container = ProviderContainer();
+    controller = container.read(noteControllerProvider.notifier);
   });
 
   tearDown(() async {
     await box.clear();
     await box.close();
+    container.dispose();
   });
 
   // ── CRUD ──────────────────────────────────────────────────────────────────

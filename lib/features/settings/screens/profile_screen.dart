@@ -227,7 +227,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           child: FadeTransition(opacity: anim, child: child),
         );
       },
-      pageBuilder: (ctx, _, __) =>
+      pageBuilder: (ctx, _, _) =>
           ProfileEditDialog(settings: settings, ctrl: ctrl),
     );
   }
@@ -264,7 +264,7 @@ class _AnimatedBackground extends StatelessWidget {
         ),
         AnimatedBuilder(
           animation: orbCtrl,
-          builder: (_, __) =>
+          builder: (_, _) =>
               CustomPaint(painter: _OrbPainter(orbCtrl.value, isDark)),
         ),
         child,
@@ -781,7 +781,7 @@ class _StatCard extends StatelessWidget {
                     ? _ShimmerBox(width: 30, height: 20, radius: 6)
                     : AnimatedBuilder(
                         animation: countCtrl,
-                        builder: (_, __) {
+                        builder: (_, _) {
                           final displayed = (value * countCtrl.value).round();
                           return Text(
                             '$displayed',
@@ -858,7 +858,7 @@ class _ShimmerBoxState extends State<_ShimmerBox>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnimatedBuilder(
       animation: _ctrl,
-      builder: (_, __) => Container(
+      builder: (_, _) => Container(
         width: widget.width,
         height: widget.height,
         decoration: BoxDecoration(

@@ -6,7 +6,7 @@ void main() {
   group('EnvConfig.fromDotEnv defaults', () {
     setUp(() async {
       // Load an isolated empty env so real .env values don't bleed in.
-      dotenv.testLoad(fileInput: '');
+      dotenv.loadFromString(envString: '', isOptional: true);
     });
 
     test('environment defaults to dev', () {
@@ -47,25 +47,25 @@ void main() {
 
   group('EnvConfig.fromDotEnv with explicit values', () {
     test('recognises prod environment', () async {
-      dotenv.testLoad(fileInput: 'ENV=prod');
+      dotenv.loadFromString(envString: 'ENV=prod');
       final config = EnvConfig.fromDotEnv();
       expect(config.isProd, isTrue);
       expect(config.isDev, isFalse);
     });
 
     test('recognises staging environment', () async {
-      dotenv.testLoad(fileInput: 'ENV=staging');
+      dotenv.loadFromString(envString: 'ENV=staging');
       final config = EnvConfig.fromDotEnv();
       expect(config.isStaging, isTrue);
     });
 
     test('reads GEMINI_API_KEY', () async {
-      dotenv.testLoad(fileInput: 'GEMINI_API_KEY=test-key-123');
+      dotenv.loadFromString(envString: 'GEMINI_API_KEY=test-key-123');
       expect(EnvConfig.fromDotEnv().geminiApiKey, equals('test-key-123'));
     });
 
     test('reads SENTRY_DSN', () async {
-      dotenv.testLoad(fileInput: 'SENTRY_DSN=https://dsn.example/123');
+      dotenv.loadFromString(envString: 'SENTRY_DSN=https://dsn.example/123');
       expect(
         EnvConfig.fromDotEnv().sentryDsn,
         equals('https://dsn.example/123'),
@@ -73,22 +73,22 @@ void main() {
     });
 
     test('reads USE_MOCK_AI = true', () async {
-      dotenv.testLoad(fileInput: 'USE_MOCK_AI=true');
+      dotenv.loadFromString(envString: 'USE_MOCK_AI=true');
       expect(EnvConfig.fromDotEnv().useMockAI, isTrue);
     });
 
     test('reads MAX_TOKENS_PER_DAY', () async {
-      dotenv.testLoad(fileInput: 'MAX_TOKENS_PER_DAY=50000');
+      dotenv.loadFromString(envString: 'MAX_TOKENS_PER_DAY=50000');
       expect(EnvConfig.fromDotEnv().maxTokensPerDay, equals(50000));
     });
 
     test('invalid MAX_TOKENS_PER_DAY falls back to 100000', () async {
-      dotenv.testLoad(fileInput: 'MAX_TOKENS_PER_DAY=not-a-number');
+      dotenv.loadFromString(envString: 'MAX_TOKENS_PER_DAY=not-a-number');
       expect(EnvConfig.fromDotEnv().maxTokensPerDay, equals(100000));
     });
 
     test('validate reports missing release monitoring config', () async {
-      dotenv.testLoad(fileInput: 'ENV=prod');
+      dotenv.loadFromString(envString: 'ENV=prod');
       expect(
         EnvConfig.fromDotEnv().validate(),
         contains('SENTRY_DSN is not set. Production crash reporting is disabled.'),

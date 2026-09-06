@@ -30,10 +30,8 @@ class BiometricService {
     try {
       return await _auth.authenticate(
         localizedReason: 'Unlock AutoPlanner AI',
-        options: const AuthenticationOptions(
-          biometricOnly: false, // allow PIN/pattern as fallback
-          stickyAuth: true, // keep dialog open if user switches apps
-        ),
+        biometricOnly: false, // allow PIN/pattern as fallback
+        persistAcrossBackgrounding: true, // keep dialog open if user switches apps
       );
     } catch (_) {
       return false;

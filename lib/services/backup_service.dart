@@ -104,15 +104,14 @@ class BackupService {
   /// Throws [FormatException] when the file is not valid JSON or uses an
   /// unsupported backup version.
   Future<BackupImportResult?> importFromFile() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
-      withData: true,
     );
-    if (result == null || result.files.isEmpty) return null;
+    if (result.isEmpty) return null;
 
-    final bytes = result.files.first.bytes;
-    if (bytes == null) throw const FormatException('Could not read file data');
+    final bytes = await File(result.first.path!).readAsBytes();
+    if (bytes.isEmpty) throw const FormatException('Could not read file data');
 
     final jsonStr = utf8.decode(bytes);
     final Map<String, dynamic> data;

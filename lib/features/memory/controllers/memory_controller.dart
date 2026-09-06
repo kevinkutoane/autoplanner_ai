@@ -2,11 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import '../../../core/models/memory_entry_model.dart';
 
-class MemoryController extends StateNotifier<List<MemoryEntry>> {
+class MemoryController extends Notifier<List<MemoryEntry>> {
   Box<MemoryEntry>? _box;
 
-  MemoryController() : super([]) {
+  @override
+  List<MemoryEntry> build() {
     _init();
+    return [];
   }
 
   Future<void> _init() async {
@@ -93,6 +95,4 @@ class MemoryController extends StateNotifier<List<MemoryEntry>> {
 }
 
 final memoryControllerProvider =
-    StateNotifierProvider<MemoryController, List<MemoryEntry>>(
-      (ref) => MemoryController(),
-    );
+    NotifierProvider<MemoryController, List<MemoryEntry>>(MemoryController.new);

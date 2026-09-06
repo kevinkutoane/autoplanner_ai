@@ -105,8 +105,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         : const OnboardingScreen();
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, a, __) => target,
-        transitionsBuilder: (_, a, __, child) =>
+        pageBuilder: (_, a, _) => target,
+        transitionsBuilder: (_, a, _, child) =>
             FadeTransition(opacity: a, child: child),
         transitionDuration: const Duration(milliseconds: 600),
       ),
@@ -130,7 +130,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           // Animated orb background
           AnimatedBuilder(
             animation: _orbAC,
-            builder: (_, __) {
+            builder: (_, _) {
               return CustomPaint(
                 painter: _SplashOrbPainter(_orbAC.value),
                 child: const SizedBox.expand(),
@@ -281,7 +281,7 @@ class _LoadingDotsState extends State<_LoadingDots>
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: _c,
-    builder: (_, __) => Row(
+    builder: (_, _) => Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(3, (i) {
         final delay = i / 3;

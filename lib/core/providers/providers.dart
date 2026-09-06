@@ -26,8 +26,8 @@ export '../../features/notes/controllers/note_controller.dart' show noteControll
 // ── Settings & Profile ────────────────────────────────────────────
 /// Declared first so other providers can watch it without forward-reference
 /// issues. Persists all user preferences across app restarts.
-final settingsProvider = StateNotifierProvider<SettingsController, AppSettings>(
-  (ref) => SettingsController(),
+final settingsProvider = NotifierProvider<SettingsController, AppSettings>(
+  SettingsController.new,
 );
 
 // ── AI Layer ──────────────────────────────────────────────────────────
@@ -102,25 +102,51 @@ final rescheduleServiceProvider = Provider<RescheduleService>((ref) {
   );
 });
 
+class RescheduleSuggestionNotifier extends Notifier<RescheduleSuggestion?> {
+  @override
+  RescheduleSuggestion? build() => null;
+  void set(RescheduleSuggestion? value) => state = value;
+}
+
 /// Holds the current reschedule suggestion (null = nothing to show).
 /// Set by [RescheduleService.checkOverdue] and cleared when accepted/dismissed.
-final rescheduleSuggestionProvider = StateProvider<RescheduleSuggestion?>(
-  (ref) => null,
+final rescheduleSuggestionProvider =
+    NotifierProvider<RescheduleSuggestionNotifier, RescheduleSuggestion?>(
+  RescheduleSuggestionNotifier.new,
 );
 
 // ── Offline AI Queue ─────────────────────────────────────────────────────
 
 /// Overridden in main() with the initialized OfflineAIQueue instance.
 final offlineAIQueueProvider = Provider<OfflineAIQueue>(
-  (_) => OfflineAIQueue(executeCallback: (_, __) async {}),
+  (_) => OfflineAIQueue(executeCallback: (_, _) async {}),
 );
 
+// ── Planner State ─────────────────────────────────────────────────────────
+
+class PlannerSearchNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+  void set(String value) => state = value;
+}
+
 /// Search query for filtering tasks in the planner screen.
-final plannerSearchProvider = StateProvider<String>((_) => '');
+final plannerSearchProvider = NotifierProvider<PlannerSearchNotifier, String>(
+  PlannerSearchNotifier.new,
+);
+
+class PlannerGoalFilterNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+  void set(String? value) => state = value;
+}
 
 /// Optional goal-ID filter for the planner task list.
 /// When non-null, only tasks linked to this goal are shown.
-final plannerGoalFilterProvider = StateProvider<String?>((_) => null);
+final plannerGoalFilterProvider =
+    NotifierProvider<PlannerGoalFilterNotifier, String?>(
+  PlannerGoalFilterNotifier.new,
+);
 
 /// Proactive task suggestions for an empty planner day.
 /// Auto-disposes and refetches when memory or task state changes.

@@ -156,7 +156,7 @@ class PlannerScreen extends ConsumerWidget {
                       contentPadding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                     onChanged: (v) =>
-                        ref.read(plannerSearchProvider.notifier).state = v,
+                        ref.read(plannerSearchProvider.notifier).set(v),
                   ),
                 ),
               ),
@@ -177,7 +177,7 @@ class PlannerScreen extends ConsumerWidget {
                             selected: goalFilter == null,
                             onTap: () => ref
                                 .read(plannerGoalFilterProvider.notifier)
-                                .state = null,
+                                .set(null),
                           ),
                           for (final g in goals.where((g) => !g.isCompleted))
                             Padding(
@@ -188,7 +188,7 @@ class PlannerScreen extends ConsumerWidget {
                                 selected: goalFilter == g.id,
                                 onTap: () => ref
                                     .read(plannerGoalFilterProvider.notifier)
-                                    .state = goalFilter == g.id ? null : g.id,
+                                    .set(goalFilter == g.id ? null : g.id),
                               ),
                             ),
                         ],
@@ -242,8 +242,7 @@ class PlannerScreen extends ConsumerWidget {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: tasks.length,
-                        onReorder: (oldIndex, newIndex) {
-                          if (oldIndex < newIndex) newIndex -= 1;
+                        onReorderItem: (oldIndex, newIndex) {
                           // Just swap the two tasks' times with each other
                           final reordered = List<TaskItem>.from(tasks)
                             ..removeAt(oldIndex)
@@ -1032,7 +1031,7 @@ class _TaskSuggestionsPanel extends ConsumerWidget {
           ],
         ),
       ),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
       data: (suggestions) {
         if (suggestions.isEmpty) {
           return Padding(
@@ -2323,12 +2322,12 @@ class _OverdueBannerState extends ConsumerState<_OverdueBanner> {
     notifier.updateTask(
       s.task.copyWith(startTime: s.proposedTime, endTime: s.proposedEndTime),
     );
-    ref.read(rescheduleSuggestionProvider.notifier).state = null;
+    ref.read(rescheduleSuggestionProvider.notifier).set(null);
   }
 
   void _dismiss(String taskId) {
     _dismissed.add(taskId);
-    ref.read(rescheduleSuggestionProvider.notifier).state = null;
+    ref.read(rescheduleSuggestionProvider.notifier).set(null);
   }
 
   @override

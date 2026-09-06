@@ -7,20 +7,22 @@ import '../../../core/providers/providers.dart';
 import '../../../services/conflict_detector.dart';
 import '../../../services/calendar_sync_service.dart';
 
-class CalendarController extends StateNotifier<List<CalendarEvent>> {
+class CalendarController extends Notifier<List<CalendarEvent>> {
   Box<CalendarEvent>? _box;
-  final ConflictDetector _conflictDetector;
-  final CalendarSyncService _syncService;
+  late final ConflictDetector _conflictDetector;
+  late final CalendarSyncService _syncService;
 
-  CalendarController({
-    required ConflictDetector conflictDetector,
-    required CalendarSyncService syncService,
-  }) : _conflictDetector = conflictDetector,
-       _syncService = syncService,
-       super([]) {
-    // Box is pre-opened in main() before runApp — grab it synchronously.
+  @override
+  List<CalendarEvent> build() {
+    _conflictDetector = ref.read(conflictDetectorProvider);
+    _syncService = ref.read(calendarSyncServiceProvider);
     _box = Hive.box<CalendarEvent>('calendarBox');
-    _refreshState();
+    return _getSortedEvents();
+  }
+
+  List<CalendarEvent> _getSortedEvents() {
+    if (_box == null) return [];
+    return _box!.values.toList()..sort((a, b) => a.startTime.compareTo(b.startTime));
   }
 
   List<CalendarEvent> getEventsForDay(DateTime day) {
@@ -156,15 +158,9 @@ class CalendarController extends StateNotifier<List<CalendarEvent>> {
   }
 
   void _refreshState() {
-    state = _box!.values.toList()
-      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    state = _getSortedEvents();
   }
 }
 
 final calendarControllerProvider =
-    StateNotifierProvider<CalendarController, List<CalendarEvent>>(
-      (ref) => CalendarController(
-        conflictDetector: ref.read(conflictDetectorProvider),
-        syncService: ref.read(calendarSyncServiceProvider),
-      ),
-    );
+    NotifierProvider<CalendarController, List<CalendarEvent>>(CalendarController.new);

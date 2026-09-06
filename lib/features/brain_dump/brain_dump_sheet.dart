@@ -1149,7 +1149,7 @@ class _SpinningOrbState extends State<_SpinningOrb>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _ac,
-      builder: (_, __) => Transform.rotate(
+      builder: (_, _) => Transform.rotate(
         angle: _ac.value * 2 * 3.14159,
         child: Container(
           width: 64,
@@ -1217,7 +1217,7 @@ class _VoicePulseState extends State<_VoicePulse>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _scale,
-      builder: (_, __) => Transform.scale(
+      builder: (_, _) => Transform.scale(
         scale: _scale.value,
         child: Container(
           width: 8,

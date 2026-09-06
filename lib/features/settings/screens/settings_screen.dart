@@ -708,26 +708,28 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ),
                 Divider(color: isDark ? Colors.white12 : Colors.black12),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: _tokenOptions
-                      .map(
-                        (t) => RadioListTile<int>(
-                          title: Text('${_formatTokens(t)} tokens'),
-                          subtitle: t == 100000
-                              ? const Text('Recommended')
-                              : null,
-                          value: t,
-                          groupValue: settings.maxTokensPerDay,
-                          onChanged: (v) {
-                            if (v != null) {
-                              ctrl.updateMaxTokensPerDay(v);
-                              Navigator.pop(ctx);
-                            }
-                          },
-                        ),
-                      )
-                      .toList(),
+                RadioGroup<int>(
+                  groupValue: settings.maxTokensPerDay,
+                  onChanged: (v) {
+                    if (v != null) {
+                      ctrl.updateMaxTokensPerDay(v);
+                      Navigator.pop(ctx);
+                    }
+                  },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: _tokenOptions
+                        .map(
+                          (t) => RadioListTile<int>(
+                            title: Text('${_formatTokens(t)} tokens'),
+                            subtitle: t == 100000
+                                ? const Text('Recommended')
+                                : null,
+                            value: t,
+                          ),
+                        )
+                        .toList(),
+                  ),
                 ),
                 const SizedBox(height: 8),
               ],
@@ -925,7 +927,7 @@ class _SwitchTile extends StatelessWidget {
           : null,
       value: value,
       onChanged: onChanged,
-      activeColor: kIndigo,
+      activeThumbColor: kIndigo,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     );
   }
@@ -1153,7 +1155,7 @@ class _SecurityTileState extends ConsumerState<_SecurityTile> {
       ),
       value: widget.settings.requireBiometrics,
       onChanged: _checking ? null : _toggle,
-      activeColor: kIndigo,
+      activeThumbColor: kIndigo,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     );
   }
@@ -1247,7 +1249,7 @@ class _MorningBriefingTileState extends ConsumerState<_MorningBriefingTile> {
           subtitle: const Text('Daily AI summary at your chosen time'),
           value: enabled,
           onChanged: _toggle,
-          activeColor: kAmber,
+          activeThumbColor: kAmber,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),

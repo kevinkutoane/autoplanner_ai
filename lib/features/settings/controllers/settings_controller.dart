@@ -8,12 +8,14 @@ import '../../../services/secure_key_service.dart';
 
 /// Manages all user-adjustable settings with Hive persistence.
 /// The box stores individual key-value pairs — no type adapter required.
-class SettingsController extends StateNotifier<AppSettings> {
+class SettingsController extends Notifier<AppSettings> {
   late Box _box;
   final Completer<void> _initCompleter = Completer<void>();
 
-  SettingsController() : super(AppSettings.defaults()) {
+  @override
+  AppSettings build() {
     _init();
+    return AppSettings.defaults();
   }
 
   Future<void> _init() async {

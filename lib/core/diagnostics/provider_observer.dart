@@ -6,30 +6,28 @@ import '../../services/app_monitor_service.dart';
 ///
 /// Forwards unexpected exceptions to [AppMonitorService] so they appear in
 /// the **App Health** analytics tab.
-class AppProviderObserver extends ProviderObserver {
+final class AppProviderObserver extends ProviderObserver {
   final AppMonitorService _monitor;
 
   AppProviderObserver(this._monitor);
 
   @override
   void providerDidFail(
-    ProviderBase<Object?> provider,
+    ProviderObserverContext context,
     Object error,
     StackTrace stackTrace,
-    ProviderContainer container,
   ) {
     if (kDebugMode) {
-      debugPrint('Provider ${provider.name ?? provider.runtimeType} failed: $error');
+      debugPrint('Provider ${context.provider.name ?? context.provider.runtimeType} failed: $error');
     }
     _monitor.logFatalError(error, stackTrace);
   }
 
   @override
   void didUpdateProvider(
-    ProviderBase<Object?> provider,
+    ProviderObserverContext context,
     Object? previousValue,
     Object? newValue,
-    ProviderContainer container,
   ) {
     // Optional: Log significant state transitions if needed for debugging.
   }

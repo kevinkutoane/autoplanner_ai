@@ -8,8 +8,19 @@ import '../../../core/models/note_model.dart';
 import '../controllers/note_controller.dart';
 import 'note_detail_screen.dart';
 
-final _noteSearchProvider = StateProvider<String>((_) => '');
-final _noteTagFilterProvider = StateProvider<String?>((_) => null);
+class NoteSearchNotifier extends Notifier<String> {
+  @override
+  String build() => '';
+  void set(String value) => state = value;
+}
+final _noteSearchProvider = NotifierProvider<NoteSearchNotifier, String>(NoteSearchNotifier.new);
+
+class NoteTagFilterNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+  void set(String? value) => state = value;
+}
+final _noteTagFilterProvider = NotifierProvider<NoteTagFilterNotifier, String?>(NoteTagFilterNotifier.new);
 
 class NotesScreen extends ConsumerWidget {
   const NotesScreen({super.key});
@@ -90,7 +101,7 @@ class NotesScreen extends ConsumerWidget {
                   hintText: 'Search notesΓÇª',
                   icon: Icons.search_rounded,
                   onChanged: (v) =>
-                      ref.read(_noteSearchProvider.notifier).state = v,
+                      ref.read(_noteSearchProvider.notifier).set(v),
                 ),
               ),
 
@@ -107,8 +118,7 @@ class NotesScreen extends ConsumerWidget {
                           label: 'All',
                           selected: tagFilter == null,
                           onTap: () =>
-                              ref.read(_noteTagFilterProvider.notifier).state =
-                                  null,
+                              ref.read(_noteTagFilterProvider.notifier).set(null),
                         ),
                       ),
                       ...allTags.map(
@@ -120,9 +130,7 @@ class NotesScreen extends ConsumerWidget {
                             onTap: () =>
                                 ref
                                     .read(_noteTagFilterProvider.notifier)
-                                    .state = tagFilter == tag
-                                ? null
-                                : tag,
+                                    .set(tagFilter == tag ? null : tag),
                           ),
                         ),
                       ),

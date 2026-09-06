@@ -1,4 +1,4 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/models/note_model.dart';
@@ -7,28 +7,32 @@ import '../../../services/notification_service.dart';
 
 const _uuid = Uuid();
 
-/// Riverpod [StateNotifier] that owns all [NoteItem] CRUD and notification wiring.
+/// Riverpod [Notifier] that owns all [NoteItem] CRUD and notification wiring.
 ///
 /// State is a flat list of every note in the local Hive box. Pinned notes are
 /// sorted to the top, followed by creation-date descending.
-class NoteController extends StateNotifier<List<NoteItem>> {
+class NoteController extends Notifier<List<NoteItem>> {
   late final Box<NoteItem> _box;
-  final NotificationService _notifications;
+  late final NotificationService _notifications;
 
-  NoteController({required NotificationService notifications})
-      : _notifications = notifications,
-        super([]) {
+  @override
+  List<NoteItem> build() {
     _box = Hive.box<NoteItem>('notesBox');
-    _refreshState();
+    _notifications = ref.read(notificationServiceProvider);
+    return _getSortedNotes();
   }
 
-  void _refreshState() {
+  List<NoteItem> _getSortedNotes() {
     final all = _box.values.toList();
     all.sort((a, b) {
       if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
       return b.updatedAt.compareTo(a.updatedAt);
     });
-    state = all;
+    return all;
+  }
+
+  void _refreshState() {
+    state = _getSortedNotes();
   }
 
   List<NoteItem> get pinnedNotes => state.where((n) => n.isPinned).toList();
@@ -225,9 +229,7 @@ class NoteController extends StateNotifier<List<NoteItem>> {
 }
 
 final noteControllerProvider =
-    StateNotifierProvider<NoteController, List<NoteItem>>(
-  (ref) => NoteController(notifications: ref.read(notificationServiceProvider)),
-);
+    NotifierProvider<NoteController, List<NoteItem>>(NoteController.new);
 
 /// Alias for backward compatibility — screens that still reference the old name.
 final notesControllerProvider = noteControllerProvider;

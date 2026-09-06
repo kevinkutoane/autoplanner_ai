@@ -43,7 +43,8 @@ class NotificationService {
 
   Future<void> init() async {
     tz.initializeTimeZones();
-    final String timeZoneName = await FlutterTimezone.getLocalTimezone();
+    final timeZoneInfo = await FlutterTimezone.getLocalTimezone();
+    final String timeZoneName = timeZoneInfo.identifier;
     tz.setLocalLocation(tz.getLocation(timeZoneName));
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -57,7 +58,7 @@ class NotificationService {
       iOS: iosInit,
     );
 
-    await _plugin.initialize(initSettings);
+    await _plugin.initialize(settings: initSettings);
 
     final androidImpl = _plugin
         .resolvePlatformSpecificImplementation<
@@ -112,11 +113,11 @@ class NotificationService {
 
     try {
       await _plugin.zonedSchedule(
-        id,
-        '⏰  ${task.title}',
-        'Starting in $_reminderMinutesBefore minutes',
-        tzTime,
-        NotificationDetails(
+        id: id,
+        title: '⏰  ${task.title}',
+        body: 'Starting in $_reminderMinutesBefore minutes',
+        scheduledDate: tzTime,
+        notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
             _channelName,
@@ -125,11 +126,9 @@ class NotificationService {
             priority: Priority.high,
             icon: '@mipmap/ic_launcher',
           ),
-          iOS: const DarwinNotificationDetails(),
+          iOS: DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
       );
     } catch (e) {
       if (kDebugMode) debugPrint('NotificationService.scheduleTaskReminder: $e');
@@ -139,7 +138,7 @@ class NotificationService {
   /// Cancels any pending timed reminder for [taskId].
   Future<void> cancelTaskReminder(String taskId) async {
     if (!_ready) return;
-    await _plugin.cancel(taskId.hashCode);
+    await _plugin.cancel(id: 'task_start_$taskId'.hashCode);
   }
 
   // ── Urgent alerts (tasks & notes) ────────────────────────────────────────
@@ -157,10 +156,10 @@ class NotificationService {
     if (!_ready) return;
     try {
       await _plugin.show(
-        id.hashCode,
-        '🚨  $title',
-        body,
-        const NotificationDetails(
+        id: id.hashCode,
+        title: '🚨  $title',
+        body: body,
+        notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             _urgentChannelId,
             _urgentChannelName,
@@ -194,11 +193,11 @@ class NotificationService {
 
     try {
       await _plugin.zonedSchedule(
-        id,
-        '📝  ${note.title}',
-        'You set a reminder for this note.',
-        tzTime,
-        const NotificationDetails(
+        id: id,
+        title: '📝  ${note.title}',
+        body: 'You set a reminder for this note.',
+        scheduledDate: tzTime,
+        notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
             _channelName,
@@ -210,8 +209,6 @@ class NotificationService {
           iOS: DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
       );
     } catch (e) {
       if (kDebugMode) debugPrint('NotificationService.scheduleNoteReminder: $e');
@@ -221,7 +218,7 @@ class NotificationService {
   /// Cancels any pending reminder for [noteId].
   Future<void> cancelNoteReminder(String noteId) async {
     if (!_ready) return;
-    await _plugin.cancel(('note_$noteId').hashCode);
+    await _plugin.cancel(id: 'note_$noteId'.hashCode);
   }
 
   // ── Goals ────────────────────────────────────────────────────────────────
@@ -240,11 +237,11 @@ class NotificationService {
 
     try {
       await _plugin.zonedSchedule(
-        id,
-        '🎯  Goal deadline tomorrow',
-        '"${goal.title}" is due tomorrow.',
-        tzTime,
-        const NotificationDetails(
+        id: id,
+        title: '🎯  Goal deadline tomorrow',
+        body: '"${goal.title}" is due tomorrow.',
+        scheduledDate: tzTime,
+        notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             _channelId,
             _channelName,
@@ -256,8 +253,6 @@ class NotificationService {
           iOS: DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
       );
     } catch (e) {
       if (kDebugMode) {
@@ -269,7 +264,7 @@ class NotificationService {
   /// Cancels any pending deadline reminder for [goalId].
   Future<void> cancelGoalDeadlineReminder(String goalId) async {
     if (!_ready) return;
-    await _plugin.cancel(goalId.hashCode + _goalIdOffset);
+    await _plugin.cancel(id: goalId.hashCode + _goalIdOffset);
   }
 
   // ── Permissions ──────────────────────────────────────────────────────────
@@ -314,11 +309,11 @@ class NotificationService {
       }
 
       await _plugin.zonedSchedule(
-        _briefingNotificationId,
-        '☀️  Good morning!',
-        body,
-        scheduled,
-        const NotificationDetails(
+        id: _briefingNotificationId,
+        title: '☀️  Good morning!',
+        body: body,
+        scheduledDate: scheduled,
+        notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             _briefingChannelId,
             _briefingChannelName,
@@ -330,8 +325,6 @@ class NotificationService {
           iOS: DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
         matchDateTimeComponents: DateTimeComponents.time,
       );
     } catch (e) {
@@ -342,6 +335,6 @@ class NotificationService {
   /// Cancels the daily morning briefing notification.
   Future<void> cancelMorningBriefing() async {
     if (!_ready) return;
-    await _plugin.cancel(_briefingNotificationId);
+    await _plugin.cancel(id: _briefingNotificationId);
   }
 }

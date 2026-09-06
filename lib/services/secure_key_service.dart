@@ -6,9 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// live in plain-text on disk (Gemini API key, Hive encryption key,
 /// Google OAuth tokens).
 class SecureKeyService {
-  static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
+  static const _storage = FlutterSecureStorage();
 
   static const _kGeminiKey = 'gemini_api_key';
   static const _kHiveKey = 'hive_encryption_key';

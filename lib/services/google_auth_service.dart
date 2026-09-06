@@ -11,9 +11,7 @@ import 'secure_key_service.dart';
 class GoogleAuthService {
   static const _calendarScope = 'https://www.googleapis.com/auth/calendar';
 
-  final _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile', _calendarScope],
-  );
+  final _googleSignIn = GoogleSignIn.instance;
 
   /// Emits the connected account email (or null when signed out).
   final ValueNotifier<String?> connectedEmail = ValueNotifier(null);
@@ -21,12 +19,24 @@ class GoogleAuthService {
   /// True when an access token is available and not expired.
   bool get isConnected => connectedEmail.value != null;
 
+  GoogleAuthService() {
+    _initGoogleSignIn();
+  }
+
+  Future<void> _initGoogleSignIn() async {
+    try {
+      await _googleSignIn.initialize();
+    } catch (e) {
+      if (kDebugMode) debugPrint('GoogleAuth: init failed — $e');
+    }
+  }
+
   /// Attempts a silent sign-in from cached credentials on app start.
   Future<void> tryRestoreSession() async {
     try {
       final stored = await SecureKeyService.getGoogleTokens();
       if (stored == null) return;
-      final account = await _googleSignIn.signInSilently();
+      final account = await _googleSignIn.attemptLightweightAuthentication();
       if (account != null) {
         connectedEmail.value = account.email;
         await _persistTokens(account);
@@ -40,8 +50,7 @@ class GoogleAuthService {
   /// if the user cancels.
   Future<String?> signIn() async {
     try {
-      final account = await _googleSignIn.signIn();
-      if (account == null) return null;
+      final account = await _googleSignIn.authenticate(scopeHint: ['email', 'profile', _calendarScope]);
       connectedEmail.value = account.email;
       await _persistTokens(account);
       return account.email;
@@ -78,10 +87,10 @@ class GoogleAuthService {
         }
       }
       // Token missing or near expiry — refresh silently.
-      final account = await _googleSignIn.signInSilently();
+      final account = await _googleSignIn.attemptLightweightAuthentication();
       if (account == null) return null;
-      final auth = await account.authentication;
-      final token = auth.accessToken;
+      final auth = await account.authorizationClient.authorizationForScopes([_calendarScope]);
+      final token = auth?.accessToken;
       if (token != null) {
         await _persistTokens(account);
       }
@@ -94,12 +103,13 @@ class GoogleAuthService {
 
   Future<void> _persistTokens(GoogleSignInAccount account) async {
     try {
-      final auth = await account.authentication;
+      final authClient = await account.authorizationClient.authorizationForScopes([_calendarScope]);
+      final auth = account.authentication;
       final expiry = DateTime.now()
           .add(const Duration(hours: 1))
           .toIso8601String();
       await SecureKeyService.saveGoogleTokens({
-        'accessToken': auth.accessToken ?? '',
+        'accessToken': authClient?.accessToken ?? '',
         'idToken': auth.idToken ?? '',
         'email': account.email,
         'displayName': account.displayName ?? '',

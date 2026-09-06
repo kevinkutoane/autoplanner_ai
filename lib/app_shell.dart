@@ -173,7 +173,7 @@ class _AppShellState extends ConsumerState<AppShell>
         goals: goals,
       );
       if (mounted && suggestion != null) {
-        ref.read(rescheduleSuggestionProvider.notifier).state = suggestion;
+        ref.read(rescheduleSuggestionProvider.notifier).set(suggestion);
       }
     } catch (e) {
       if (kDebugMode) debugPrint('RescheduleService: checkOverdue failed — $e');
@@ -708,7 +708,7 @@ class _BrainDumpFabState extends State<_BrainDumpFab>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _glowAnim,
-      builder: (_, __) => GestureDetector(
+      builder: (_, _) => GestureDetector(
         onTap: () => showBrainDump(context),
         child: Container(
           width: 52,

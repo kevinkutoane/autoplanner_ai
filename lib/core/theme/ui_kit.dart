@@ -83,7 +83,7 @@ class _OrbBackgroundState extends State<OrbBackground>
         RepaintBoundary(
           child: AnimatedBuilder(
             animation: _ctrl,
-            builder: (_, __) => CustomPaint(
+            builder: (_, _) => CustomPaint(
               painter: _OrbPainter(_ctrl.value, isDark, widget.subtle),
             ),
           ),
@@ -650,7 +650,7 @@ class _ShimmerBoxState extends State<ShimmerBox>
     final d = Theme.of(context).brightness == Brightness.dark;
     return AnimatedBuilder(
       animation: _c,
-      builder: (_, __) => Container(
+      builder: (_, _) => Container(
         width: widget.width,
         height: widget.height,
         decoration: BoxDecoration(

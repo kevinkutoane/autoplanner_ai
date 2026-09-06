@@ -15,34 +15,40 @@ import '../../calendar/controllers/calendar_controller.dart';
 
 const _uuid = Uuid();
 
-/// Riverpod [StateNotifier] that owns all [TaskItem] CRUD, scheduling,
+/// Riverpod [Notifier] that owns all [TaskItem] CRUD, scheduling,
 /// recurrence, and AI-enrichment logic.
 ///
 /// State is a flat list of every task in the local Hive box. The box is
 /// opened synchronously in the constructor (Hive must be initialised first
 /// in `main()`). Mutations go through dedicated methods that update both
 /// the Hive box and Riverpod state atomically.
-class TaskController extends StateNotifier<List<TaskItem>> {
+class TaskController extends Notifier<List<TaskItem>> {
   Box<TaskItem>? _box;
-  final AIService _aiService;
-  final MemoryController _memoryCtrl;
-  final CalendarController _calendarCtrl;
-  final NotificationService _notifications;
+  late final AIService _aiService;
+  late final MemoryController _memoryCtrl;
+  late final CalendarController _calendarCtrl;
+  late final NotificationService _notifications;
 
-  TaskController({
-    required AIService aiService,
-    required MemoryController memoryCtrl,
-    required CalendarController calendarCtrl,
-    required NotificationService notifications,
-  }) : _aiService = aiService,
-       _memoryCtrl = memoryCtrl,
-       _calendarCtrl = calendarCtrl,
-       _notifications = notifications,
-       super([]) {
-    // Box is pre-opened in main() before runApp — grab it synchronously.
+  @override
+  List<TaskItem> build() {
+    _aiService = ref.read(aiServiceProvider);
+    _memoryCtrl = ref.read(memoryControllerProvider.notifier);
+    _calendarCtrl = ref.read(calendarControllerProvider.notifier);
+    _notifications = ref.read(notificationServiceProvider);
+
     _box = Hive.box<TaskItem>('tasksBox');
-    _refreshState();
-    _seedMissingRecurrences();
+    
+    Future.microtask(() {
+      _seedMissingRecurrences();
+      _refreshState();
+    });
+    
+    return _getSortedTasks();
+  }
+
+  List<TaskItem> _getSortedTasks() {
+    if (_box == null) return [];
+    return _box!.values.toList()..sort((a, b) => a.startTime.compareTo(b.startTime));
   }
 
   List<TaskItem> get todayTasks {
@@ -273,8 +279,7 @@ class TaskController extends StateNotifier<List<TaskItem>> {
           priority: template.priority,
           tags: List.from(template.tags),
           // ignore: deprecated_member_use_from_same_package
-          // ignore: deprecated_member_use_from_same_package
-      linkedNoteIds: List.from(template.linkedNoteIds),
+          linkedNoteIds: List.from(template.linkedNoteIds),
           recurrence: template.recurrence,
           recurrenceDays: List.from(template.recurrenceDays),
           linkedGoalId: template.linkedGoalId,
@@ -430,8 +435,7 @@ class TaskController extends StateNotifier<List<TaskItem>> {
 
   void _refreshState() {
     if (_box == null) return;
-    state = _box!.values.toList()
-      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    state = _getSortedTasks();
     // Push updated task data to the home screen widget.
     HomeWidgetService.update(state);
     // Recalculate smart morning briefing based on current tasks.
@@ -492,11 +496,4 @@ class TaskController extends StateNotifier<List<TaskItem>> {
 }
 
 final taskControllerProvider =
-    StateNotifierProvider<TaskController, List<TaskItem>>((ref) {
-      return TaskController(
-        aiService: ref.watch(aiServiceProvider),
-        memoryCtrl: ref.watch(memoryControllerProvider.notifier),
-        calendarCtrl: ref.watch(calendarControllerProvider.notifier),
-        notifications: ref.watch(notificationServiceProvider),
-      );
-    });
+    NotifierProvider<TaskController, List<TaskItem>>(TaskController.new);

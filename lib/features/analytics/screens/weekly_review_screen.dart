@@ -109,7 +109,7 @@ class WeeklyReviewScreen extends ConsumerWidget {
                         ],
                       ),
                       loading: () => const SizedBox.shrink(),
-                      error: (_, __) => _HeaderButton(
+                      error: (_, _) => _HeaderButton(
                         icon: Icons.refresh_rounded,
                         tooltip: 'Retry',
                         onTap: () => ref.invalidate(weeklyReviewProvider),

@@ -28,8 +28,8 @@ void main() {
 
   setUpAll(() async {
     // Enable tracking and set a low daily cap (1 000 tokens) for limit tests.
-    dotenv.testLoad(
-      fileInput: 'ENABLE_TOKEN_TRACKING=true\nMAX_TOKENS_PER_DAY=1000',
+    dotenv.loadFromString(
+      envString: 'ENABLE_TOKEN_TRACKING=true\nMAX_TOKENS_PER_DAY=1000',
     );
     appConfig = EnvConfig.fromDotEnv();
     tempDir = await Directory.systemTemp.createTemp('token_tracker_test_');
