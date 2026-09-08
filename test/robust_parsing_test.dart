@@ -67,7 +67,7 @@ void main() {
       
       expect(fakeMonitor.logCount, 1);
       expect(fakeMonitor.lastAction, 'parseTasks');
-      expect(fakeMonitor.lastMessage, 'Could not extract JSON array from output');
+      expect(fakeMonitor.lastMessage, contains('No JSON array found'));
     });
 
     test('logs AI error when JSON decoding fails', () async {
