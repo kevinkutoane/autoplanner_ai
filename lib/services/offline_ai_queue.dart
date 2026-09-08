@@ -28,6 +28,9 @@ class QueuedAIRequest {
   /// Last error message, if any.
   String? lastError;
 
+  /// True if the request failed fatally or exceeded max retries.
+  bool isPermanentFailure;
+
   QueuedAIRequest({
     required this.id,
     required this.method,
@@ -35,6 +38,7 @@ class QueuedAIRequest {
     required this.queuedAt,
     this.attempts = 0,
     this.lastError,
+    this.isPermanentFailure = false,
   });
 
   Map<String, dynamic> toMap() => {
@@ -44,6 +48,7 @@ class QueuedAIRequest {
         'queuedAt': queuedAt,
         'attempts': attempts,
         'lastError': lastError,
+        'isPermanentFailure': isPermanentFailure,
       };
 
   factory QueuedAIRequest.fromMap(Map<dynamic, dynamic> map) =>
@@ -54,6 +59,7 @@ class QueuedAIRequest {
         queuedAt: map['queuedAt'] as String,
         attempts: map['attempts'] as int? ?? 0,
         lastError: map['lastError'] as String?,
+        isPermanentFailure: map['isPermanentFailure'] as bool? ?? false,
       );
 }
 
@@ -146,13 +152,17 @@ class OfflineAIQueue {
 
         final request = QueuedAIRequest.fromMap(raw);
 
+        if (request.isPermanentFailure) continue;
+
         if (request.attempts >= _maxAttempts) {
-          // Exceeded max attempts — discard.
-          await _box.delete(key);
+          // Exceeded max attempts — mark as permanent failure instead of deleting.
+          request.isPermanentFailure = true;
+          request.lastError = 'Exceeded $_maxAttempts attempts';
+          await _box.put(key, request.toMap());
           _updatePendingCount();
           if (kDebugMode) {
             debugPrint(
-              'OfflineAIQueue: discarded ${request.method} after $_maxAttempts attempts',
+              'OfflineAIQueue: marked ${request.method} as permanent failure',
             );
           }
           continue;
@@ -171,14 +181,22 @@ class OfflineAIQueue {
           // Failure — increment attempts and store the error.
           request.attempts++;
           request.lastError = e.toString();
+          
+          // Fail safely for unknown operations (UnsupportedError) or permanent errors
+          if (e is UnsupportedError || e is FormatException) {
+            request.isPermanentFailure = true;
+          }
+
           await _box.put(key, request.toMap());
           if (kDebugMode) {
             debugPrint(
               'OfflineAIQueue: ${request.method} attempt ${request.attempts} failed: $e',
             );
           }
-          // Stop draining on first failure — likely still offline.
-          break;
+          // Stop draining on first transient failure — likely still offline or rate limited.
+          if (!request.isPermanentFailure) {
+            break;
+          }
         }
       }
     } finally {

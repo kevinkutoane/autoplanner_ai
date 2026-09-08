@@ -18,6 +18,8 @@ import '../../services/app_monitor_service.dart';
 import '../../services/reschedule_service.dart';
 import '../../services/offline_ai_queue.dart';
 import '../../features/settings/models/app_settings_model.dart';
+import '../models/memory_entry_model.dart';
+import '../../features/memory/controllers/memory_controller.dart';
 import '../../features/settings/controllers/settings_controller.dart';
 import '../../features/planner/controllers/task_controller.dart';
 // Re-export note controller provider so screens can import from providers.dart
@@ -118,9 +120,37 @@ final rescheduleSuggestionProvider =
 // ── Offline AI Queue ─────────────────────────────────────────────────────
 
 /// Overridden in main() with the initialized OfflineAIQueue instance.
-final offlineAIQueueProvider = Provider<OfflineAIQueue>(
-  (_) => OfflineAIQueue(executeCallback: (_, _) async {}),
-);
+final offlineAIQueueProvider = Provider<OfflineAIQueue>((ref) {
+  final queue = OfflineAIQueue(
+    executeCallback: (method, args) async {
+      final ai = ref.read(aiServiceProvider);
+      switch (method) {
+        case 'extractMemory':
+          final result = await ai.extractMemoryFromContext(
+            args['context'] as String,
+            args['sourceType'] as String,
+          );
+          if (result != null && result != 'NONE') {
+            final entry = MemoryEntry(
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+              content: result,
+              sourceType: args['sourceType'] as String,
+              tags: [],
+              createdAt: DateTime.now(),
+            );
+            ref.read(memoryControllerProvider.notifier).addMemory(entry);
+          }
+          break;
+        default:
+          throw UnsupportedError('Method $method is not supported for offline dispatch.');
+      }
+    },
+  );
+  // Initialise asynchronously (the caller is responsible for awaiting init before enqueueing,
+  // or it will happen lazily). In our case, it's safe because main.dart or AppBootstrapper
+  // will call init() immediately after container construction.
+  return queue;
+});
 
 // ── Planner State ─────────────────────────────────────────────────────────
 

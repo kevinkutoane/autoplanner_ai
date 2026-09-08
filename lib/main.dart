@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:workmanager/workmanager.dart';
 import 'core/providers/providers.dart';
 
@@ -22,7 +24,6 @@ import 'services/notification_service.dart';
 import 'services/google_auth_service.dart';
 import 'services/calendar_sync_service.dart';
 import 'services/app_monitor_service.dart';
-import 'services/offline_ai_queue.dart';
 import 'core/diagnostics/provider_observer.dart';
 import 'features/onboarding/screens/splash_screen.dart';
 import 'core/widgets/error_boundary.dart';
@@ -204,51 +205,14 @@ void main() async {
   await _openBoxSafe<dynamic>('settingsBox', hiveCipher);
   await _openBoxSafe<AppEvent>('appEventsBox', hiveCipher);
 
-  // ── Offline AI Queue ─────────────────────────────────────────────────
-  final offlineAIQueue = OfflineAIQueue(
-    executeCallback: (method, args) async {
-      // Route queued requests to the appropriate AI method.
-      // The queue stores method names and serialised arguments;
-      // this callback re-hydrates and executes them.
-      if (kDebugMode) {
-        debugPrint('OfflineAIQueue: executing queued $method');
-      }
-      // Individual method routing is handled by the caller at enqueue time;
-      // the queue simply retries the stored callback.
-    },
-  );
-  try {
-    await offlineAIQueue.init();
-  } catch (e) {
-    if (kDebugMode) debugPrint('OfflineAIQueue init failed: $e');
-  }
-
-  // ── App monitoring ────────────────────────────────────────────────────
-  final crashReporter = appConfig.sentryDsn.isEmpty
-      ? const NoOpCrashReporter()
-      : SentryCrashReporter(dsn: appConfig.sentryDsn);
+  // ── Crash Reporting & App Monitoring ────────────────────────────────────
+  final crashReporter = appConfig.sentryDsn.isNotEmpty
+      ? SentryCrashReporter(dsn: appConfig.sentryDsn)
+      : const NoOpCrashReporter();
   final appMonitorService = AppMonitorService(reporter: crashReporter);
-  try {
-    await appMonitorService.init(cipher: hiveCipher);
-  } catch (e) {
-    if (kDebugMode) debugPrint('AppMonitorService init failed: $e');
-  }
-  final startupWarnings = appConfig.validate();
-  if (startupWarnings.isNotEmpty) {
-    await appMonitorService.logStartupWarnings(startupWarnings);
-  }
-  final originalOnError = FlutterError.onError;
-  FlutterError.onError = (details) {
-    originalOnError?.call(details);
-    appMonitorService.logFlutterError(details);
-  };
-  PlatformDispatcher.instance.onError = (error, stack) {
-    appMonitorService.logFatalError(error, stack);
-    return !kDebugMode;
-  };
-  appMonitorService.logSessionStart();
 
-  final app = ProviderScope(
+  // ── Riverpod Container ──────────────────────────────────────────────────
+  final container = ProviderContainer(
     observers: [AppProviderObserver(appMonitorService)],
     overrides: [
       tokenTrackerProvider.overrideWithValue(tokenTracker),
@@ -257,8 +221,19 @@ void main() async {
       googleAuthServiceProvider.overrideWithValue(googleAuthService),
       calendarSyncServiceProvider.overrideWithValue(calendarSyncService),
       appMonitorServiceProvider.overrideWithValue(appMonitorService),
-      offlineAIQueueProvider.overrideWithValue(offlineAIQueue),
     ],
+  );
+
+  // ── Offline AI Queue ─────────────────────────────────────────────────
+  try {
+    final offlineAIQueue = container.read(offlineAIQueueProvider);
+    await offlineAIQueue.init();
+  } catch (e) {
+    if (kDebugMode) debugPrint('OfflineAIQueue init failed: $e');
+  }
+
+  final app = UncontrolledProviderScope(
+    container: container,
     child: const ErrorBoundary(child: AutoPlannerApp()),
   );
 
@@ -272,7 +247,42 @@ Future<Box<T>> _openBoxSafe<T>(String name, HiveAesCipher cipher) async {
   try {
     return await Hive.openBox<T>(name, encryptionCipher: cipher);
   } catch (e) {
-    if (kDebugMode) debugPrint('Hive box "$name" corrupt — resetting: $e');
+    final eStr = e.toString();
+    
+    // 1. Filesystem / Storage problems
+    if (e is FileSystemException || eStr.contains('FileSystemException')) {
+      if (kDebugMode) debugPrint('Filesystem error opening box "$name": $e');
+      rethrow;
+    }
+    
+    // 2. Programming / Configuration errors
+    if (eStr.contains('is already open') || 
+        eStr.contains('registered') || 
+        eStr.contains('TypeAdapter')) {
+      if (kDebugMode) debugPrint('Programming error opening box "$name": $e');
+      rethrow;
+    }
+
+    // 3. Corruption or Encryption Mismatch
+    if (kDebugMode) debugPrint('Hive box "$name" failed to open (possibly corrupt/wrong key). Backing up: $e');
+    
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final hiveFile = File('${directory.path}/$name.hive');
+      
+      if (await hiveFile.exists()) {
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final backupPath = '${directory.path}/$name.corrupt.$timestamp.bak';
+        await hiveFile.copy(backupPath);
+        if (kDebugMode) debugPrint('Backed up corrupt box $name to $backupPath');
+      }
+    } catch (backupError) {
+      if (kDebugMode) debugPrint('Failed to backup corrupt box $name: $backupError');
+      // If we can't backup, we shouldn't wipe data. Rethrow the original error.
+      rethrow;
+    }
+    
+    // Original file safely backed up (if it existed), now allow Hive to reset it
     await Hive.deleteBoxFromDisk(name);
     return await Hive.openBox<T>(name, encryptionCipher: cipher);
   }

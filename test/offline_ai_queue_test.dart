@@ -11,6 +11,7 @@ import 'package:autoplanner_ai/services/offline_ai_queue.dart';
 /// validate the request model, Hive persistence, and queue logic at the
 /// data layer.
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late Directory tempDir;
 
   setUp(() async {
@@ -43,6 +44,7 @@ void main() {
       expect(map['queuedAt'], equals('2026-04-21T10:00:00.000Z'));
       expect(map['attempts'], equals(2));
       expect(map['lastError'], equals('timeout'));
+      expect(map['isPermanentFailure'], isFalse);
 
       final restored = QueuedAIRequest.fromMap(map);
       expect(restored.id, equals('test_123'));
@@ -51,6 +53,7 @@ void main() {
       expect(restored.queuedAt, equals('2026-04-21T10:00:00.000Z'));
       expect(restored.attempts, equals(2));
       expect(restored.lastError, equals('timeout'));
+      expect(restored.isPermanentFailure, isFalse);
     });
 
     test('fromMap handles missing optional fields', () {
@@ -64,6 +67,7 @@ void main() {
       final req = QueuedAIRequest.fromMap(map);
       expect(req.attempts, equals(0));
       expect(req.lastError, isNull);
+      expect(req.isPermanentFailure, isFalse);
     });
 
     test('argsJson round-trips through JSON encode/decode', () {
@@ -224,6 +228,52 @@ void main() {
       expect(reloaded.lastError, equals('Connection refused'));
 
       await box.close();
+    });
+
+    test('exceeding max attempts marks as permanent failure instead of deleting', () async {
+      final queue = OfflineAIQueue(
+        executeCallback: (method, args) async => throw Exception('fail'),
+      );
+      await queue.init();
+      
+      await queue.enqueue('suggestTasks', {});
+      // Wait for the synchronous part of enqueue's background drain to finish
+      await Future.delayed(const Duration(milliseconds: 50));
+      
+      // Let's manually drain it enough times to exceed maxAttempts (which is 5).
+      for (var i = 0; i < 5; i++) {
+        await queue.drain();
+        await Future.delayed(const Duration(milliseconds: 20));
+      }
+      
+      // It should NOT be deleted, but marked as permanent failure.
+      expect(queue.pending, equals(1));
+      final pendingReq = queue.pendingRequests.first;
+      expect(pendingReq.isPermanentFailure, isTrue);
+      expect(pendingReq.lastError, equals('Exceeded 5 attempts'));
+
+      queue.dispose();
+      await Hive.deleteBoxFromDisk('aiQueueBox');
+    });
+
+    test('failing safely for unknown operations (UnsupportedError) immediately marks as permanent failure', () async {
+      final queue = OfflineAIQueue(
+        executeCallback: (method, args) async => throw UnsupportedError('Unsupported method $method'),
+      );
+      await queue.init();
+      
+      await queue.enqueue('unknownMethod', {});
+      await Future.delayed(const Duration(milliseconds: 50));
+      
+      expect(queue.pending, equals(1));
+      final pendingReq = queue.pendingRequests.first;
+      expect(pendingReq.isPermanentFailure, isTrue);
+      expect(pendingReq.lastError, contains('Unsupported method'));
+      // attempt should be 1 because it failed on the first try and stopped
+      expect(pendingReq.attempts, equals(1));
+
+      queue.dispose();
+      await Hive.deleteBoxFromDisk('aiQueueBox');
     });
   });
 }

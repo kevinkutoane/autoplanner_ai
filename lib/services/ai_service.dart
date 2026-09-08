@@ -7,6 +7,7 @@ import '../core/ai/token_tracker.dart';
 import '../core/models/task_model.dart';
 import '../core/models/goal_model.dart';
 import '../core/models/memory_entry_model.dart';
+import '../core/ai/ai_validator.dart';
 import 'app_monitor_service.dart';
 
 // ── Brain Dump result types ───────────────────────────────────────────────
@@ -137,6 +138,13 @@ class AIService {
         if (kDebugMode) {
           debugPrint('AI retry ${attempt + 1}/$maxAttempts after $delay: $e');
         }
+        
+        // Fail fast on explicit validation errors (do not loop infinitely for hallucinated output)
+        if (e is AIValidationException) {
+          if (kDebugMode) debugPrint('Aborting retries due to AIValidationException: $e');
+          rethrow;
+        }
+
         await Future.delayed(delay);
         delay *= 2;
       }
@@ -575,11 +583,10 @@ Rules:
       final response = await _provider.complete(prompt);
       await _tracker.log(action: 'extractPatterns', response: response);
       try {
-        final jsonStr = _extractJsonArray(response.text);
-        if (jsonStr == null) return <Map<String, dynamic>>[];
-        final list = jsonDecode(jsonStr) as List<dynamic>;
+        final list = AIValidator.extractArray(response.text, context: 'extractPatterns');
         return list.cast<Map<String, dynamic>>();
-      } catch (_) {
+      } catch (e) {
+        if (kDebugMode) debugPrint('extractPatterns error: $e');
         return <Map<String, dynamic>>[];
       }
     });
@@ -725,11 +732,7 @@ Respond with ONLY the review text.
 
   BrainDumpResult _parseBrainDumpResult(String text) {
     try {
-      final jsonStr = _extractJsonObject(text);
-      if (jsonStr == null) {
-        return const BrainDumpResult(tasks: [], goals: [], memories: []);
-      }
-      final data = jsonDecode(jsonStr) as Map<String, dynamic>;
+      final data = AIValidator.extractObject(text, context: 'brainDump');
 
       // Extract goal-title links before they are lost during task parsing.
       final rawTasks = data['tasks'] as List<dynamic>? ?? [];
@@ -772,16 +775,7 @@ Respond with ONLY the review text.
     List<TaskItem> existingTasks,
   ) {
     try {
-      final jsonStr = _extractJsonArray(text);
-      if (jsonStr == null) {
-        _monitor?.logAIError(
-          action: 'planDay',
-          message: 'Could not extract JSON array from output',
-          detail: text,
-        );
-        return existingTasks;
-      }
-      final List<dynamic> jsonList = jsonDecode(jsonStr);
+      final jsonList = AIValidator.extractArray(text, context: 'planDay');
       final existingMap = {for (final t in existingTasks) t.id: t};
 
       final results = <TaskItem>[];
@@ -842,16 +836,7 @@ Respond with ONLY the review text.
 
   List<TaskItem> _parseTasksFromJson(String text) {
     try {
-      final jsonStr = _extractJsonArray(text);
-      if (jsonStr == null) {
-        _monitor?.logAIError(
-          action: 'parseTasks',
-          message: 'Could not extract JSON array from output',
-          detail: text,
-        );
-        return [];
-      }
-      final List<dynamic> jsonList = jsonDecode(jsonStr);
+      final jsonList = AIValidator.extractArray(text, context: 'parseTasks');
       final now = DateTime.now();
       final results = <TaskItem>[];
       for (final task in jsonList) {
@@ -900,9 +885,7 @@ Respond with ONLY the review text.
 
   List<String> _parseStringList(String text) {
     try {
-      final jsonStr = _extractJsonArray(text);
-      if (jsonStr == null) return [];
-      final List<dynamic> list = jsonDecode(jsonStr);
+      final list = AIValidator.extractArray(text, context: 'parseStringList');
       return list.map((e) => e.toString().toLowerCase()).toList();
     } catch (e) {
       if (kDebugMode) debugPrint('_parseStringList error: $e');
@@ -921,30 +904,6 @@ Respond with ONLY the review text.
         .take(maxEntries)
         .map((m) => '  - ${_sanitize(m.content)}')
         .join('\n');
-    return '\nUser context from memory:\n$lines\n';
-  }
-
-  /// Strips markdown fences and returns the outermost JSON array `[...]`.
-  String? _extractJsonArray(String text) {
-    final stripped = text
-        .replaceAll(RegExp(r'```[a-zA-Z]*'), '')
-        .replaceAll('`', '')
-        .trim();
-    final start = stripped.indexOf('[');
-    final end = stripped.lastIndexOf(']');
-    if (start == -1 || end == -1 || end <= start) return null;
-    return stripped.substring(start, end + 1);
-  }
-
-  /// Returns the outermost JSON object `{...}`.
-  String? _extractJsonObject(String text) {
-    final stripped = text
-        .replaceAll(RegExp(r'```[a-zA-Z]*'), '')
-        .replaceAll('`', '')
-        .trim();
-    final start = stripped.indexOf('{');
-    final end = stripped.lastIndexOf('}');
-    if (start == -1 || end == -1 || end <= start) return null;
-    return stripped.substring(start, end + 1);
+    return lines.isEmpty ? '' : '\nUser memory context:\n$lines\n';
   }
 }
