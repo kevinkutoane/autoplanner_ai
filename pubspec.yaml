@@ -60,7 +60,7 @@ dependencies:
   workmanager: ^0.10.9
   share_plus: ^13.3.0
   file_picker: ^12.2.0
-  sentry_flutter: ^10.0.0-alpha.4
+  sentry_flutter: ^10.0.0-alpha.1
   connectivity_plus: ^7.1.1
   clock: ^1.1.2
 
