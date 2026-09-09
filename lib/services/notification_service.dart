@@ -132,8 +132,9 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
     } catch (e) {
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint('NotificationService.scheduleTaskReminder: $e');
+      }
     }
   }
 
@@ -213,8 +214,9 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
     } catch (e) {
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint('NotificationService.scheduleNoteReminder: $e');
+      }
     }
   }
 

@@ -417,17 +417,19 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
     });
     try {
       await ref.read(aiServiceProvider).generateDailyInsight([], []);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _testing = false;
           _testResult = true;
         });
+      }
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _testing = false;
           _testResult = false;
         });
+      }
     }
   }
 
