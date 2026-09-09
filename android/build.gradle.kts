@@ -17,9 +17,14 @@ subprojects {
     // before any of them actually evaluate, preventing the "project already evaluated" error.
     afterEvaluate {
         // Force Java 21 on every Android plugin subproject so it matches the Kotlin JVM target.
-        extensions.findByType<com.android.build.gradle.BaseExtension>()?.compileOptions?.apply {
-            sourceCompatibility = JavaVersion.VERSION_21
-            targetCompatibility = JavaVersion.VERSION_21
+        extensions.findByType<com.android.build.gradle.BaseExtension>()?.apply {
+            compileOptions.apply {
+                sourceCompatibility = JavaVersion.VERSION_21
+                targetCompatibility = JavaVersion.VERSION_21
+            }
+            sourceSets.all {
+                java.setSrcDirs(java.srcDirs.filter { !it.path.replace('\\', '/').endsWith("src/main/kotlin") })
+            }
         }
     }
 }
@@ -30,6 +35,7 @@ subprojects {
 
 // Lazily override the Kotlin JVM target to 11 across all subprojects.
 // configureEach is lazy and does not trigger evaluation, so it is safe here.
+
 subprojects {
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
         compilerOptions {
