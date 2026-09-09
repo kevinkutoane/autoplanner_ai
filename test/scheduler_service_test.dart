@@ -178,6 +178,96 @@ void main() {
       final task = result.first;
       expect(task.endTime!.difference(task.startTime).inMinutes, 30);
     });
+
+    test(
+      'overlap invariant: for all scheduled tasks i != j, [start_i, end_i + buffer) does not overlap [start_j, end_j + buffer)',
+      () {
+        final tasks = [
+          _task(
+            id: 't1',
+            priority: 3,
+            endTime: day.add(const Duration(minutes: 45)),
+          ),
+          _task(
+            id: 't2',
+            priority: 1,
+            endTime: day.add(const Duration(minutes: 30)),
+          ),
+          _task(
+            id: 't3',
+            priority: 2,
+            endTime: day.add(const Duration(minutes: 90)),
+          ),
+          _task(
+            id: 't4',
+            priority: 0,
+            endTime: day.add(const Duration(minutes: 15)),
+          ),
+          _task(
+            id: 't5',
+            priority: 2,
+            endTime: day.add(const Duration(minutes: 60)),
+          ),
+        ];
+
+        final calEvent = CalendarEvent(
+          id: 'cal1',
+          title: 'All-Hands',
+          startTime: DateTime(2099, 1, 15, 11, 0),
+          endTime: DateTime(2099, 1, 15, 12, 0),
+        );
+
+        final result = scheduler.scheduleDay(
+          tasks: tasks,
+          day: day,
+          workStartHour: 9,
+          workHoursPerDay: 8,
+          calendarBlocks: [calEvent],
+        );
+
+        expect(result, isNotEmpty);
+
+        // Sort scheduled tasks by startTime
+        final sorted = List<TaskItem>.from(result)
+          ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+        // Invariant 1: No two tasks overlap, with buffer (10 min) respected between adjacent tasks
+        for (int i = 0; i < sorted.length - 1; i++) {
+          final curr = sorted[i];
+          final next = sorted[i + 1];
+
+          expect(curr.endTime, isNotNull);
+          final gap = next.startTime.difference(curr.endTime!).inMinutes;
+          expect(
+            gap,
+            greaterThanOrEqualTo(10),
+            reason:
+                'Task ${curr.id} (ends ${curr.endTime}) and task ${next.id} (starts ${next.startTime}) violate 10m buffer',
+          );
+        }
+
+        // Invariant 2: No task overlaps the calendar block
+        for (final t in sorted) {
+          final overlapsCal =
+              t.startTime.isBefore(calEvent.endTime) &&
+              t.endTime!.isAfter(calEvent.startTime);
+          expect(
+            overlapsCal,
+            isFalse,
+            reason:
+                'Task ${t.id} (${t.startTime} - ${t.endTime}) overlaps calendar event (${calEvent.startTime} - ${calEvent.endTime})',
+          );
+        }
+
+        // Invariant 3: All tasks are within work window (09:00 - 17:00)
+        final workStart = DateTime(2099, 1, 15, 9, 0);
+        final workEnd = DateTime(2099, 1, 15, 17, 0);
+        for (final t in sorted) {
+          expect(t.startTime.isBefore(workStart), isFalse);
+          expect(t.endTime!.isAfter(workEnd), isFalse);
+        }
+      },
+    );
   });
 
   group('SchedulerService Clock abstraction & behavioural tests', () {

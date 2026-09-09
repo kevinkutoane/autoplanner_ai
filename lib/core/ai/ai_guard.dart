@@ -9,7 +9,10 @@ import 'package:flutter/foundation.dart';
 class ContentPolicyException implements Exception {
   final String reason;
   final ContentPolicyCode code;
-  const ContentPolicyException(this.reason, {this.code = ContentPolicyCode.generic});
+  const ContentPolicyException(
+    this.reason, {
+    this.code = ContentPolicyCode.generic,
+  });
 
   @override
   String toString() => 'ContentPolicyException(${code.name}): $reason';
@@ -222,7 +225,9 @@ class AIGuard {
     for (final pattern in _injectionPatterns) {
       if (lower.contains(pattern.toLowerCase())) {
         if (kDebugMode) {
-          debugPrint('[AIGuard] Injection pattern detected: "$pattern" ($context)');
+          debugPrint(
+            '[AIGuard] Injection pattern detected: "$pattern" ($context)',
+          );
         }
         throw ContentPolicyException(
           'Your input contains text that cannot be processed. '
@@ -244,10 +249,10 @@ class AIGuard {
           // Self-harm gets a compassionate message; others get a generic block.
           final message = entry.key == 'self_harm'
               ? 'It sounds like you may be going through a difficult time. '
-                'Please reach out to a mental health professional or crisis line. '
-                'This app is not able to assist with this request.'
+                    'Please reach out to a mental health professional or crisis line. '
+                    'This app is not able to assist with this request.'
               : 'This request cannot be processed as it may violate our usage policy. '
-                'Please rephrase and try again.';
+                    'Please rephrase and try again.';
           throw ContentPolicyException(
             message,
             code: ContentPolicyCode.harmfulContent,
@@ -267,9 +272,7 @@ class AIGuard {
     final now = DateTime.now();
 
     // Prune timestamps older than 1 hour
-    _callTimestamps.removeWhere(
-      (t) => now.difference(t).inSeconds > 3600,
-    );
+    _callTimestamps.removeWhere((t) => now.difference(t).inSeconds > 3600);
 
     // Per-minute check (last 60 seconds)
     final lastMinute = _callTimestamps

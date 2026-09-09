@@ -138,10 +138,25 @@ class AIService {
         if (kDebugMode) {
           debugPrint('AI retry ${attempt + 1}/$maxAttempts after $delay: $e');
         }
-        
-        // Fail fast on explicit validation errors (do not loop infinitely for hallucinated output)
-        if (e is AIValidationException) {
-          if (kDebugMode) debugPrint('Aborting retries due to AIValidationException: $e');
+
+        // Fail fast on explicit domain validation errors (semantic invalidity, do not burn tokens)
+        if (e is AIDomainValidationException) {
+          if (kDebugMode) {
+            debugPrint(
+              'Aborting retries due to AIDomainValidationException: $e',
+            );
+          }
+          rethrow;
+        }
+
+        // Structural formatting glitches (e.g. malformed JSON / AIValidationException)
+        // are allowed bounded retry (max 2 attempts) to recover from LLM formatting hiccups
+        if (e is AIValidationException && attempt >= 1) {
+          if (kDebugMode) {
+            debugPrint(
+              'Aborting retries for AIValidationException after 2 attempts: $e',
+            );
+          }
           rethrow;
         }
 
@@ -209,7 +224,8 @@ User input: "${_sanitize(input)}"
     String? additionalInput,
   }) async {
     // Validate any free-text additional input before embedding in prompt
-    final safeAdditional = additionalInput != null && additionalInput.trim().isNotEmpty
+    final safeAdditional =
+        additionalInput != null && additionalInput.trim().isNotEmpty
         ? _guard.validateInput(additionalInput, context: 'planDay')
         : null;
     final pending = existingTasks.where((t) => !t.isCompleted).toList();
@@ -275,8 +291,8 @@ Respond ONLY with a valid JSON array — no markdown, no explanation:
     final memCtx = _buildMemoryContext(memories, maxEntries: 5);
     final goalCtx = linkedGoal != null
         ? '\nThis task is linked to the goal "${_sanitize(linkedGoal.title)}"'
-            '${linkedGoal.deadline != null ? ' with a deadline of ${linkedGoal.deadline!.day}/${linkedGoal.deadline!.month}/${linkedGoal.deadline!.year}' : ''}.'
-            ' Prioritise accordingly.\n'
+              '${linkedGoal.deadline != null ? ' with a deadline of ${linkedGoal.deadline!.day}/${linkedGoal.deadline!.month}/${linkedGoal.deadline!.year}' : ''}.'
+              ' Prioritise accordingly.\n'
         : '';
     final prompt =
         '''
@@ -396,9 +412,7 @@ ${_sanitize(content)}
     final goalDesc = goals.isEmpty
         ? ''
         : '\nActive goals:\n${goals.take(5).map((g) {
-            final dl = g.deadline != null
-                ? ' (deadline: ${g.deadline!.day}/${g.deadline!.month}/${g.deadline!.year})'
-                : '';
+            final dl = g.deadline != null ? ' (deadline: ${g.deadline!.day}/${g.deadline!.month}/${g.deadline!.year})' : '';
             return '- ${g.emoji} ${g.title}$dl — ${g.linkedTaskIds.length} linked tasks';
           }).join('\n')}\n';
 
@@ -579,17 +593,20 @@ Rules:
 - Be specific and actionable (e.g., NOT "user likes mornings" but "user completes high-priority tasks before 11am")
 ''';
 
-    return await _withRetry(() async {
-      final response = await _provider.complete(prompt);
-      await _tracker.log(action: 'extractPatterns', response: response);
-      try {
-        final list = AIValidator.extractArray(response.text, context: 'extractPatterns');
+    try {
+      return await _withRetry(() async {
+        final response = await _provider.complete(prompt);
+        await _tracker.log(action: 'extractPatterns', response: response);
+        final list = AIValidator.extractArray(
+          response.text,
+          context: 'extractPatterns',
+        );
         return list.cast<Map<String, dynamic>>();
-      } catch (e) {
-        if (kDebugMode) debugPrint('extractPatterns error: $e');
-        return <Map<String, dynamic>>[];
-      }
-    });
+      });
+    } catch (e) {
+      if (kDebugMode) debugPrint('extractPatterns error: $e');
+      return <Map<String, dynamic>>[];
+    }
   }
 
   // ── Proactive task suggestions ───────────────────────────────────────────
@@ -679,18 +696,21 @@ Rules:
 
     final goalSummary = weekGoals.isEmpty
         ? '  (none)'
-        : weekGoals.take(5).map((g) {
-            final linked = weekTasks.where(
-              (t) => (g.linkedTaskIds).contains(t.id),
-            );
-            final done = linked.where((t) => t.isCompleted).length;
-            final total = linked.length;
-            final pct = total > 0 ? (done / total * 100).round() : 0;
-            final deadlineStr = g.deadline != null
-                ? ' (deadline: ${g.deadline!.day}/${g.deadline!.month}/${g.deadline!.year})'
-                : '';
-            return '  - "${g.title}" — $done/$total linked tasks done ($pct%)$deadlineStr';
-          }).join('\n');
+        : weekGoals
+              .take(5)
+              .map((g) {
+                final linked = weekTasks.where(
+                  (t) => (g.linkedTaskIds).contains(t.id),
+                );
+                final done = linked.where((t) => t.isCompleted).length;
+                final total = linked.length;
+                final pct = total > 0 ? (done / total * 100).round() : 0;
+                final deadlineStr = g.deadline != null
+                    ? ' (deadline: ${g.deadline!.day}/${g.deadline!.month}/${g.deadline!.year})'
+                    : '';
+                return '  - "${g.title}" — $done/$total linked tasks done ($pct%)$deadlineStr';
+              })
+              .join('\n');
 
     final memCtx = _buildMemoryContext(memories, maxEntries: 5);
 
@@ -783,9 +803,10 @@ Respond with ONLY the review text.
         if (item is! Map<String, dynamic>) continue;
         try {
           AIValidator.validateTaskDomain(item, context: 'planDay');
-          
+
           final existingId = item['id'] as String?;
-          final estimatedMins = (item['estimatedMinutes'] as num?)?.toInt() ?? 60;
+          final estimatedMins =
+              (item['estimatedMinutes'] as num?)?.toInt() ?? 60;
           final duration = Duration(minutes: estimatedMins);
 
           if (existingId != null && existingMap.containsKey(existingId)) {
@@ -794,7 +815,11 @@ Respond with ONLY the review text.
               existing.copyWith(
                 title: (item['title'] as String).trim(),
                 priority: item['priority'] as int? ?? existing.priority,
-                tags: (item['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? existing.tags,
+                tags:
+                    (item['tags'] as List<dynamic>?)
+                        ?.map((e) => e.toString())
+                        .toList() ??
+                    existing.tags,
                 endTime: existing.startTime.add(duration),
               ),
             );
@@ -807,7 +832,11 @@ Respond with ONLY the review text.
                 startTime: now,
                 endTime: now.add(duration),
                 priority: item['priority'] as int? ?? 1,
-                tags: (item['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+                tags:
+                    (item['tags'] as List<dynamic>?)
+                        ?.map((e) => e.toString())
+                        .toList() ??
+                    [],
               ),
             );
           }
@@ -836,8 +865,10 @@ Respond with ONLY the review text.
         if (task is! Map<String, dynamic>) continue;
         try {
           AIValidator.validateTaskDomain(task, context: 'parseTasks');
-          
-          final timeParts = ((task['startTime'] as String?) ?? '09:00').split(':');
+
+          final timeParts = ((task['startTime'] as String?) ?? '09:00').split(
+            ':',
+          );
           final start = DateTime(
             now.year,
             now.month,
@@ -845,8 +876,9 @@ Respond with ONLY the review text.
             int.tryParse(timeParts[0]) ?? 9,
             int.tryParse(timeParts.elementAtOrNull(1) ?? '0') ?? 0,
           );
-          
-          final estimatedMins = (task['estimatedMinutes'] as num?)?.toInt() ?? 60;
+
+          final estimatedMins =
+              (task['estimatedMinutes'] as num?)?.toInt() ?? 60;
           results.add(
             TaskItem(
               id: _uuid.v4(),
@@ -854,7 +886,11 @@ Respond with ONLY the review text.
               startTime: start,
               endTime: start.add(Duration(minutes: estimatedMins)),
               priority: (task['priority'] as int?) ?? 1,
-              tags: (task['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+              tags:
+                  (task['tags'] as List<dynamic>?)
+                      ?.map((e) => e.toString())
+                      .toList() ??
+                  [],
             ),
           );
         } catch (e) {

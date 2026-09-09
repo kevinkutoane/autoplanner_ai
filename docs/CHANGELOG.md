@@ -6,7 +6,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [1.2.0] — 2026-09-09
+## [Unreleased / In-Tree Preview — Subject to Approval Gate]
 
 ### Phase 1.2: Smart Scheduling Engine
 
@@ -19,7 +19,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [1.1.0] — 2026-09-09
+## [1.1.0] — 2026-09-09 (Current Approved Baseline)
 
 ### Phase 1.1: Reliability & Hardening
 

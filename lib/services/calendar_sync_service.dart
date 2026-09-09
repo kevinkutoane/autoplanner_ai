@@ -39,8 +39,8 @@ class CalendarSyncService {
   CalendarSyncService({
     required GoogleAuthService googleAuth,
     http.Client? client,
-  })  : _googleAuth = googleAuth,
-        _client = client ?? http.Client();
+  }) : _googleAuth = googleAuth,
+       _client = client ?? http.Client();
 
   Box<CalendarEvent> get _box => Hive.box<CalendarEvent>('calendarBox');
 
@@ -59,12 +59,15 @@ class CalendarSyncService {
       }
       final fetchResult = await _pullAll(token);
       final pushed = await _pushPending(token);
-      
+
       if (fetchResult.nextSyncToken != null) {
         final settingsBox = Hive.box<dynamic>('settingsBox');
-        await settingsBox.put('google_calendar_sync_token', fetchResult.nextSyncToken);
+        await settingsBox.put(
+          'google_calendar_sync_token',
+          fetchResult.nextSyncToken,
+        );
       }
-      
+
       return SyncResult(pulled: fetchResult.count, pushed: pushed);
     } catch (e) {
       if (kDebugMode) debugPrint('CalendarSync.fullSync error: $e');
@@ -79,8 +82,9 @@ class CalendarSyncService {
     }
     try {
       final settingsBox = Hive.box<dynamic>('settingsBox');
-      final syncToken = settingsBox.get('google_calendar_sync_token') as String?;
-      
+      final syncToken =
+          settingsBox.get('google_calendar_sync_token') as String?;
+
       if (syncToken == null) {
         // Fallback to full sync if no token is available
         return await fullSync();
@@ -90,17 +94,24 @@ class CalendarSyncService {
       if (token == null) {
         return const SyncResult(error: 'Could not obtain access token.');
       }
-      
+
       final fetchResult = await _pullWithSyncToken(token, syncToken);
       final pushed = await _pushPending(token);
-      
+
       if (fetchResult.nextSyncToken != null) {
-        await settingsBox.put('google_calendar_sync_token', fetchResult.nextSyncToken);
+        await settingsBox.put(
+          'google_calendar_sync_token',
+          fetchResult.nextSyncToken,
+        );
       }
-      
+
       return SyncResult(pulled: fetchResult.count, pushed: pushed);
     } on _SyncTokenInvalidatedException {
-      if (kDebugMode) debugPrint('CalendarSync.incrementalSync: Sync token invalidated (410). Doing full sync.');
+      if (kDebugMode) {
+        debugPrint(
+          'CalendarSync.incrementalSync: Sync token invalidated (410). Doing full sync.',
+        );
+      }
       final settingsBox = Hive.box<dynamic>('settingsBox');
       await settingsBox.delete('google_calendar_sync_token');
       return fullSync();
@@ -132,7 +143,11 @@ class CalendarSyncService {
   Future<_FetchResult> _pullAll(String token) async {
     final now = DateTime.now();
     // Start pulling events from 3 months ago (or beginning of that month)
-    final timeMin = DateTime(now.year, now.month - 3, 1).toUtc().toIso8601String();
+    final timeMin = DateTime(
+      now.year,
+      now.month - 3,
+      1,
+    ).toUtc().toIso8601String();
 
     final uri = Uri.parse(
       '$_baseUrl/calendars/$_calendarId/events'
@@ -144,7 +159,10 @@ class CalendarSyncService {
     return _fetchAndStore(token, uri);
   }
 
-  Future<_FetchResult> _pullWithSyncToken(String token, String syncToken) async {
+  Future<_FetchResult> _pullWithSyncToken(
+    String token,
+    String syncToken,
+  ) async {
     final uri = Uri.parse(
       '$_baseUrl/calendars/$_calendarId/events'
       '?syncToken=${Uri.encodeComponent(syncToken)}'
@@ -157,11 +175,11 @@ class CalendarSyncService {
     int count = 0;
     String? pageToken;
     String? nextSyncToken;
-    
+
     // Store all raw items first to ensure we completely fetch before processing.
     // If the network fails partway, we throw, and don't persist nextSyncToken.
     final allItems = <Map<String, dynamic>>[];
-    
+
     do {
       final pageUri = pageToken != null
           ? uri.replace(
@@ -173,7 +191,7 @@ class CalendarSyncService {
         pageUri,
         headers: {'Authorization': 'Bearer $token'},
       );
-      
+
       if (response.statusCode == 410) {
         throw _SyncTokenInvalidatedException();
       }
@@ -182,24 +200,24 @@ class CalendarSyncService {
           'Google Calendar API error ${response.statusCode}: ${response.body}',
         );
       }
-      
+
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final items = (data['items'] as List<dynamic>?) ?? [];
-      
+
       for (final item in items) {
         allItems.add(item as Map<String, dynamic>);
       }
-      
+
       pageToken = data['nextPageToken'] as String?;
       nextSyncToken = data['nextSyncToken'] as String?;
     } while (pageToken != null);
-    
+
     // Completely paginated fetch finished. Process all changes.
     for (final item in allItems) {
       _storeGoogleEvent(item);
       count++;
     }
-    
+
     return _FetchResult(count, nextSyncToken);
   }
 

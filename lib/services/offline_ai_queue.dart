@@ -42,43 +42,43 @@ class QueuedAIRequest {
   });
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'method': method,
-        'argsJson': argsJson,
-        'queuedAt': queuedAt,
-        'attempts': attempts,
-        'lastError': lastError,
-        'isPermanentFailure': isPermanentFailure,
-      };
+    'id': id,
+    'method': method,
+    'argsJson': argsJson,
+    'queuedAt': queuedAt,
+    'attempts': attempts,
+    'lastError': lastError,
+    'isPermanentFailure': isPermanentFailure,
+  };
 
-  factory QueuedAIRequest.fromMap(Map<dynamic, dynamic> map) =>
-      QueuedAIRequest(
-        id: map['id'] as String,
-        method: map['method'] as String,
-        argsJson: map['argsJson'] as String,
-        queuedAt: map['queuedAt'] as String,
-        attempts: map['attempts'] as int? ?? 0,
-        lastError: map['lastError'] as String?,
-        isPermanentFailure: map['isPermanentFailure'] as bool? ?? false,
-      );
+  factory QueuedAIRequest.fromMap(Map<dynamic, dynamic> map) => QueuedAIRequest(
+    id: map['id'] as String,
+    method: map['method'] as String,
+    argsJson: map['argsJson'] as String,
+    queuedAt: map['queuedAt'] as String,
+    attempts: map['attempts'] as int? ?? 0,
+    lastError: map['lastError'] as String?,
+    isPermanentFailure: map['isPermanentFailure'] as bool? ?? false,
+  );
 }
 
-/// Offline-resilient AI queue.
+/// Offline-resilient AI queue with at-least-once execution semantics.
 ///
-/// When the device has no connectivity, AI requests are persisted to a Hive
-/// box (`aiQueueBox`) and automatically retried when the network returns.
+/// Lifecycle:
+///   enqueue → persist to Hive → reload/restart → reconnect → dispatch → execute → acknowledge (delete)
 ///
-/// Usage:
-/// ```dart
-/// final queue = OfflineAIQueue(executeCallback: (method, args) async {
-///   // Route to the appropriate AIService method.
-/// });
-/// await queue.init();
-/// queue.enqueue('dailyInsight', {'tasks': [...], 'memories': [...]});
-/// ```
+/// Execution Guarantee:
+///   At-least-once execution. Requests are persisted to disk prior to dispatch.
+///   If process termination occurs mid-execution, requests remain persisted and
+///   are re-drained upon subsequent application startup. Handlers invoked by
+///   [executeCallback] should be idempotent.
 ///
-/// The queue monitors connectivity via `connectivity_plus` and drains
-/// pending requests in FIFO order with a configurable max-attempts limit.
+/// Fault Tolerance:
+///   - Transient failures are retried up to [_maxAttempts] times with FIFO ordering.
+///   - Exceeding [_maxAttempts] marks the request as [isPermanentFailure], retaining
+///     it diagnostically without retrying infinitely.
+///   - Fatal format or unsupported errors immediately dead-letter without retry.
+///   - Acknowledgement (box deletion) occurs strictly AFTER [executeCallback] completes.
 class OfflineAIQueue {
   static const String _boxName = 'aiQueueBox';
   static const int _maxAttempts = 5;
@@ -91,7 +91,7 @@ class OfflineAIQueue {
   /// Receives the method name and decoded arguments map.
   /// Should throw on failure so the queue can retry.
   final Future<void> Function(String method, Map<String, dynamic> args)
-      executeCallback;
+  executeCallback;
 
   /// Notifies listeners when the queue length changes.
   final ValueNotifier<int> pendingCount = ValueNotifier<int>(0);
@@ -104,9 +104,9 @@ class OfflineAIQueue {
     _updatePendingCount();
 
     // Listen for connectivity changes and drain when online.
-    _connectivitySub = Connectivity()
-        .onConnectivityChanged
-        .listen((List<ConnectivityResult> results) {
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((
+      List<ConnectivityResult> results,
+    ) {
       final hasConnection = results.any((r) => r != ConnectivityResult.none);
       if (hasConnection) drain();
     });
@@ -129,7 +129,9 @@ class OfflineAIQueue {
     await _box.put(request.id, request.toMap());
     _updatePendingCount();
     if (kDebugMode) {
-      debugPrint('OfflineAIQueue: enqueued $method (${pendingCount.value} pending)');
+      debugPrint(
+        'OfflineAIQueue: enqueued $method (${pendingCount.value} pending)',
+      );
     }
     // Try to drain immediately — if online, it will execute right away.
     drain();
@@ -181,13 +183,17 @@ class OfflineAIQueue {
           // Failure — increment attempts and store the error.
           request.attempts++;
           request.lastError = e.toString();
-          
-          // Fail safely for unknown operations (UnsupportedError) or permanent errors
-          if (e is UnsupportedError || e is FormatException) {
+
+          // Fail safely for unknown operations (UnsupportedError) or max attempts
+          if (request.attempts >= _maxAttempts) {
+            request.isPermanentFailure = true;
+            request.lastError = 'Exceeded $_maxAttempts attempts';
+          } else if (e is UnsupportedError || e is FormatException) {
             request.isPermanentFailure = true;
           }
 
           await _box.put(key, request.toMap());
+          _updatePendingCount();
           if (kDebugMode) {
             debugPrint(
               'OfflineAIQueue: ${request.method} attempt ${request.attempts} failed: $e',
@@ -204,14 +210,16 @@ class OfflineAIQueue {
     }
   }
 
-  /// Number of pending requests in the queue.
+  /// Total number of requests in the queue box.
   int get pending => _box.length;
+
+  /// Number of actionable requests (excluding diagnostic permanent failures).
+  int get activePending =>
+      pendingRequests.where((r) => !r.isPermanentFailure).length;
 
   /// All pending requests, for UI display.
   List<QueuedAIRequest> get pendingRequests {
-    return _box.values
-        .map((raw) => QueuedAIRequest.fromMap(raw))
-        .toList()
+    return _box.values.map((raw) => QueuedAIRequest.fromMap(raw)).toList()
       ..sort((a, b) => a.queuedAt.compareTo(b.queuedAt));
   }
 

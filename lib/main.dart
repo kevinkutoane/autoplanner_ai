@@ -37,9 +37,15 @@ void callbackDispatcher() {
               await SecureKeyService.getOrCreateHiveEncryptionKey();
           final hiveCipher = HiveAesCipher(hiveKeyBytes);
           if (!Hive.isBoxOpen('calendarBox')) {
-            await Hive.openBox<CalendarEvent>(
+            await AppBootstrapper.openBoxSafe<CalendarEvent>(
               'calendarBox',
-              encryptionCipher: hiveCipher,
+              hiveCipher,
+            );
+          }
+          if (!Hive.isBoxOpen('settingsBox')) {
+            await AppBootstrapper.openBoxSafe<dynamic>(
+              'settingsBox',
+              hiveCipher,
             );
           }
           final googleAuth = GoogleAuthService();
