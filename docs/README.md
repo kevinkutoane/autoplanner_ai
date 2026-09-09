@@ -2,13 +2,13 @@
 
 > **AI-powered daily planner for Android & iOS** — turn a stream-of-consciousness brain dump into a fully scheduled, priority-scored day in seconds.
 
-**Version:** 1.0.0+1 · **Flutter SDK:** `^3.8.1` · **Dart SDK:** `^3.8.1` · **AI Model:** Gemini 2.5 Flash
+**Version:** 1.1.0 · **Flutter SDK:** `^3.8.1` · **Dart SDK:** `^3.8.1` · **AI Model:** Gemini 2.5 Flash
 
 ---
 
 ## Architecture
 
-For a detailed breakdown of the app's structural design, deterministic scheduling algorithm, and offline-first data flows, see [ARCHITECTURE.md](ARCHITECTURE.md).
+For a detailed breakdown of the app's structural design, unified startup lifecycle, deterministic scheduling algorithm, and offline-first data flows, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ---
 
@@ -18,6 +18,7 @@ For a detailed breakdown of the app's structural design, deterministic schedulin
 
 - **Brain Dump** — paste or speak anything on your mind; AI classifies it into tasks, notes, and long-term memories in real time with streaming output
 - **AI Task Parser** — natural language → structured tasks with start time, realistic duration, and priority (Low / Medium / High / Urgent)
+- **AI Output Validation** — strict schema and domain validation boundary (`AIValidator`) preventing malformed or out-of-bounds LLM outputs from polluting state
 - **Plan My Day** — one-tap AI enrichment pass re-scores all pending tasks, estimates durations, then a deterministic scheduling engine packs them into your work window with zero conflicts
 - **Day Planner** — drag-reorder, inline complete/delete, and tap-to-edit any task (title, priority, time, duration, note)
 - **Goals & Projects** — structure your life's ambition by linking tasks, notes, and events directly to larger objectives and project containers
@@ -37,7 +38,8 @@ When the app comes to the foreground the scheduler checks for overdue tasks (mis
 
 ### Integrations
 
-- **Google Calendar** — bidirectional sync via Google Calendar REST API v3 with OAuth sign-in, etag-based conflict detection, and background periodic sync via Workmanager
+- **Google Calendar** — bidirectional sync via Google Calendar REST API v3 with OAuth sign-in, official `syncToken` incremental change-tracking, etag-based conflict detection, and background periodic sync via Workmanager
+- **Offline AI Queue** — persistent queue backed by encrypted Hive storage; catches operations when offline or when network errors occur and drains automatically on reconnect with exponential backoff and retry bounds
 - **Notifications** — timezone-aware local reminders 10 minutes before each task via `flutter_local_notifications`
 - **Home Screen Widget** — top-3 upcoming tasks + completion stats pushed to Android/iOS home widget
 - **Background Sync** — Workmanager periodic task (1 hr) for calendar sync when connected
@@ -45,7 +47,7 @@ When the app comes to the foreground the scheduler checks for overdue tasks (mis
 
 ### AI Capabilities
 
-- `parseTasks` — natural language → structured `TaskItem` list
+- `parseTasks` — natural language → structured `TaskItem` list with strict bounds checking
 - `planDay` — AI enrichment: re-score priority + estimate durations
 - `suggestReschedule` — picks the best free slot for a missed task using task context + Gemini reasoning
 - `brainDump` — streaming classification into tasks, notes, and memories
@@ -65,11 +67,12 @@ When the app comes to the foreground the scheduler checks for overdue tasks (mis
 | Layer | Technology |
 | --- | --- |
 | UI | Flutter 3 + Material 3 (custom brand palette, animated orb backgrounds) |
-| State | Riverpod (`StateNotifierProvider`) |
-| Persistence | Hive — AES-256 encrypted via OS keychain key |
+| State | Riverpod (`NotifierProvider`, `Provider`, root `ProviderContainer`) |
+| Persistence | Hive — AES-256 encrypted via OS keychain key with safe corruption recovery |
+| Startup | `AppBootstrapper` unified initialization orchestrator |
 | AI | Google Gemini 2.5 Flash (`google_generative_ai`) with streaming support |
-| Scheduling | Custom pure-Dart greedy slot-packer (`SchedulerService`) |
-| Calendar Sync | Google Calendar REST API v3 (`http` + `google_sign_in`) |
+| Scheduling | Custom pure-Dart greedy slot-packer (`SchedulerService` with `clock` abstraction) |
+| Calendar Sync | Google Calendar REST API v3 (`syncToken` incremental sync + OAuth) |
 | Background | `workmanager` periodic tasks (Android/iOS) |
 | Notifications | `flutter_local_notifications` + `timezone` |
 | Charts | `fl_chart` (analytics trends, tag distributions) |
@@ -82,6 +85,7 @@ When the app comes to the foreground the scheduler checks for overdue tasks (mis
 ## Security
 
 - **Hive encrypted at rest** — a 32-byte AES key is generated on first install and stored in the Android Keystore / iOS Secure Enclave via `flutter_secure_storage`. All boxes use `HiveAesCipher`.
+- **Corrupted box recovery** — if a box fails decryption or encounters file corruption, a timestamped `.corrupt.<timestamp>.bak` file is created before the box is cleanly re-opened, preventing unrecoverable data destruction.
 - **API key in OS keychain** — the user's Gemini API key is stored via `flutter_secure_storage`, never written to Hive or bundled assets. Google OAuth tokens are also persisted in the secure keychain.
 - **Biometric lock** — optional fingerprint / Face ID gate on cold launch and every time the app resumes from background. Falls back to device PIN/pattern.
 - **Prompt injection mitigation** — all user-supplied strings are sanitised (triple-quote sequences neutralised, null bytes stripped) before being interpolated into AI prompts.
@@ -123,16 +127,18 @@ On first launch the onboarding walkthrough introduces the app. Add or update you
 
 ```text
 lib/
-├── main.dart                          # App entry, init chain (Hive, Services, Workmanager)
+├── main.dart                          # App entry point, delegates to AppBootstrapper
 ├── app_shell.dart                     # Bottom nav shell + Brain Dump FAB
 │
 ├── core/
-│   ├── ai/                            # AI layer, token tracking, offline queue
+│   ├── ai/                            # AI layer, token tracking, AIValidator, guard
+│   ├── bootstrap/                     # AppBootstrapper unified startup sequence
+│   ├── config/                        # Env and constants
+│   ├── diagnostics/                   # AppMonitor and Sentry CrashReporter
 │   ├── models/                        # Hive models (Tasks, Notes, Goals, Projects, Calendar)
 │   ├── providers/                     # Centralized Riverpod providers
-│   ├── diagnostics/                   # AppMonitor and Sentry CrashReporter
 │   ├── theme/                         # App themes & UI kits
-│   └── config/                        # Env and constants
+│   └── widgets/                       # ErrorBoundary and shared core widgets
 │
 ├── features/
 │   ├── analytics/                     # Insights, charts, AI weekly reviews
@@ -150,11 +156,32 @@ lib/
 │
 └── services/
     ├── ai_service.dart                # Sanitized AI calling with exponential back-off
-    ├── calendar_sync_service.dart     # Bidirectional Google sync engine
-    ├── scheduler_service.dart         # Pure-Dart deterministic time packer
+    ├── app_monitor_service.dart       # Event & error monitoring
+    ├── calendar_sync_service.dart     # Bidirectional Google sync engine with syncTokens
     ├── memory_service.dart            # Encrypted persistent memory layer
-    ├── offline_ai_queue.dart          # Request interceptor for offline operations
+    ├── offline_ai_queue.dart          # Persistent offline request queue & dispatcher
+    ├── scheduler_service.dart         # Pure-Dart deterministic time packer with clock
     └── ...                            # (Auth, Notification, Backup, Key Management, etc.)
+```
+
+---
+
+## Testing & Quality
+
+Automated tests and quality checks run via GitHub Actions (`.github/workflows/ci.yml`) on every pull request and push to `main` and `develop`:
+
+```bash
+# Run static analysis
+flutter analyze lib test --fatal-infos
+
+# Run full test suite (402 tests)
+flutter test
+
+# Run scheduler behavioral tests with clock abstraction
+flutter test test/scheduler_service_test.dart
+
+# Build verification
+flutter build apk --debug
 ```
 
 ---
@@ -198,11 +225,6 @@ lib/
    ```
 
 4. Upload via **Xcode → Distribute App** or **Transporter**.
-
-### Environment Notes
-
-- `.env` ships inside the APK/IPA (listed under `pubspec.yaml` assets) with `GEMINI_API_KEY=` blank. The user enters their own key via **Settings → AI Settings**.
-- `ENV=prod` is the default in `.env` so the app title reads "AutoPlanner AI" (not "[DEV]").
 
 ---
 

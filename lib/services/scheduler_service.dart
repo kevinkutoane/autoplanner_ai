@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import '../core/models/task_model.dart';
 import '../core/models/calendar_event_model.dart';
 
@@ -34,10 +35,9 @@ class SchedulerService {
 
     // When scheduling "today" after the normal work window has closed,
     // extend the end-of-day to 23:59 so tasks can still be placed.
-    final now = DateTime.now();
-    final isToday = day.year == now.year &&
-        day.month == now.month &&
-        day.day == now.day;
+    final now = clock.now();
+    final isToday =
+        day.year == now.year && day.month == now.month && day.day == now.day;
     if (isToday && now.isAfter(workEnd)) {
       workEnd = DateTime(day.year, day.month, day.day, 23, 59);
     }
@@ -95,10 +95,9 @@ class SchedulerService {
 
     // When scheduling "today" after the normal work window has closed,
     // extend the end-of-day to 23:59 so tasks can still be placed.
-    final now = DateTime.now();
-    final isToday = day.year == now.year &&
-        day.month == now.month &&
-        day.day == now.day;
+    final now = clock.now();
+    final isToday =
+        day.year == now.year && day.month == now.month && day.day == now.day;
     if (isToday && now.isAfter(workEnd)) {
       workEnd = DateTime(day.year, day.month, day.day, 23, 59);
     }
@@ -133,7 +132,7 @@ class SchedulerService {
   /// When scheduling today and we are past work start, begin from the next
   /// rounded quarter-hour so tasks don't land in the past.
   DateTime _initialCursor(DateTime workStart, DateTime day) {
-    final now = DateTime.now();
+    final now = clock.now();
     final isToday =
         now.year == day.year && now.month == day.month && now.day == day.day;
     if (isToday && now.isAfter(workStart)) {

@@ -1,5 +1,7 @@
+import 'package:clock/clock.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:autoplanner_ai/core/models/task_model.dart';
+import 'package:autoplanner_ai/core/models/calendar_event_model.dart';
 import 'package:autoplanner_ai/services/scheduler_service.dart';
 
 void main() {
@@ -175,6 +177,202 @@ void main() {
       );
       final task = result.first;
       expect(task.endTime!.difference(task.startTime).inMinutes, 30);
+    });
+  });
+
+  group('SchedulerService Clock abstraction & behavioural tests', () {
+    final testDate = DateTime(2026, 6, 15);
+
+    test(
+      'morning scheduling: when scheduling before work start, starts at work start',
+      () {
+        final morningTime = DateTime(2026, 6, 15, 7, 30);
+        withClock(Clock.fixed(morningTime), () {
+          final result = scheduler.scheduleDay(
+            tasks: [_task(id: 't1')],
+            day: testDate,
+            workStartHour: 9,
+            workHoursPerDay: 8,
+          );
+          expect(result, hasLength(1));
+          expect(result.first.startTime, DateTime(2026, 6, 15, 9, 0));
+        });
+      },
+    );
+
+    test('mid-day scheduling: tasks are placed in future, not in the past', () {
+      final midDayTime = DateTime(2026, 6, 15, 11, 15);
+      withClock(Clock.fixed(midDayTime), () {
+        final result = scheduler.scheduleDay(
+          tasks: [_task(id: 't1', startTime: DateTime(2026, 6, 15, 8, 0))],
+          day: testDate,
+          workStartHour: 9,
+          workHoursPerDay: 8,
+        );
+        expect(result, hasLength(1));
+        expect(result.first.startTime.isAfter(midDayTime), isTrue);
+      });
+    });
+
+    test(
+      'near end-of-day scheduling: task is not scheduled if it overflows work end',
+      () {
+        // Work ends at 17:00. At 16:45, a 60-min task cannot fit before 17:00.
+        final nearEndTime = DateTime(2026, 6, 15, 16, 45);
+        withClock(Clock.fixed(nearEndTime), () {
+          final result = scheduler.scheduleDay(
+            tasks: [_task(id: 't1')],
+            day: testDate,
+            workStartHour: 9,
+            workHoursPerDay: 8,
+          );
+          expect(result, isEmpty);
+        });
+      },
+    );
+
+    test(
+      'post work-hours scheduling: extends work window to 23:59 for today',
+      () {
+        // Work normally ends at 17:00. At 18:30 today, workEnd extends to 23:59.
+        final eveningTime = DateTime(2026, 6, 15, 18, 30);
+        withClock(Clock.fixed(eveningTime), () {
+          final result = scheduler.scheduleDay(
+            tasks: [_task(id: 't1')],
+            day: testDate,
+            workStartHour: 9,
+            workHoursPerDay: 8,
+          );
+          expect(result, hasLength(1));
+          expect(result.first.startTime.isAfter(eveningTime), isTrue);
+          expect(
+            result.first.endTime!.isBefore(DateTime(2026, 6, 15, 23, 59, 1)),
+            isTrue,
+          );
+        });
+      },
+    );
+
+    test(
+      'no available time: when window is completely blocked by calendar, no pending tasks fit',
+      () {
+        final morningTime = DateTime(2026, 6, 15, 8, 0);
+        withClock(Clock.fixed(morningTime), () {
+          final busyCalendar = CalendarEvent(
+            id: 'busy_all_day',
+            title: 'All Day Workshop',
+            startTime: DateTime(2026, 6, 15, 9, 0),
+            endTime: DateTime(2026, 6, 15, 17, 0),
+          );
+          final result = scheduler.scheduleDay(
+            tasks: [_task(id: 't1')],
+            day: testDate,
+            workStartHour: 9,
+            workHoursPerDay: 8,
+            calendarBlocks: [busyCalendar],
+          );
+          expect(result, isEmpty);
+        });
+      },
+    );
+
+    test(
+      'occupied blocks: schedules around external calendar events and adds buffer',
+      () {
+        final morningTime = DateTime(2026, 6, 15, 8, 0);
+        withClock(Clock.fixed(morningTime), () {
+          final calMeeting = CalendarEvent(
+            id: 'meeting',
+            title: 'Team Sync',
+            startTime: DateTime(2026, 6, 15, 10, 0),
+            endTime: DateTime(2026, 6, 15, 11, 0),
+          );
+          final result = scheduler.scheduleDay(
+            tasks: [
+              _task(id: 't1'),
+              _task(id: 't2'),
+            ],
+            day: testDate,
+            workStartHour: 9,
+            workHoursPerDay: 8,
+            calendarBlocks: [calMeeting],
+          );
+          expect(result, hasLength(2));
+          // t1 gets 09:00 - 10:00
+          expect(result[0].startTime, DateTime(2026, 6, 15, 9, 0));
+          expect(result[0].endTime, DateTime(2026, 6, 15, 10, 0));
+          // t2 gets scheduled after meeting (11:00) + 10 min buffer = 11:10
+          expect(result[1].startTime, DateTime(2026, 6, 15, 11, 10));
+          expect(result[1].endTime, DateTime(2026, 6, 15, 12, 10));
+        });
+      },
+    );
+
+    test(
+      'deterministic repeated execution: identical tasks and clock yield identical schedule',
+      () {
+        final fixedNow = DateTime(2026, 6, 15, 10, 20);
+        final tasks = [
+          _task(id: 't1', priority: 3),
+          _task(id: 't2', priority: 1),
+          _task(id: 't3', priority: 2),
+        ];
+        final calEvents = [
+          CalendarEvent(
+            id: 'cal1',
+            title: 'Lunch',
+            startTime: DateTime(2026, 6, 15, 12, 0),
+            endTime: DateTime(2026, 6, 15, 13, 0),
+          ),
+        ];
+
+        List<TaskItem> run1 = [];
+        List<TaskItem> run2 = [];
+
+        withClock(Clock.fixed(fixedNow), () {
+          run1 = scheduler.scheduleDay(
+            tasks: tasks,
+            day: testDate,
+            workStartHour: 9,
+            workHoursPerDay: 8,
+            calendarBlocks: calEvents,
+          );
+        });
+
+        withClock(Clock.fixed(fixedNow), () {
+          run2 = scheduler.scheduleDay(
+            tasks: tasks,
+            day: testDate,
+            workStartHour: 9,
+            workHoursPerDay: 8,
+            calendarBlocks: calEvents,
+          );
+        });
+
+        expect(run1.length, run2.length);
+        for (var i = 0; i < run1.length; i++) {
+          expect(run1[i].id, run2[i].id);
+          expect(run1[i].startTime, run2[i].startTime);
+          expect(run1[i].endTime, run2[i].endTime);
+        }
+      },
+    );
+
+    test('freeSlots respects clock when requesting slots for today', () {
+      final fixedNow = DateTime(2026, 6, 15, 13, 0);
+      withClock(Clock.fixed(fixedNow), () {
+        final slots = scheduler.freeSlots(
+          day: testDate,
+          workStartHour: 9,
+          workHoursPerDay: 8,
+          slotDuration: const Duration(minutes: 60),
+          count: 2,
+        );
+        expect(slots, isNotEmpty);
+        for (final slot in slots) {
+          expect(slot.isAfter(fixedNow), isTrue);
+        }
+      });
     });
   });
 }

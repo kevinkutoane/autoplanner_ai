@@ -780,24 +780,21 @@ Respond with ONLY the review text.
 
       final results = <TaskItem>[];
       for (final item in jsonList) {
+        if (item is! Map<String, dynamic>) continue;
         try {
+          AIValidator.validateTaskDomain(item, context: 'planDay');
+          
           final existingId = item['id'] as String?;
-          final estimatedMins =
-              ((item['estimatedMinutes'] as num?)?.toInt() ?? 60).clamp(15, 480);
+          final estimatedMins = (item['estimatedMinutes'] as num?)?.toInt() ?? 60;
           final duration = Duration(minutes: estimatedMins);
 
           if (existingId != null && existingMap.containsKey(existingId)) {
             final existing = existingMap[existingId]!;
             results.add(
               existing.copyWith(
-                title: (item['title'] as String?)?.trim() ?? existing.title,
-                priority:
-                    (item['priority'] as int?)?.clamp(0, 3) ?? existing.priority,
-                tags:
-                    (item['tags'] as List<dynamic>?)
-                        ?.map((e) => e.toString())
-                        .toList() ??
-                    existing.tags,
+                title: (item['title'] as String).trim(),
+                priority: item['priority'] as int? ?? existing.priority,
+                tags: (item['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? existing.tags,
                 endTime: existing.startTime.add(duration),
               ),
             );
@@ -806,15 +803,11 @@ Respond with ONLY the review text.
             results.add(
               TaskItem(
                 id: _uuid.v4(),
-                title: (item['title'] as String?)?.trim() ?? 'New Task',
+                title: (item['title'] as String).trim(),
                 startTime: now,
                 endTime: now.add(duration),
-                priority: (item['priority'] as int?)?.clamp(0, 3) ?? 1,
-                tags:
-                    (item['tags'] as List<dynamic>?)
-                        ?.map((e) => e.toString())
-                        .toList() ??
-                    [],
+                priority: item['priority'] as int? ?? 1,
+                tags: (item['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
               ),
             );
           }
@@ -840,10 +833,11 @@ Respond with ONLY the review text.
       final now = DateTime.now();
       final results = <TaskItem>[];
       for (final task in jsonList) {
+        if (task is! Map<String, dynamic>) continue;
         try {
-          final timeParts = ((task['startTime'] as String?) ?? '09:00').split(
-            ':',
-          );
+          AIValidator.validateTaskDomain(task, context: 'parseTasks');
+          
+          final timeParts = ((task['startTime'] as String?) ?? '09:00').split(':');
           final start = DateTime(
             now.year,
             now.month,
@@ -851,20 +845,16 @@ Respond with ONLY the review text.
             int.tryParse(timeParts[0]) ?? 9,
             int.tryParse(timeParts.elementAtOrNull(1) ?? '0') ?? 0,
           );
-          final estimatedMins =
-              ((task['estimatedMinutes'] as num?)?.toInt() ?? 60).clamp(15, 480);
+          
+          final estimatedMins = (task['estimatedMinutes'] as num?)?.toInt() ?? 60;
           results.add(
             TaskItem(
               id: _uuid.v4(),
-              title: (task['title'] as String?)?.trim() ?? 'Task',
+              title: (task['title'] as String).trim(),
               startTime: start,
               endTime: start.add(Duration(minutes: estimatedMins)),
-              priority: (task['priority'] as int?)?.clamp(0, 3) ?? 1,
-              tags:
-                  (task['tags'] as List<dynamic>?)
-                      ?.map((e) => e.toString())
-                      .toList() ??
-                  [],
+              priority: (task['priority'] as int?) ?? 1,
+              tags: (task['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
             ),
           );
         } catch (e) {
