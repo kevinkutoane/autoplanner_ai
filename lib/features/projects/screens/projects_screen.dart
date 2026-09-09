@@ -1,6 +1,8 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/models/project_model.dart';
 import '../../../core/models/goal_model.dart';
@@ -104,11 +106,13 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
               onPressed: () {
                 final title = titleCtrl.text.trim();
                 if (title.isEmpty) return;
-                ref.read(projectControllerProvider.notifier).createProject(
-                  title: title,
-                  description: descCtrl.text.trim(),
-                  parentGoalId: selectedGoal?.id,
-                );
+                ref
+                    .read(projectControllerProvider.notifier)
+                    .createProject(
+                      title: title,
+                      description: descCtrl.text.trim(),
+                      parentGoalId: selectedGoal?.id,
+                    );
                 Navigator.pop(ctx);
               },
               child: const Text('Add'),
@@ -161,12 +165,14 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
             onPressed: () {
               final title = titleCtrl.text.trim();
               if (title.isEmpty) return;
-              ref.read(projectControllerProvider.notifier).updateProject(
-                project.copyWith(
-                  title: title,
-                  description: descCtrl.text.trim(),
-                ),
-              );
+              ref
+                  .read(projectControllerProvider.notifier)
+                  .updateProject(
+                    project.copyWith(
+                      title: title,
+                      description: descCtrl.text.trim(),
+                    ),
+                  );
               Navigator.pop(ctx);
             },
             child: const Text('Save'),
@@ -192,7 +198,9 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
-              ref.read(projectControllerProvider.notifier).removeProject(project.id);
+              ref
+                  .read(projectControllerProvider.notifier)
+                  .removeProject(project.id);
               Navigator.pop(ctx);
             },
             child: const Text('Delete'),
@@ -290,7 +298,11 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
                 controller: _tabCtrl,
                 children: [
                   _buildProjectList(active, isDark, isEmpty: active.isEmpty),
-                  _buildProjectList(completed, isDark, isEmpty: completed.isEmpty),
+                  _buildProjectList(
+                    completed,
+                    isDark,
+                    isEmpty: completed.isEmpty,
+                  ),
                 ],
               ),
             ),
@@ -323,8 +335,9 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
           isExpanded: _expandedProjectId == project.id,
           onTap: () {
             setState(() {
-              _expandedProjectId =
-                  _expandedProjectId == project.id ? null : project.id;
+              _expandedProjectId = _expandedProjectId == project.id
+                  ? null
+                  : project.id;
             });
           },
           onEdit: () => _showEditProjectDialog(project),
@@ -370,8 +383,9 @@ class _ProjectExpandableCard extends ConsumerWidget {
         : null;
 
     // Find linked tasks.
-    final linkedTasks =
-        tasks.where((t) => project.linkedTaskIds.contains(t.id)).toList();
+    final linkedTasks = tasks
+        .where((t) => project.linkedTaskIds.contains(t.id))
+        .toList();
     final completedTasks = linkedTasks.where((t) => t.isCompleted).length;
 
     return Padding(
@@ -434,7 +448,9 @@ class _ProjectExpandableCard extends ConsumerWidget {
                                 '${parentGoal.emoji} ${parentGoal.title}',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: isDark ? Colors.white54 : Colors.black45,
+                                  color: isDark
+                                      ? Colors.white54
+                                      : Colors.black45,
                                 ),
                               ),
                             ],
@@ -471,18 +487,24 @@ class _ProjectExpandableCard extends ConsumerWidget {
                           height: 26,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            gradient: project.isCompleted ? kGradientTeal : null,
+                            gradient: project.isCompleted
+                                ? kGradientTeal
+                                : null,
                             border: project.isCompleted
                                 ? null
                                 : Border.all(
-                                    color:
-                                        isDark ? Colors.white38 : Colors.black26,
+                                    color: isDark
+                                        ? Colors.white38
+                                        : Colors.black26,
                                     width: 1.5,
                                   ),
                           ),
                           child: project.isCompleted
-                              ? const Icon(Icons.check_rounded,
-                                  size: 14, color: Colors.white)
+                              ? const Icon(
+                                  Icons.check_rounded,
+                                  size: 14,
+                                  color: Colors.white,
+                                )
                               : null,
                         ),
                       ),
@@ -519,10 +541,7 @@ class _ProjectExpandableCard extends ConsumerWidget {
 
                     // Linked tasks
                     if (linkedTasks.isNotEmpty) ...[
-                      _SectionLabel(
-                        label: 'Linked Tasks',
-                        color: kCyan,
-                      ),
+                      _SectionLabel(label: 'Linked Tasks', color: kCyan),
                       ...linkedTasks.map(
                         (task) => _LinkedTaskRow(task: task, isDark: isDark),
                       ),
@@ -578,7 +597,9 @@ class _LinkedTaskRow extends StatelessWidget {
                 ? Icons.check_circle_rounded
                 : Icons.radio_button_unchecked_rounded,
             size: 16,
-            color: task.isCompleted ? kCyan : (isDark ? Colors.white38 : Colors.black38),
+            color: task.isCompleted
+                ? kCyan
+                : (isDark ? Colors.white38 : Colors.black38),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -586,7 +607,9 @@ class _LinkedTaskRow extends StatelessWidget {
               task.title,
               style: TextStyle(
                 fontSize: 13,
-                decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                decoration: task.isCompleted
+                    ? TextDecoration.lineThrough
+                    : null,
                 color: task.isCompleted
                     ? (isDark ? Colors.white38 : Colors.black38)
                     : (isDark ? Colors.white70 : Colors.black87),

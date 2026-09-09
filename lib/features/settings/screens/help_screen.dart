@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../onboarding/screens/onboarding_screen.dart';
 
@@ -342,8 +343,7 @@ class HelpScreen extends StatelessWidget {
                           icon: Icons.record_voice_over_rounded,
                           color: kIndigo,
                           title: 'Brain Dump',
-                          summary:
-                              'Freeform text or voice → AI-structured tasks, goals & memories',
+                          summary: 'Freeform text or voice → AI-structured tasks, goals & memories',
                           detail:
                               'Open Brain Dump from the floating "+" button on any screen. '
                               'Type or dictate anything — a list, a paragraph, random thoughts. '
@@ -357,8 +357,7 @@ class HelpScreen extends StatelessWidget {
                           icon: Icons.today_rounded,
                           color: kCyan,
                           title: 'Plan My Day',
-                          summary:
-                              'One tap to AI-enrich and schedule your entire day',
+                          summary: 'One tap to AI-enrich and schedule your entire day',
                           detail:
                               'Tap the "Plan My Day" button at the top of the Planner. '
                               'The AI re-scores every pending task\'s priority and estimates '
@@ -373,8 +372,7 @@ class HelpScreen extends StatelessWidget {
                           icon: Icons.auto_fix_high_rounded,
                           color: kCoral,
                           title: 'Proactive Rescheduling',
-                          summary:
-                              'Missed a task? The app finds a new slot automatically',
+                          summary: 'Missed a task? The app finds a new slot automatically',
                           detail:
                               'Every time you open the planner (or bring the app to the '
                               'foreground), it checks for overdue uncompleted tasks. If it '
@@ -388,8 +386,7 @@ class HelpScreen extends StatelessWidget {
                           icon: Icons.flag_rounded,
                           color: kCoral,
                           title: 'Goals & Projects',
-                          summary:
-                              'Set goals, link tasks, and track progress',
+                          summary: 'Set goals, link tasks, and track progress',
                           detail:
                               'Create goals in the Goals tab — each goal can have a description, '
                               'deadline, and emoji. Link tasks to goals from the Planner to track '
@@ -403,8 +400,7 @@ class HelpScreen extends StatelessWidget {
                           icon: Icons.psychology_alt_rounded,
                           color: kIndigo,
                           title: 'Memory',
-                          summary:
-                              'The AI remembers things about you across sessions',
+                          summary: 'The AI remembers things about you across sessions',
                           detail:
                               'Every time you brain-dump, plan your day, or summarise a note, '
                               'the AI extracts notable facts, patterns, and preferences and '
@@ -418,8 +414,7 @@ class HelpScreen extends StatelessWidget {
                           icon: Icons.calendar_month_rounded,
                           color: kCyan,
                           title: 'Calendar Sync',
-                          summary:
-                              'Two-way sync with Google Calendar',
+                          summary: 'Two-way sync with Google Calendar',
                           detail:
                               'Connect your Google account in Settings → Integrations. '
                               'The app syncs your calendar events and uses them as blocks '
@@ -432,8 +427,7 @@ class HelpScreen extends StatelessWidget {
                           icon: Icons.insights_rounded,
                           color: kCoral,
                           title: 'Analytics',
-                          summary:
-                              'Charts, trends, and a weekly AI productivity review',
+                          summary: 'Charts, trends, and a weekly AI productivity review',
                           detail:
                               'The Insights tab shows an overview of completed vs. planned '
                               'tasks, tag breakdowns, and completion trends over time. '
@@ -447,8 +441,7 @@ class HelpScreen extends StatelessWidget {
                           icon: Icons.widgets_rounded,
                           color: kAmber,
                           title: 'Home Screen Widget',
-                          summary:
-                              'Your top 3 tasks + stats without opening the app',
+                          summary: 'Your top 3 tasks + stats without opening the app',
                           detail:
                               'Add the AutoPlanner widget to your Android or iOS home screen. '
                               'It shows your next 3 upcoming tasks and a quick completion '

@@ -1,8 +1,10 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:intl/intl.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/models/note_model.dart';
 import '../controllers/note_controller.dart';
@@ -13,14 +15,20 @@ class NoteSearchNotifier extends Notifier<String> {
   String build() => '';
   void set(String value) => state = value;
 }
-final _noteSearchProvider = NotifierProvider<NoteSearchNotifier, String>(NoteSearchNotifier.new);
+
+final _noteSearchProvider = NotifierProvider<NoteSearchNotifier, String>(
+  NoteSearchNotifier.new,
+);
 
 class NoteTagFilterNotifier extends Notifier<String?> {
   @override
   String? build() => null;
   void set(String? value) => state = value;
 }
-final _noteTagFilterProvider = NotifierProvider<NoteTagFilterNotifier, String?>(NoteTagFilterNotifier.new);
+
+final _noteTagFilterProvider = NotifierProvider<NoteTagFilterNotifier, String?>(
+  NoteTagFilterNotifier.new,
+);
 
 class NotesScreen extends ConsumerWidget {
   const NotesScreen({super.key});
@@ -117,8 +125,9 @@ class NotesScreen extends ConsumerWidget {
                         child: GlassChip(
                           label: 'All',
                           selected: tagFilter == null,
-                          onTap: () =>
-                              ref.read(_noteTagFilterProvider.notifier).set(null),
+                          onTap: () => ref
+                              .read(_noteTagFilterProvider.notifier)
+                              .set(null),
                         ),
                       ),
                       ...allTags.map(
@@ -127,10 +136,9 @@ class NotesScreen extends ConsumerWidget {
                           child: GlassChip(
                             label: tag,
                             selected: tagFilter == tag,
-                            onTap: () =>
-                                ref
-                                    .read(_noteTagFilterProvider.notifier)
-                                    .set(tagFilter == tag ? null : tag),
+                            onTap: () => ref
+                                .read(_noteTagFilterProvider.notifier)
+                                .set(tagFilter == tag ? null : tag),
                           ),
                         ),
                       ),

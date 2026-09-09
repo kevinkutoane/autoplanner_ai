@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
+
 import '../../../core/models/memory_entry_model.dart';
 
 class MemoryController extends Notifier<List<MemoryEntry>> {

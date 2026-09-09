@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+
 import '../../../core/models/goal_model.dart';
 import '../../../core/models/project_model.dart';
 import '../../../core/providers/providers.dart';
@@ -22,7 +23,8 @@ class GoalController extends Notifier<List<GoalItem>> {
   }
 
   List<GoalItem> _getSortedGoals() {
-    return _box.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return _box.values.toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   void _refreshState() {
@@ -135,8 +137,9 @@ class GoalController extends Notifier<List<GoalItem>> {
   }
 }
 
-final goalControllerProvider =
-    NotifierProvider<GoalController, List<GoalItem>>(GoalController.new);
+final goalControllerProvider = NotifierProvider<GoalController, List<GoalItem>>(
+  GoalController.new,
+);
 
 // ── ProjectController ──────────────────────────────────────────────────────
 
@@ -150,7 +153,8 @@ class ProjectController extends Notifier<List<ProjectItem>> {
   }
 
   List<ProjectItem> _getSortedProjects() {
-    return _box.values.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return _box.values.toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   void _refreshState() {
@@ -218,8 +222,9 @@ class ProjectController extends Notifier<List<ProjectItem>> {
     _box.put(
       projectId,
       project.copyWith(
-        linkedTaskIds:
-            project.linkedTaskIds.where((id) => id != taskId).toList(),
+        linkedTaskIds: project.linkedTaskIds
+            .where((id) => id != taskId)
+            .toList(),
         updatedAt: DateTime.now(),
       ),
     );
@@ -232,4 +237,6 @@ class ProjectController extends Notifier<List<ProjectItem>> {
 }
 
 final projectControllerProvider =
-    NotifierProvider<ProjectController, List<ProjectItem>>(ProjectController.new);
+    NotifierProvider<ProjectController, List<ProjectItem>>(
+      ProjectController.new,
+    );

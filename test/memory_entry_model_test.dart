@@ -176,13 +176,16 @@ void main() {
 
   // ── Field validation helpers (immutability) ───────────────────────────────
   group('MemoryEntry immutability', () {
-    test('modifying tags list from constructor does not affect stored list', () {
-      // copyWith creates a new instance; the original stored list is unaffected.
-      final m = _entry(tags: const ['work']);
-      final copy = m.copyWith(tags: ['work', 'play']);
-      expect(m.tags, hasLength(1));
-      expect(copy.tags, hasLength(2));
-    });
+    test(
+      'modifying tags list from constructor does not affect stored list',
+      () {
+        // copyWith creates a new instance; the original stored list is unaffected.
+        final m = _entry(tags: const ['work']);
+        final copy = m.copyWith(tags: ['work', 'play']);
+        expect(m.tags, hasLength(1));
+        expect(copy.tags, hasLength(2));
+      },
+    );
 
     test('two entries with same id are independent objects', () {
       final a = _entry(id: 'dup', relevanceScore: 0.3);

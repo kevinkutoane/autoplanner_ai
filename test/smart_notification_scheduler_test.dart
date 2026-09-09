@@ -37,7 +37,8 @@ class TestableSmartScheduler extends SmartNotificationScheduler {
     }
 
     final isDefaultTime =
-        settings.morningBriefingHour == 8 && settings.morningBriefingMinute == 0;
+        settings.morningBriefingHour == 8 &&
+        settings.morningBriefingMinute == 0;
 
     if (!isDefaultTime) {
       scheduledHour = settings.morningBriefingHour;
@@ -72,8 +73,9 @@ class TestableSmartScheduler extends SmartNotificationScheduler {
       return (7, 30);
     }
 
-    final briefingTime =
-        earliest.startTime.subtract(const Duration(minutes: 30));
+    final briefingTime = earliest.startTime.subtract(
+      const Duration(minutes: 30),
+    );
     var hour = briefingTime.hour;
     var minute = briefingTime.minute;
 
@@ -94,10 +96,12 @@ class TestableSmartScheduler extends SmartNotificationScheduler {
     final tomorrow = DateTime(now.year, now.month, now.day + 1);
     final dayAfter = DateTime(now.year, now.month, now.day + 2);
 
-    final tomorrowTasks = tasks.where((t) =>
-        !t.isCompleted &&
-        t.startTime.isAfter(tomorrow) &&
-        t.startTime.isBefore(dayAfter));
+    final tomorrowTasks = tasks.where(
+      (t) =>
+          !t.isCompleted &&
+          t.startTime.isAfter(tomorrow) &&
+          t.startTime.isBefore(dayAfter),
+    );
 
     final count = tomorrowTasks.length;
     if (count == 0) return 'No tasks scheduled. Enjoy your day!';
@@ -153,11 +157,7 @@ void main() {
       final tomorrow = DateTime(now.year, now.month, now.day + 1, 9, 0);
 
       final tasks = [
-        TaskItem(
-          id: 'task-1',
-          title: 'Morning standup',
-          startTime: tomorrow,
-        ),
+        TaskItem(id: 'task-1', title: 'Morning standup', startTime: tomorrow),
       ];
 
       await scheduler.recalculate(
@@ -197,11 +197,7 @@ void main() {
       final tomorrow = DateTime(now.year, now.month, now.day + 1, 14, 0);
 
       final tasks = [
-        TaskItem(
-          id: 'task-late',
-          title: 'Afternoon task',
-          startTime: tomorrow,
-        ),
+        TaskItem(id: 'task-late', title: 'Afternoon task', startTime: tomorrow),
       ];
 
       await scheduler.recalculate(
@@ -236,11 +232,7 @@ void main() {
           startTime: tomorrow8,
           isCompleted: true,
         ),
-        TaskItem(
-          id: 'pending',
-          title: 'Next task',
-          startTime: tomorrow10,
-        ),
+        TaskItem(id: 'pending', title: 'Next task', startTime: tomorrow10),
       ];
 
       await scheduler.recalculate(
@@ -259,8 +251,18 @@ void main() {
 
       final tasks = [
         TaskItem(id: '1', title: 'Task 1', startTime: tomorrow, priority: 1),
-        TaskItem(id: '2', title: 'Task 2', startTime: tomorrow.add(const Duration(hours: 1)), priority: 3),
-        TaskItem(id: '3', title: 'Task 3', startTime: tomorrow.add(const Duration(hours: 2)), priority: 2),
+        TaskItem(
+          id: '2',
+          title: 'Task 2',
+          startTime: tomorrow.add(const Duration(hours: 1)),
+          priority: 3,
+        ),
+        TaskItem(
+          id: '3',
+          title: 'Task 3',
+          startTime: tomorrow.add(const Duration(hours: 2)),
+          priority: 2,
+        ),
       ];
 
       await scheduler.recalculate(

@@ -67,15 +67,15 @@ class BackupService {
       'exportedAt': DateTime.now().toIso8601String(),
       'tasks': Hive.box<TaskItem>('tasksBox').values.map(_taskToMap).toList(),
       'goals': Hive.box<GoalItem>('goalsBox').values.map(_goalToMap).toList(),
-      'projects': Hive.box<ProjectItem>(
-        'projectsBox',
-      ).values.map(_projectToMap).toList(),
-      'memories': Hive.box<MemoryEntry>(
-        'memoryBox',
-      ).values.map(_memoryToMap).toList(),
-      'calendarEvents': Hive.box<CalendarEvent>(
-        'calendarBox',
-      ).values.map(_calEventToMap).toList(),
+      'projects': Hive.box<ProjectItem>('projectsBox').values
+          .map(_projectToMap)
+          .toList(),
+      'memories': Hive.box<MemoryEntry>('memoryBox').values
+          .map(_memoryToMap)
+          .toList(),
+      'calendarEvents': Hive.box<CalendarEvent>('calendarBox').values
+          .map(_calEventToMap)
+          .toList(),
       'notes': Hive.box<NoteItem>('notesBox').values.map(_noteToMap).toList(),
     };
 

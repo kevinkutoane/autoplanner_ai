@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
@@ -352,61 +353,55 @@ void main() {
     },
   );
 
-  test(
-    'incrementalSync detects conflict when local pending_push event diverged remotely',
-    () async {
-      await settingsBox.put(
-        'google_calendar_sync_token',
-        'sync_token_conflict',
-      );
+  test('incrementalSync detects conflict when local pending_push event diverged remotely', () async {
+    await settingsBox.put('google_calendar_sync_token', 'sync_token_conflict');
 
-      // Local event that was modified locally while having an existing externalId
-      final conflictedEvent = CalendarEvent(
-        id: 'local_conflict_1',
-        title: 'Locally Modified Event',
-        startTime: DateTime(2026, 4, 21, 9, 0),
-        endTime: DateTime(2026, 4, 21, 10, 0),
-        externalId: 'ext_conflict_123',
-        etag: 'old_etag_1',
-        syncStatus: 'pending_push',
-      );
-      await calendarBox.put(conflictedEvent.id, conflictedEvent);
+    // Local event that was modified locally while having an existing externalId
+    final conflictedEvent = CalendarEvent(
+      id: 'local_conflict_1',
+      title: 'Locally Modified Event',
+      startTime: DateTime(2026, 4, 21, 9, 0),
+      endTime: DateTime(2026, 4, 21, 10, 0),
+      externalId: 'ext_conflict_123',
+      etag: 'old_etag_1',
+      syncStatus: 'pending_push',
+    );
+    await calendarBox.put(conflictedEvent.id, conflictedEvent);
 
-      final client = MockClient((request) async {
-        if (request.method == 'GET' && request.url.path.contains('/events')) {
-          return http.Response(
-            jsonEncode({
-              'items': [
-                {
-                  'id': 'ext_conflict_123',
-                  'etag': 'newer_remote_etag_2', // Remote etag changed!
-                  'summary': 'Remotely Modified Summary',
-                  'start': {'dateTime': '2026-04-21T09:00:00Z'},
-                  'end': {'dateTime': '2026-04-21T10:00:00Z'},
-                },
-              ],
-              'nextSyncToken': 'sync_token_after_conflict',
-            }),
-            200,
-          );
-        }
-        return http.Response(jsonEncode({}), 200);
-      });
+    final client = MockClient((request) async {
+      if (request.method == 'GET' && request.url.path.contains('/events')) {
+        return http.Response(
+          jsonEncode({
+            'items': [
+              {
+                'id': 'ext_conflict_123',
+                'etag': 'newer_remote_etag_2', // Remote etag changed!
+                'summary': 'Remotely Modified Summary',
+                'start': {'dateTime': '2026-04-21T09:00:00Z'},
+                'end': {'dateTime': '2026-04-21T10:00:00Z'},
+              },
+            ],
+            'nextSyncToken': 'sync_token_after_conflict',
+          }),
+          200,
+        );
+      }
+      return http.Response(jsonEncode({}), 200);
+    });
 
-      final service = CalendarSyncService(
-        googleAuth: authService,
-        client: client,
-      );
-      final result = await service.incrementalSync();
+    final service = CalendarSyncService(
+      googleAuth: authService,
+      client: client,
+    );
+    final result = await service.incrementalSync();
 
-      expect(result.hasError, isFalse);
-      final current = calendarBox.get('local_conflict_1')!;
-      expect(current.syncStatus, equals('conflict'));
-      expect(
-        current.title,
-        equals('Locally Modified Event'),
-      ); // Preserves local title
-      expect(current.etag, equals('newer_remote_etag_2'));
-    },
-  );
+    expect(result.hasError, isFalse);
+    final current = calendarBox.get('local_conflict_1')!;
+    expect(current.syncStatus, equals('conflict'));
+    expect(
+      current.title,
+      equals('Locally Modified Event'),
+    ); // Preserves local title
+    expect(current.etag, equals('newer_remote_etag_2'));
+  });
 }

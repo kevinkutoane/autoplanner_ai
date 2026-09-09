@@ -50,11 +50,9 @@ int calculateLongestStreak(List<TaskItem> tasks) {
   final completedDays = <DateTime>{};
   for (final t in tasks) {
     if (t.isCompleted) {
-      completedDays.add(DateTime(
-        t.startTime.year,
-        t.startTime.month,
-        t.startTime.day,
-      ));
+      completedDays.add(
+        DateTime(t.startTime.year, t.startTime.month, t.startTime.day),
+      );
     }
   }
   if (completedDays.isEmpty) return 0;

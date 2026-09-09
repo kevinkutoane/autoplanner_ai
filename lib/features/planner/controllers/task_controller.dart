@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+
 import '../../../core/models/task_model.dart';
 import '../../../core/models/memory_entry_model.dart';
 import '../../../core/providers/providers.dart';
@@ -37,18 +38,19 @@ class TaskController extends Notifier<List<TaskItem>> {
     _notifications = ref.read(notificationServiceProvider);
 
     _box = Hive.box<TaskItem>('tasksBox');
-    
+
     Future.microtask(() {
       _seedMissingRecurrences();
       _refreshState();
     });
-    
+
     return _getSortedTasks();
   }
 
   List<TaskItem> _getSortedTasks() {
     if (_box == null) return [];
-    return _box!.values.toList()..sort((a, b) => a.startTime.compareTo(b.startTime));
+    return _box!.values.toList()
+      ..sort((a, b) => a.startTime.compareTo(b.startTime));
   }
 
   List<TaskItem> get todayTasks {
@@ -105,11 +107,7 @@ class TaskController extends Notifier<List<TaskItem>> {
     // Handle recurrence change → refresh future calendar occurrences.
     if (oldTask != null && oldTask.recurrence != task.recurrence) {
       if (oldTask.recurrence != null) {
-        _removeFutureRecurrences(
-          oldTask.title,
-          oldTask.recurrence,
-          task.id,
-        );
+        _removeFutureRecurrences(oldTask.title, oldTask.recurrence, task.id);
       }
       if (task.recurrence != null) {
         _populateFutureRecurrences(task);
@@ -265,11 +263,7 @@ class TaskController extends Notifier<List<TaskItem>> {
       final nextDay = DateTime(nextDate.year, nextDate.month, nextDate.day);
       if (nextDay.isAfter(horizon)) break;
 
-      if (!_hasOccurrenceOnDay(
-        template.title,
-        template.recurrence,
-        nextDay,
-      )) {
+      if (!_hasOccurrenceOnDay(template.title, template.recurrence, nextDay)) {
         final newTask = TaskItem(
           id: _uuid.v4(),
           title: template.title,
@@ -316,7 +310,11 @@ class TaskController extends Notifier<List<TaskItem>> {
       if (t.id == excludeId) return false;
       if (t.title != title || t.recurrence != recurrence) return false;
       if (t.isCompleted) return false;
-      final tDay = DateTime(t.startTime.year, t.startTime.month, t.startTime.day);
+      final tDay = DateTime(
+        t.startTime.year,
+        t.startTime.month,
+        t.startTime.day,
+      );
       return tDay.isAfter(today);
     }).toList();
 
@@ -447,8 +445,10 @@ class TaskController extends Notifier<List<TaskItem>> {
   Future<void> _recalculateBriefing() async {
     try {
       final settingsBox = Hive.box('settingsBox');
-      final enabled =
-          settingsBox.get('morningBriefingEnabled', defaultValue: false) as bool;
+      final enabled = settingsBox.get(
+        'morningBriefingEnabled',
+        defaultValue: false,
+      ) as bool;
       if (!enabled) return;
       final hour =
           settingsBox.get('morningBriefingHour', defaultValue: 8) as int;
@@ -495,5 +495,6 @@ class TaskController extends Notifier<List<TaskItem>> {
   }
 }
 
-final taskControllerProvider =
-    NotifierProvider<TaskController, List<TaskItem>>(TaskController.new);
+final taskControllerProvider = NotifierProvider<TaskController, List<TaskItem>>(
+  TaskController.new,
+);

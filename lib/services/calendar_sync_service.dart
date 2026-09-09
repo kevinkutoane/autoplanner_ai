@@ -1,8 +1,10 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
+
 import '../core/models/calendar_event_model.dart';
 import 'google_auth_service.dart';
 
@@ -36,10 +38,8 @@ class CalendarSyncService {
   final GoogleAuthService _googleAuth;
   final http.Client _client;
 
-  CalendarSyncService({
-    required this._googleAuth,
-    http.Client? client,
-  }) : _client = client ?? http.Client();
+  CalendarSyncService({required this._googleAuth, http.Client? client})
+    : _client = client ?? http.Client();
 
   Box<CalendarEvent> get _box => Hive.box<CalendarEvent>('calendarBox');
 

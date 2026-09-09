@@ -1,6 +1,8 @@
 import 'dart:math' show exp;
+
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
+
 import '../core/models/memory_entry_model.dart';
 
 /// Local memory store backed by a Hive box.

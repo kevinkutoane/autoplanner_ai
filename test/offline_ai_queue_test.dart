@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:autoplanner_ai/services/offline_ai_queue.dart';
@@ -74,7 +75,7 @@ void main() {
       final originalArgs = {
         'tasks': ['Buy groceries', 'Call dentist'],
         'memories': [
-          {'text': 'Had a good day', 'score': 0.8}
+          {'text': 'Had a good day', 'score': 0.8},
         ],
       };
 
@@ -230,41 +231,45 @@ void main() {
       await box.close();
     });
 
-    test('exceeding max attempts marks as permanent failure instead of deleting', () async {
-      final queue = OfflineAIQueue(
-        executeCallback: (method, args) async => throw Exception('fail'),
-      );
-      await queue.init();
-      
-      await queue.enqueue('suggestTasks', {});
-      // Wait for the synchronous part of enqueue's background drain to finish
-      await Future.delayed(const Duration(milliseconds: 50));
-      
-      // Let's manually drain it enough times to exceed maxAttempts (which is 5).
-      for (var i = 0; i < 5; i++) {
-        await queue.drain();
-        await Future.delayed(const Duration(milliseconds: 20));
-      }
-      
-      // It should NOT be deleted, but marked as permanent failure.
-      expect(queue.pending, equals(1));
-      final pendingReq = queue.pendingRequests.first;
-      expect(pendingReq.isPermanentFailure, isTrue);
-      expect(pendingReq.lastError, equals('Exceeded 5 attempts'));
+    test(
+      'exceeding max attempts marks as permanent failure instead of deleting',
+      () async {
+        final queue = OfflineAIQueue(
+          executeCallback: (method, args) async => throw Exception('fail'),
+        );
+        await queue.init();
 
-      queue.dispose();
-      await Hive.deleteBoxFromDisk('aiQueueBox');
-    });
+        await queue.enqueue('suggestTasks', {});
+        // Wait for the synchronous part of enqueue's background drain to finish
+        await Future.delayed(const Duration(milliseconds: 50));
+
+        // Let's manually drain it enough times to exceed maxAttempts (which is 5).
+        for (var i = 0; i < 5; i++) {
+          await queue.drain();
+          await Future.delayed(const Duration(milliseconds: 20));
+        }
+
+        // It should NOT be deleted, but marked as permanent failure.
+        expect(queue.pending, equals(1));
+        final pendingReq = queue.pendingRequests.first;
+        expect(pendingReq.isPermanentFailure, isTrue);
+        expect(pendingReq.lastError, equals('Exceeded 5 attempts'));
+
+        queue.dispose();
+        await Hive.deleteBoxFromDisk('aiQueueBox');
+      },
+    );
 
     test('failing safely for unknown operations (UnsupportedError) immediately marks as permanent failure', () async {
       final queue = OfflineAIQueue(
-        executeCallback: (method, args) async => throw UnsupportedError('Unsupported method $method'),
+        executeCallback: (method, args) async =>
+            throw UnsupportedError('Unsupported method $method'),
       );
       await queue.init();
-      
+
       await queue.enqueue('unknownMethod', {});
       await Future.delayed(const Duration(milliseconds: 50));
-      
+
       expect(queue.pending, equals(1));
       final pendingReq = queue.pendingRequests.first;
       expect(pendingReq.isPermanentFailure, isTrue);

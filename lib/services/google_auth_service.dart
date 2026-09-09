@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+
 import 'secure_key_service.dart';
 
 /// Manages Google Sign-In and persists OAuth tokens to the secure keychain.
@@ -50,7 +52,9 @@ class GoogleAuthService {
   /// if the user cancels.
   Future<String?> signIn() async {
     try {
-      final account = await _googleSignIn.authenticate(scopeHint: ['email', 'profile', _calendarScope]);
+      final account = await _googleSignIn.authenticate(
+        scopeHint: ['email', 'profile', _calendarScope],
+      );
       connectedEmail.value = account.email;
       await _persistTokens(account);
       return account.email;
@@ -89,7 +93,9 @@ class GoogleAuthService {
       // Token missing or near expiry — refresh silently.
       final account = await _googleSignIn.attemptLightweightAuthentication();
       if (account == null) return null;
-      final auth = await account.authorizationClient.authorizationForScopes([_calendarScope]);
+      final auth = await account.authorizationClient.authorizationForScopes([
+        _calendarScope,
+      ]);
       final token = auth?.accessToken;
       if (token != null) {
         await _persistTokens(account);
@@ -103,7 +109,8 @@ class GoogleAuthService {
 
   Future<void> _persistTokens(GoogleSignInAccount account) async {
     try {
-      final authClient = await account.authorizationClient.authorizationForScopes([_calendarScope]);
+      final authClient = await account.authorizationClient
+          .authorizationForScopes([_calendarScope]);
       final auth = account.authentication;
       final expiry = DateTime.now()
           .add(const Duration(hours: 1))

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../controllers/settings_controller.dart';
@@ -74,8 +75,7 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                         ),
                         const SizedBox(width: 14),
                         ShaderMask(
-                          shaderCallback: (b) =>
-                              kGradientMain.createShader(b),
+                          shaderCallback: (b) => kGradientMain.createShader(b),
                           child: const Icon(
                             Icons.key_rounded,
                             color: Colors.white,
@@ -129,8 +129,7 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                           icon: Icons.lightbulb_outline_rounded,
                           color: kAmber,
                           title: 'Daily Insights',
-                          desc:
-                              'A personalised morning briefing based on your tasks, goals, and habits.',
+                          desc: 'A personalised morning briefing based on your tasks, goals, and habits.',
                           isDark: isDark,
                         ),
                         const SizedBox(height: 14),
@@ -138,8 +137,7 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                           icon: Icons.event_note_rounded,
                           color: kCyan,
                           title: 'Smart Task Parsing',
-                          desc:
-                              'Describe tasks in natural language and AI converts them into structured, scheduled items.',
+                          desc: 'Describe tasks in natural language and AI converts them into structured, scheduled items.',
                           isDark: isDark,
                         ),
                         const SizedBox(height: 14),
@@ -147,8 +145,7 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                           icon: Icons.psychology_rounded,
                           color: kIndigo,
                           title: 'Memory-Aware Suggestions',
-                          desc:
-                              'AI draws on your interaction history to make context-rich recommendations.',
+                          desc: 'AI draws on your interaction history to make context-rich recommendations.',
                           isDark: isDark,
                         ),
                         const SizedBox(height: 14),
@@ -156,8 +153,7 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                           icon: Icons.schedule_rounded,
                           color: kCoral,
                           title: 'Reschedule Proposals',
-                          desc:
-                              'When tasks go overdue, AI suggests optimal new times considering your calendar and goals.',
+                          desc: 'When tasks go overdue, AI suggests optimal new times considering your calendar and goals.',
                           isDark: isDark,
                         ),
                         const SizedBox(height: 12),
@@ -172,8 +168,7 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                             Icon(
                               Icons.lock_outline_rounded,
                               size: 14,
-                              color:
-                                  isDark ? Colors.white38 : Colors.black38,
+                              color: isDark ? Colors.white38 : Colors.black38,
                             ),
                             const SizedBox(width: 6),
                             Expanded(
@@ -215,9 +210,11 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                         const SizedBox(height: 6),
                         GestureDetector(
                           onTap: () {
-                            Clipboard.setData(const ClipboardData(
-                              text: 'https://aistudio.google.com/apikey',
-                            ));
+                            Clipboard.setData(
+                              const ClipboardData(
+                                text: 'https://aistudio.google.com/apikey',
+                              ),
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('URL copied to clipboard'),
@@ -233,9 +230,7 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                             decoration: BoxDecoration(
                               color: kIndigo.withAlpha(25),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: kIndigo.withAlpha(60),
-                              ),
+                              border: Border.all(color: kIndigo.withAlpha(60)),
                             ),
                             child: Row(
                               children: [
@@ -302,8 +297,7 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                             decoration: BoxDecoration(
                               color: kAmber.withAlpha(30),
                               borderRadius: BorderRadius.circular(10),
-                              border:
-                                  Border.all(color: kAmber.withAlpha(100)),
+                              border: Border.all(color: kAmber.withAlpha(100)),
                             ),
                             child: const Row(
                               children: [
@@ -317,7 +311,9 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                                   child: Text(
                                     'Mock AI is ON — disable it in AI Settings to use your key.',
                                     style: TextStyle(
-                                        fontSize: 12, color: kAmber),
+                                      fontSize: 12,
+                                      color: kAmber,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -354,11 +350,9 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                               children: [
                                 Icon(
                                   _testResult!
-                                      ? Icons
-                                          .check_circle_outline_rounded
+                                      ? Icons.check_circle_outline_rounded
                                       : Icons.error_outline_rounded,
-                                  color:
-                                      _testResult! ? kCyan : kCoral,
+                                  color: _testResult! ? kCyan : kCoral,
                                   size: 16,
                                 ),
                                 const SizedBox(width: 8),
@@ -369,9 +363,7 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                                         : 'Connection failed — check your key.',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: _testResult!
-                                          ? kCyan
-                                          : kCoral,
+                                      color: _testResult! ? kCyan : kCoral,
                                     ),
                                   ),
                                 ),
@@ -385,29 +377,21 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                             if (settings.geminiApiKey.isNotEmpty) ...[
                               GhostBtn(
                                 label: 'Clear',
-                                onTap: _saving
-                                    ? null
-                                    : () => _clear(ctrl),
+                                onTap: _saving ? null : () => _clear(ctrl),
                               ),
                               const SizedBox(width: 8),
                             ],
                             GhostBtn(
                               label: _testing ? '…' : 'Test',
-                              onTap: (_saving || _testing)
-                                  ? null
-                                  : _test,
+                              onTap: (_saving || _testing) ? null : _test,
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: GradBtn(
                                 label: _saving ? '…' : 'Save',
-                                icon: _saving
-                                    ? null
-                                    : Icons.check_rounded,
+                                icon: _saving ? null : Icons.check_rounded,
                                 gradient: kGradientMain,
-                                onTap: _saving
-                                    ? null
-                                    : () => _save(ctrl),
+                                onTap: _saving ? null : () => _save(ctrl),
                               ),
                             ),
                           ],
@@ -433,9 +417,17 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
     });
     try {
       await ref.read(aiServiceProvider).generateDailyInsight([], []);
-      if (mounted) setState(() { _testing = false; _testResult = true; });
+      if (mounted)
+        setState(() {
+          _testing = false;
+          _testResult = true;
+        });
     } catch (_) {
-      if (mounted) setState(() { _testing = false; _testResult = false; });
+      if (mounted)
+        setState(() {
+          _testing = false;
+          _testResult = false;
+        });
     }
   }
 

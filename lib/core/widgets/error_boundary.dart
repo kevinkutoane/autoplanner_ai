@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
 import '../theme/ui_kit.dart';
 
 /// A widget that catches errors in its child subtree and displays a
@@ -52,7 +53,8 @@ class _ErrorBoundaryState extends State<ErrorBoundary> {
     if (_hasError) {
       return _ErrorFallback(
         title: widget.errorTitle ?? 'Something went wrong',
-        message: widget.errorMessage ??
+        message:
+            widget.errorMessage ??
             'An unexpected error occurred. Please try again.',
         details: kDebugMode ? _errorDetails?.exceptionAsString() : null,
         onRetry: _reset,
@@ -172,9 +174,7 @@ Future<bool> showRetryDialog(
       final isDark = Theme.of(ctx).brightness == Brightness.dark;
       return AlertDialog(
         backgroundColor: isDark ? kDark1 : Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
             Icon(Icons.error_outline_rounded, color: kCoral, size: 22),
@@ -203,19 +203,14 @@ Future<bool> showRetryDialog(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
               cancelLabel,
-              style: TextStyle(
-                color: isDark ? Colors.white54 : Colors.black45,
-              ),
+              style: TextStyle(color: isDark ? Colors.white54 : Colors.black45),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
               retryLabel,
-              style: TextStyle(
-                color: kIndigo,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(color: kIndigo, fontWeight: FontWeight.w600),
             ),
           ),
         ],

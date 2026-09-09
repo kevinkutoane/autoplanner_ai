@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -144,9 +145,10 @@ class AppBootstrapper {
     // 6. Restore morning briefing & Google Calendar auth
     try {
       final settingsBox = Hive.box<dynamic>('settingsBox');
-      final briefingEnabled =
-          settingsBox.get('morningBriefingEnabled', defaultValue: false)
-              as bool;
+      final briefingEnabled = settingsBox.get(
+        'morningBriefingEnabled',
+        defaultValue: false,
+      ) as bool;
       final briefingHour =
           settingsBox.get('morningBriefingHour', defaultValue: 8) as int;
       final briefingMinute =

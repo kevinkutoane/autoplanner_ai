@@ -299,16 +299,13 @@ void main() {
       }
     });
 
-    test(
-      'isEmpty is true when mock returns unparseable brain dump format',
-      () async {
-        // MockAIProvider returns a JSON array (not the brain dump object format),
-        // so _parseBrainDumpResult will return an empty result.
-        final result = await service.brainDump('groceries and dentist');
-        // We don't assert isEmpty strictly — just no exception thrown.
-        expect(result, isA<BrainDumpResult>());
-      },
-    );
+    test('isEmpty is true when mock returns unparseable brain dump format', () async {
+      // MockAIProvider returns a JSON array (not the brain dump object format),
+      // so _parseBrainDumpResult will return an empty result.
+      final result = await service.brainDump('groceries and dentist');
+      // We don't assert isEmpty strictly — just no exception thrown.
+      expect(result, isA<BrainDumpResult>());
+    });
   });
 
   // ── generateDailyInsight ─────────────────────────────────────────────────
@@ -439,8 +436,7 @@ void main() {
           } else {
             // Valid JSON
             return const AIResponse(
-              text:
-                  '[{"pattern": "Morning focus", "confidence": 0.8, "category": "time"}]',
+              text: '[{"pattern": "Morning focus", "confidence": 0.8, "category": "time"}]',
             );
           }
         });
@@ -477,47 +473,50 @@ void main() {
       },
     );
 
-    test('fails fast on AIDomainValidationException without retrying', () async {
-      int callCount = 0;
-      final failFastProvider = _CallbackAIProvider((prompt) async {
-        callCount++;
-        // Throws domain validation exception
-        throw const AIDomainValidationException(
-          'Priority out of range',
-          'testContext',
+    test(
+      'fails fast on AIDomainValidationException without retrying',
+      () async {
+        int callCount = 0;
+        final failFastProvider = _CallbackAIProvider((prompt) async {
+          callCount++;
+          // Throws domain validation exception
+          throw const AIDomainValidationException(
+            'Priority out of range',
+            'testContext',
+          );
+        });
+
+        final failFastService = AIService(
+          provider: failFastProvider,
+          tracker: TokenTracker(),
         );
-      });
 
-      final failFastService = AIService(
-        provider: failFastProvider,
-        tracker: TokenTracker(),
-      );
+        final result = await failFastService.extractPatterns([
+          TaskItem(
+            id: '1',
+            title: 't1',
+            startTime: DateTime.now(),
+            isCompleted: true,
+          ),
+          TaskItem(
+            id: '2',
+            title: 't2',
+            startTime: DateTime.now(),
+            isCompleted: true,
+          ),
+          TaskItem(
+            id: '3',
+            title: 't3',
+            startTime: DateTime.now(),
+            isCompleted: true,
+          ),
+        ]);
 
-      final result = await failFastService.extractPatterns([
-        TaskItem(
-          id: '1',
-          title: 't1',
-          startTime: DateTime.now(),
-          isCompleted: true,
-        ),
-        TaskItem(
-          id: '2',
-          title: 't2',
-          startTime: DateTime.now(),
-          isCompleted: true,
-        ),
-        TaskItem(
-          id: '3',
-          title: 't3',
-          startTime: DateTime.now(),
-          isCompleted: true,
-        ),
-      ]);
-
-      expect(result, isEmpty);
-      // Crucial assertion: callCount must be exactly 1, proving NO retries were attempted!
-      expect(callCount, equals(1));
-    });
+        expect(result, isEmpty);
+        // Crucial assertion: callCount must be exactly 1, proving NO retries were attempted!
+        expect(callCount, equals(1));
+      },
+    );
   });
 }
 

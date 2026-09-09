@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+
 import '../core/diagnostics/crash_reporter.dart';
 
 part 'app_monitor_service.g.dart';
@@ -259,8 +260,7 @@ class AppMonitorService {
   /// Removes all events older than [days] days to keep the box lean.
   Future<void> pruneOlderThan({int days = 30}) async {
     final cutoff = DateTime.now().subtract(Duration(days: days));
-    final oldKeys = (_box?.toMap() ?? {})
-        .entries
+    final oldKeys = (_box?.toMap() ?? {}).entries
         .where((e) => e.value.timestamp.isBefore(cutoff))
         .map((e) => e.key)
         .toList();

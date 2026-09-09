@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+
 import '../../../core/models/task_model.dart';
 import '../../../core/models/goal_model.dart';
 import '../../../core/models/memory_entry_model.dart';
@@ -108,9 +109,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   Future<void> _loadStats() async {
     final tasks = Hive.box<TaskItem>('tasksBox').length;
-    final completed = Hive.box<TaskItem>(
-      'tasksBox',
-    ).values.where((t) => t.isCompleted).length;
+    final completed = Hive.box<TaskItem>('tasksBox').values
+        .where((t) => t.isCompleted)
+        .length;
     final goals = Hive.box<GoalItem>('goalsBox').length;
     final memories = Hive.box<MemoryEntry>('memoryBox').length;
     if (mounted) {
@@ -1630,9 +1631,8 @@ class _ProfileEditDialogState extends State<ProfileEditDialog> {
                             boxShadow: selected
                                 ? [
                                     BoxShadow(
-                                      color: const Color(
-                                        0xFF6C63FF,
-                                      ).withAlpha(80),
+                                      color: const Color(0xFF6C63FF)
+                                          .withAlpha(80),
                                       blurRadius: 8,
                                       offset: const Offset(0, 3),
                                     ),

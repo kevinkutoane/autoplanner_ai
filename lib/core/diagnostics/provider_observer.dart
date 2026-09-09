@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../services/app_monitor_service.dart';
 
 /// Monitors Riverpod provider state changes and errors.
@@ -18,7 +19,9 @@ final class AppProviderObserver extends ProviderObserver {
     StackTrace stackTrace,
   ) {
     if (kDebugMode) {
-      debugPrint('Provider ${context.provider.name ?? context.provider.runtimeType} failed: $error');
+      debugPrint(
+        'Provider ${context.provider.name ?? context.provider.runtimeType} failed: $error',
+      );
     }
     _monitor.logFatalError(error, stackTrace);
   }

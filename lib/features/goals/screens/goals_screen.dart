@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../controllers/goal_controller.dart';
 import '../../../core/models/goal_model.dart';
@@ -61,7 +62,10 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen>
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
-                        child: Text(emoji, style: const TextStyle(fontSize: 22)),
+                        child: Text(
+                          emoji,
+                          style: const TextStyle(fontSize: 22),
+                        ),
                       ),
                     ),
                   ),
@@ -100,16 +104,18 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen>
                 final title = titleCtrl.text.trim();
                 if (title.isEmpty) return;
                 final now = DateTime.now();
-                ref.read(goalControllerProvider.notifier).addGoal(
-                  GoalItem(
-                    id: _uuid.v4(),
-                    title: title,
-                    description: descCtrl.text.trim(),
-                    emoji: emoji,
-                    createdAt: now,
-                    updatedAt: now,
-                  ),
-                );
+                ref
+                    .read(goalControllerProvider.notifier)
+                    .addGoal(
+                      GoalItem(
+                        id: _uuid.v4(),
+                        title: title,
+                        description: descCtrl.text.trim(),
+                        emoji: emoji,
+                        createdAt: now,
+                        updatedAt: now,
+                      ),
+                    );
                 Navigator.pop(ctx);
               },
               child: const Text('Add'),
@@ -183,11 +189,13 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen>
               onPressed: () {
                 final title = titleCtrl.text.trim();
                 if (title.isEmpty) return;
-                ref.read(projectControllerProvider.notifier).createProject(
-                  title: title,
-                  description: descCtrl.text.trim(),
-                  parentGoalId: selectedGoal?.id,
-                );
+                ref
+                    .read(projectControllerProvider.notifier)
+                    .createProject(
+                      title: title,
+                      description: descCtrl.text.trim(),
+                      parentGoalId: selectedGoal?.id,
+                    );
                 Navigator.pop(ctx);
               },
               child: const Text('Add'),
@@ -200,8 +208,26 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen>
 
   Future<String?> _pickEmoji(BuildContext context) async {
     const emojis = [
-      '🎯', '🚀', '💡', '🌟', '🏆', '📈', '💪', '🎓', '🌱', '❤️',
-      '💰', '🏃', '📚', '🎨', '🔬', '🌍', '✨', '🎵', '🏠', '👨‍💻',
+      '🎯',
+      '🚀',
+      '💡',
+      '🌟',
+      '🏆',
+      '📈',
+      '💪',
+      '🎓',
+      '🌱',
+      '❤️',
+      '💰',
+      '🏃',
+      '📚',
+      '🎨',
+      '🔬',
+      '🌍',
+      '✨',
+      '🎵',
+      '🏠',
+      '👨‍💻',
     ];
     return showDialog<String>(
       context: context,
@@ -306,7 +332,9 @@ class _GoalsTab extends ConsumerWidget {
     final goals = ref.watch(goalControllerProvider);
     final active = goals.where((g) => !g.isArchived && !g.isCompleted).toList();
     final completed = goals.where((g) => g.isCompleted).toList();
-    final archived = goals.where((g) => g.isArchived && !g.isCompleted).toList();
+    final archived = goals
+        .where((g) => g.isArchived && !g.isCompleted)
+        .toList();
 
     if (goals.isEmpty) {
       return EmptyState(
@@ -410,8 +438,9 @@ class _GoalCard extends ConsumerWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 15,
-                          decoration:
-                              goal.isCompleted ? TextDecoration.lineThrough : null,
+                          decoration: goal.isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
                           color: goal.isCompleted
                               ? (isDark ? Colors.white38 : Colors.black38)
                               : null,
@@ -482,7 +511,9 @@ class _GoalCard extends ConsumerWidget {
             ),
             ListTile(
               leading: Icon(
-                goal.isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
+                goal.isArchived
+                    ? Icons.unarchive_outlined
+                    : Icons.archive_outlined,
               ),
               title: Text(goal.isArchived ? 'Unarchive' : 'Archive'),
               onTap: () {
@@ -538,8 +569,9 @@ class _ProjectCard extends ConsumerWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
-                      decoration:
-                          project.isCompleted ? TextDecoration.lineThrough : null,
+                      decoration: project.isCompleted
+                          ? TextDecoration.lineThrough
+                          : null,
                       color: project.isCompleted
                           ? (isDark ? Colors.white38 : Colors.black38)
                           : null,
@@ -579,7 +611,11 @@ class _ProjectCard extends ConsumerWidget {
                         ),
                 ),
                 child: project.isCompleted
-                    ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                    ? const Icon(
+                        Icons.check_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      )
                     : null,
               ),
             ),

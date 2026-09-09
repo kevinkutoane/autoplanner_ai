@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../../app_shell.dart';
@@ -32,8 +34,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       icon: Icons.auto_awesome_rounded,
       iconGradient: kGradientMain,
       title: 'AI-Powered Planning',
-      subtitle:
-          'Describe your day in plain English. AutoPlanner turns it into a perfectly timed schedule — automatically.',
+      subtitle: 'Describe your day in plain English. AutoPlanner turns it into a perfectly timed schedule — automatically.',
       bullets: [
         'Natural language task input',
         'Smart scheduling & priorities',
@@ -49,8 +50,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       icon: Icons.psychology_rounded,
       iconGradient: kGradientTeal,
       title: 'Living Memory',
-      subtitle:
-          'AutoPlanner learns from your tasks, notes, and events. Ask it anything and it knows your context.',
+      subtitle: 'AutoPlanner learns from your tasks, notes, and events. Ask it anything and it knows your context.',
       bullets: [
         'Remembers your patterns',
         'Contextual daily insights',
@@ -66,8 +66,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       icon: Icons.calendar_month_rounded,
       iconGradient: kGradientWarm,
       title: 'Unified Calendar',
-      subtitle:
-          'All your tasks, events, and goals in one beautifully organised view — always in sync.',
+      subtitle: 'All your tasks, events, and goals in one beautifully organised view — always in sync.',
       bullets: [
         'Task + event integration',
         'Visual weekly overview',
@@ -83,8 +82,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       icon: Icons.rocket_launch_rounded,
       iconGradient: kGradientMain,
       title: "You're All Set",
-      subtitle:
-          "AutoPlanner is ready to make every day your most productive. Let's get started!",
+      subtitle: "AutoPlanner is ready to make every day your most productive. Let's get started!",
       bullets: [
         'Personalised to your schedule',
         'Offline-first with AI on demand',
@@ -595,120 +593,124 @@ class _PageContentState extends State<_PageContent>
               padding: const EdgeInsets.fromLTRB(32, 0, 32, 140),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Icon
-          ScaleTransition(
-            scale: _iconScale,
-            child: Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                gradient: page.iconGradient,
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: [
-                  BoxShadow(
-                    color: (page.iconGradient.colors.first).withAlpha(100),
-                    blurRadius: 50,
-                    spreadRadius: 5,
-                  ),
-                ],
-              ),
-              child: Icon(page.icon, color: Colors.white, size: 52),
-            ),
-          ),
-
-          const SizedBox(height: 36),
-
-          // Title + subtitle
-          SlideTransition(
-            position: _contentSlide,
-            child: FadeTransition(
-              opacity: _contentFade,
-              child: Column(
                 children: [
-                  Text(
-                    page.title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
-                      height: 1.2,
+                  // Icon
+                  ScaleTransition(
+                    scale: _iconScale,
+                    child: Container(
+                      width: 110,
+                      height: 110,
+                      decoration: BoxDecoration(
+                        gradient: page.iconGradient,
+                        borderRadius: BorderRadius.circular(32),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (page.iconGradient.colors.first).withAlpha(
+                              100,
+                            ),
+                            blurRadius: 50,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: Icon(page.icon, color: Colors.white, size: 52),
                     ),
                   ),
 
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 36),
 
-                  Text(
-                    page.subtitle,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white60,
-                      fontSize: 15.5,
-                      height: 1.55,
-                    ),
-                  ),
+                  // Title + subtitle
+                  SlideTransition(
+                    position: _contentSlide,
+                    child: FadeTransition(
+                      opacity: _contentFade,
+                      child: Column(
+                        children: [
+                          Text(
+                            page.title,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                              height: 1.2,
+                            ),
+                          ),
 
-                  const SizedBox(height: 28),
+                          const SizedBox(height: 14),
 
-                  // Bullet points in glass card
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                      child: Container(
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(14),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: Colors.white.withAlpha(25)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: page.bullets
-                              .map(
-                                (b) => Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 5,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      ShaderMask(
-                                        shaderCallback: (rect) => page
-                                            .iconGradient
-                                            .createShader(rect),
-                                        child: const Icon(
-                                          Icons.check_circle_rounded,
-                                          size: 18,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          b,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                          Text(
+                            page.subtitle,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white60,
+                              fontSize: 15.5,
+                              height: 1.55,
+                            ),
+                          ),
+
+                          const SizedBox(height: 28),
+
+                          // Bullet points in glass card
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(18),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                              child: Container(
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withAlpha(14),
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: Colors.white.withAlpha(25),
                                   ),
                                 ),
-                              )
-                              .toList(),
-                        ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: page.bullets
+                                      .map(
+                                        (b) => Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 5,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              ShaderMask(
+                                                shaderCallback: (rect) => page
+                                                    .iconGradient
+                                                    .createShader(rect),
+                                                child: const Icon(
+                                                  Icons.check_circle_rounded,
+                                                  size: 18,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Text(
+                                                  b,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ],
-              ),
-            ),
-          ),
-        ],
               ),
             ),
           ),

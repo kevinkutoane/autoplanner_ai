@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
+
 import '../../../core/models/calendar_event_model.dart';
 import '../../../core/models/task_model.dart';
 import '../../../core/providers/providers.dart';
@@ -22,7 +23,8 @@ class CalendarController extends Notifier<List<CalendarEvent>> {
 
   List<CalendarEvent> _getSortedEvents() {
     if (_box == null) return [];
-    return _box!.values.toList()..sort((a, b) => a.startTime.compareTo(b.startTime));
+    return _box!.values.toList()
+      ..sort((a, b) => a.startTime.compareTo(b.startTime));
   }
 
   List<CalendarEvent> getEventsForDay(DateTime day) {
@@ -163,4 +165,6 @@ class CalendarController extends Notifier<List<CalendarEvent>> {
 }
 
 final calendarControllerProvider =
-    NotifierProvider<CalendarController, List<CalendarEvent>>(CalendarController.new);
+    NotifierProvider<CalendarController, List<CalendarEvent>>(
+      CalendarController.new,
+    );

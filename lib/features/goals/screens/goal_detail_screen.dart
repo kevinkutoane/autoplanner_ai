@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../controllers/goal_controller.dart';
 import '../../../core/models/goal_model.dart';
@@ -44,9 +45,9 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
   void _saveDescription() {
     final goal = _findGoal();
     if (goal == null) return;
-    ref.read(goalControllerProvider.notifier).updateGoal(
-      goal.copyWith(description: _descCtrl.text.trim()),
-    );
+    ref
+        .read(goalControllerProvider.notifier)
+        .updateGoal(goal.copyWith(description: _descCtrl.text.trim()));
     setState(() => _editingDesc = false);
   }
 
@@ -63,8 +64,26 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
               GestureDetector(
                 onTap: () async {
                   const emojis = [
-                    '🎯', '🚀', '💡', '🌟', '🏆', '📈', '💪', '🎓', '🌱', '❤️',
-                    '💰', '🏃', '📚', '🎨', '🔬', '🌍', '✨', '🎵', '🏠', '👨‍💻',
+                    '🎯',
+                    '🚀',
+                    '💡',
+                    '🌟',
+                    '🏆',
+                    '📈',
+                    '💪',
+                    '🎓',
+                    '🌱',
+                    '❤️',
+                    '💰',
+                    '🏃',
+                    '📚',
+                    '🎨',
+                    '🔬',
+                    '🌍',
+                    '✨',
+                    '🎵',
+                    '🏠',
+                    '👨‍💻',
                   ];
                   final picked = await showDialog<String>(
                     context: ctx,
@@ -130,11 +149,16 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
               onPressed: () {
                 final title = titleCtrl.text.trim();
                 if (title.isEmpty) return;
-                final currentGoal = ref.read(goalControllerProvider).where((g) => g.id == widget.goalId).firstOrNull;
+                final currentGoal = ref
+                    .read(goalControllerProvider)
+                    .where((g) => g.id == widget.goalId)
+                    .firstOrNull;
                 if (currentGoal != null) {
-                  ref.read(goalControllerProvider.notifier).updateGoal(
-                    currentGoal.copyWith(title: title, emoji: emoji),
-                  );
+                  ref
+                      .read(goalControllerProvider.notifier)
+                      .updateGoal(
+                        currentGoal.copyWith(title: title, emoji: emoji),
+                      );
                 }
                 Navigator.pop(ctx);
               },
@@ -168,10 +192,8 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
         .where((t) => goal.linkedTaskIds.contains(t.id))
         .toList();
     final taskCount = linkedTasks.length;
-    final completedTaskCount =
-        linkedTasks.where((t) => t.isCompleted).length;
-    final taskFraction =
-        taskCount == 0 ? 0.0 : completedTaskCount / taskCount;
+    final completedTaskCount = linkedTasks.where((t) => t.isCompleted).length;
+    final taskFraction = taskCount == 0 ? 0.0 : completedTaskCount / taskCount;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -291,7 +313,10 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                     const SizedBox(height: 20),
 
                     // Description / Notes
-                    _SectionHeader(label: 'Description', icon: Icons.notes_rounded),
+                    _SectionHeader(
+                      label: 'Description',
+                      icon: Icons.notes_rounded,
+                    ),
                     const SizedBox(height: 8),
                     GlassCard(
                       padding: const EdgeInsets.all(12),
@@ -305,8 +330,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                                   maxLines: 10,
                                   autofocus: true,
                                   decoration: const InputDecoration(
-                                    hintText:
-                                        'Add notes, context, or details…',
+                                    hintText: 'Add notes, context, or details…',
                                     border: InputBorder.none,
                                   ),
                                 ),
@@ -314,9 +338,8 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     TextButton(
-                                      onPressed: () => setState(
-                                        () => _editingDesc = false,
-                                      ),
+                                      onPressed: () =>
+                                          setState(() => _editingDesc = false),
                                       child: const Text('Cancel'),
                                     ),
                                     FilledButton(
@@ -341,8 +364,8 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                                   style: TextStyle(
                                     color: goal.description.isEmpty
                                         ? (isDark
-                                            ? Colors.white38
-                                            : Colors.black38)
+                                              ? Colors.white38
+                                              : Colors.black38)
                                         : null,
                                     fontSize: 14,
                                     height: 1.5,
@@ -379,8 +402,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   '$completedTaskCount / $taskCount tasks',
@@ -394,9 +416,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 14,
-                                    color: taskFraction >= 1.0
-                                        ? kCyan
-                                        : kCoral,
+                                    color: taskFraction >= 1.0 ? kCyan : kCoral,
                                   ),
                                 ),
                               ],
@@ -474,8 +494,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                         ),
                         icon: const Icon(Icons.delete_outline, size: 18),
                         label: const Text('Delete goal'),
-                        onPressed: () =>
-                            _confirmDelete(context, ref, goal.id),
+                        onPressed: () => _confirmDelete(context, ref, goal.id),
                       ),
                     ),
                   ],
@@ -497,11 +516,14 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
       lastDate: now.add(const Duration(days: 365 * 5)),
     );
     if (picked != null) {
-      final currentGoal = ref.read(goalControllerProvider).where((g) => g.id == widget.goalId).firstOrNull;
+      final currentGoal = ref
+          .read(goalControllerProvider)
+          .where((g) => g.id == widget.goalId)
+          .firstOrNull;
       if (currentGoal != null) {
-        ref.read(goalControllerProvider.notifier).updateGoal(
-          currentGoal.copyWith(deadline: picked),
-        );
+        ref
+            .read(goalControllerProvider.notifier)
+            .updateGoal(currentGoal.copyWith(deadline: picked));
       }
     }
   }
@@ -640,8 +662,9 @@ class _GoalProjectRow extends ConsumerWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
-                  decoration:
-                      project.isCompleted ? TextDecoration.lineThrough : null,
+                  decoration: project.isCompleted
+                      ? TextDecoration.lineThrough
+                      : null,
                   color: project.isCompleted
                       ? (isDark ? Colors.white38 : Colors.black38)
                       : null,
@@ -667,7 +690,11 @@ class _GoalProjectRow extends ConsumerWidget {
                         ),
                 ),
                 child: project.isCompleted
-                    ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                    ? const Icon(
+                        Icons.check_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      )
                     : null,
               ),
             ),
@@ -717,8 +744,11 @@ class _LinkedTaskRow extends StatelessWidget {
                         ),
                 ),
                 child: task.isCompleted
-                    ? const Icon(Icons.check_rounded,
-                        size: 14, color: Colors.white)
+                    ? const Icon(
+                        Icons.check_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      )
                     : null,
               ),
             ),
@@ -729,8 +759,9 @@ class _LinkedTaskRow extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
-                  decoration:
-                      task.isCompleted ? TextDecoration.lineThrough : null,
+                  decoration: task.isCompleted
+                      ? TextDecoration.lineThrough
+                      : null,
                   color: task.isCompleted
                       ? (isDark ? Colors.white38 : Colors.black38)
                       : null,

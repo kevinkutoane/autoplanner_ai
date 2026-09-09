@@ -31,7 +31,8 @@ class BiometricService {
       return await _auth.authenticate(
         localizedReason: 'Unlock AutoPlanner AI',
         biometricOnly: false, // allow PIN/pattern as fallback
-        persistAcrossBackgrounding: true, // keep dialog open if user switches apps
+        persistAcrossBackgrounding:
+            true, // keep dialog open if user switches apps
       );
     } catch (_) {
       return false;

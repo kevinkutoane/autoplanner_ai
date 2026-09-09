@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
+
 import 'core/models/calendar_event_model.dart';
 import 'core/theme/ui_kit.dart';
 import 'core/providers/providers.dart';
@@ -476,9 +478,9 @@ class _NavButtonState extends State<_NavButton>
                         ),
                       widget.isSelected
                           ? ShaderMask(
-                              shaderCallback: (b) => LinearGradient(
-                                colors: widget.item.gradient,
-                              ).createShader(b),
+                              shaderCallback: (b) =>
+                                  LinearGradient(colors: widget.item.gradient)
+                                      .createShader(b),
                               child: Icon(
                                 widget.item.activeIcon,
                                 color: Colors.white,
@@ -631,9 +633,9 @@ class _MoreNavButtonState extends State<_MoreNavButton>
                         ),
                       widget.isSelected
                           ? ShaderMask(
-                              shaderCallback: (b) => LinearGradient(
-                                colors: gradient,
-                              ).createShader(b),
+                              shaderCallback: (b) =>
+                                  LinearGradient(colors: gradient)
+                                      .createShader(b),
                               child: Icon(
                                 activeIcon,
                                 color: Colors.white,
@@ -1006,9 +1008,8 @@ class _ConnectivityBannerState extends State<_ConnectivityBanner> {
 
   Future<void> _check() async {
     try {
-      final result = await InternetAddress.lookup(
-        'google.com',
-      ).timeout(const Duration(seconds: 5));
+      final result = await InternetAddress.lookup('google.com')
+          .timeout(const Duration(seconds: 5));
       if (mounted) setState(() => _offline = result.isEmpty);
     } catch (_) {
       if (mounted) setState(() => _offline = true);

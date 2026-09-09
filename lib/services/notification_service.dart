@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+
 import '../core/models/task_model.dart';
 import '../core/models/note_model.dart';
 import '../core/models/goal_model.dart';
@@ -131,7 +132,8 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
     } catch (e) {
-      if (kDebugMode) debugPrint('NotificationService.scheduleTaskReminder: $e');
+      if (kDebugMode)
+        debugPrint('NotificationService.scheduleTaskReminder: $e');
     }
   }
 
@@ -211,7 +213,8 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
     } catch (e) {
-      if (kDebugMode) debugPrint('NotificationService.scheduleNoteReminder: $e');
+      if (kDebugMode)
+        debugPrint('NotificationService.scheduleNoteReminder: $e');
     }
   }
 

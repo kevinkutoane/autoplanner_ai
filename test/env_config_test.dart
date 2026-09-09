@@ -91,7 +91,9 @@ void main() {
       dotenv.loadFromString(envString: 'ENV=prod');
       expect(
         EnvConfig.fromDotEnv().validate(),
-        contains('SENTRY_DSN is not set. Production crash reporting is disabled.'),
+        contains(
+          'SENTRY_DSN is not set. Production crash reporting is disabled.',
+        ),
       );
     });
   });

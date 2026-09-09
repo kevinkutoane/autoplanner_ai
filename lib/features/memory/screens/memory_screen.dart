@@ -1,6 +1,8 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../memory/controllers/memory_controller.dart';
 import '../../../core/models/memory_entry_model.dart';
@@ -325,8 +327,7 @@ class _MemoryScreenState extends ConsumerState<MemoryScreen> {
                       index: 2,
                       child: EmptyState(
                         icon: Icons.psychology_rounded,
-                        message:
-                            'No memories found. AI will learn from your tasks and notes!',
+                        message: 'No memories found. AI will learn from your tasks and notes!',
                       ),
                     ),
                   ),

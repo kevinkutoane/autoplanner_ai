@@ -2,6 +2,7 @@
 // Single source of truth for all shared services and controllers.
 // Every feature imports from here — no more duplicate providers.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../ai/ai_provider.dart';
 import '../ai/gemini_provider.dart';
 import '../ai/mock_ai_provider.dart';
@@ -23,7 +24,8 @@ import '../../features/memory/controllers/memory_controller.dart';
 import '../../features/settings/controllers/settings_controller.dart';
 import '../../features/planner/controllers/task_controller.dart';
 // Re-export note controller provider so screens can import from providers.dart
-export '../../features/notes/controllers/note_controller.dart' show noteControllerProvider, notesControllerProvider;
+export '../../features/notes/controllers/note_controller.dart'
+    show noteControllerProvider, notesControllerProvider;
 
 // ── Settings & Profile ────────────────────────────────────────────
 /// Declared first so other providers can watch it without forward-reference
@@ -114,8 +116,8 @@ class RescheduleSuggestionNotifier extends Notifier<RescheduleSuggestion?> {
 /// Set by [RescheduleService.checkOverdue] and cleared when accepted/dismissed.
 final rescheduleSuggestionProvider =
     NotifierProvider<RescheduleSuggestionNotifier, RescheduleSuggestion?>(
-  RescheduleSuggestionNotifier.new,
-);
+      RescheduleSuggestionNotifier.new,
+    );
 
 // ── Offline AI Queue ─────────────────────────────────────────────────────
 
@@ -142,7 +144,9 @@ final offlineAIQueueProvider = Provider<OfflineAIQueue>((ref) {
           }
           break;
         default:
-          throw UnsupportedError('Method $method is not supported for offline dispatch.');
+          throw UnsupportedError(
+            'Method $method is not supported for offline dispatch.',
+          );
       }
     },
   );
@@ -175,8 +179,8 @@ class PlannerGoalFilterNotifier extends Notifier<String?> {
 /// When non-null, only tasks linked to this goal are shown.
 final plannerGoalFilterProvider =
     NotifierProvider<PlannerGoalFilterNotifier, String?>(
-  PlannerGoalFilterNotifier.new,
-);
+      PlannerGoalFilterNotifier.new,
+    );
 
 /// Proactive task suggestions for an empty planner day.
 /// Auto-disposes and refetches when memory or task state changes.

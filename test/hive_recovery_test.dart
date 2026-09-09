@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:autoplanner_ai/core/bootstrap/app_bootstrapper.dart';
@@ -41,59 +42,56 @@ void main() {
     await box.close();
   });
 
-  test(
-    'encryption key mismatch throws HiveKeyMismatchException and preserves file without deletion',
-    () async {
-      // 1. Create and write to box with validCipher
-      var box = await AppBootstrapper.openBoxSafe<String>(
-        'encryptedBox',
-        validCipher,
-        customDir: tempDir.path,
-      );
-      await box.put('secret', 'top_secret_data');
-      await box.close();
+  test('encryption key mismatch throws HiveKeyMismatchException and preserves file without deletion', () async {
+    // 1. Create and write to box with validCipher
+    var box = await AppBootstrapper.openBoxSafe<String>(
+      'encryptedBox',
+      validCipher,
+      customDir: tempDir.path,
+    );
+    await box.put('secret', 'top_secret_data');
+    await box.close();
 
-      final hiveFile = File('${tempDir.path}/encryptedbox.hive');
-      expect(hiveFile.existsSync(), isTrue);
-      final originalLength = hiveFile.lengthSync();
-      expect(originalLength, greaterThan(0));
+    final hiveFile = File('${tempDir.path}/encryptedbox.hive');
+    expect(hiveFile.existsSync(), isTrue);
+    final originalLength = hiveFile.lengthSync();
+    expect(originalLength, greaterThan(0));
 
-      // 2. Attempt to open with wrongCipher
-      bool didThrowKeyMismatch = false;
-      final completer = Completer<void>();
-      runZonedGuarded(
-        () async {
-          try {
-            await AppBootstrapper.openBoxSafe<String>(
-              'encryptedBox',
-              wrongCipher,
-              customDir: tempDir.path,
-            );
-          } on HiveKeyMismatchException {
-            didThrowKeyMismatch = true;
-          } finally {
-            if (!completer.isCompleted) completer.complete();
-          }
-        },
-        (error, stack) {
-          if (error is HiveKeyMismatchException ||
-              error.toString().contains('HiveKeyMismatchException')) {
-            didThrowKeyMismatch = true;
-          }
-        },
-      );
-      await completer.future;
-      expect(didThrowKeyMismatch, isTrue);
+    // 2. Attempt to open with wrongCipher
+    bool didThrowKeyMismatch = false;
+    final completer = Completer<void>();
+    runZonedGuarded(
+      () async {
+        try {
+          await AppBootstrapper.openBoxSafe<String>(
+            'encryptedBox',
+            wrongCipher,
+            customDir: tempDir.path,
+          );
+        } on HiveKeyMismatchException {
+          didThrowKeyMismatch = true;
+        } finally {
+          if (!completer.isCompleted) completer.complete();
+        }
+      },
+      (error, stack) {
+        if (error is HiveKeyMismatchException ||
+            error.toString().contains('HiveKeyMismatchException')) {
+          didThrowKeyMismatch = true;
+        }
+      },
+    );
+    await completer.future;
+    expect(didThrowKeyMismatch, isTrue);
 
-      // 3. Invariant: Original file MUST NOT be deleted or truncated!
-      expect(hiveFile.existsSync(), isTrue);
-      expect(hiveFile.lengthSync(), equals(originalLength));
+    // 3. Invariant: Original file MUST NOT be deleted or truncated!
+    expect(hiveFile.existsSync(), isTrue);
+    expect(hiveFile.lengthSync(), equals(originalLength));
 
-      // 4. No .bak files created (because key mismatch is not corruption)
-      final bakFiles = tempDir.listSync().where((f) => f.path.contains('.bak'));
-      expect(bakFiles, isEmpty);
-    },
-  );
+    // 4. No .bak files created (because key mismatch is not corruption)
+    final bakFiles = tempDir.listSync().where((f) => f.path.contains('.bak'));
+    expect(bakFiles, isEmpty);
+  });
 
   test(
     'corrupted box creates verified diagnostic backup and recovers safely',

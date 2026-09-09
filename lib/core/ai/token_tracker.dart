@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+
 import '../config/env_config.dart';
 import 'ai_provider.dart';
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:uuid/uuid.dart';
+
 import '../../core/theme/ui_kit.dart';
 import '../../core/providers/providers.dart';
 import '../../core/models/goal_model.dart';
@@ -448,8 +449,7 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
               color: isDark ? Colors.white.withAlpha(222) : Colors.black87,
             ),
             decoration: InputDecoration(
-              hintText:
-                  'Type or paste anything on your mind...\n\nTasks, ideas, reminders, meeting notes — all at once.',
+              hintText: 'Type or paste anything on your mind...\n\nTasks, ideas, reminders, meeting notes — all at once.',
               hintStyle: TextStyle(
                 color: isDark ? Colors.white30 : Colors.black26,
                 fontSize: 14,
@@ -753,8 +753,8 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
               subtitle: r.goals[i].description.isEmpty
                   ? 'Saved as a new goal'
                   : (r.goals[i].description.length > 60
-                      ? '${r.goals[i].description.substring(0, 60)}…'
-                      : r.goals[i].description),
+                        ? '${r.goals[i].description.substring(0, 60)}…'
+                        : r.goals[i].description),
               icon: Icons.flag_outlined,
               color: kCoral,
               isDark: isDark,

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+
 import '../../../core/models/note_model.dart';
 import '../../../core/providers/providers.dart';
 import '../../../services/notification_service.dart';
@@ -51,7 +52,9 @@ class NoteController extends Notifier<List<NoteItem>> {
 
   List<NoteItem> byTag(String tag) {
     final t = tag.toLowerCase();
-    return state.where((n) => n.tags.any((nt) => nt.toLowerCase() == t)).toList();
+    return state
+        .where((n) => n.tags.any((nt) => nt.toLowerCase() == t))
+        .toList();
   }
 
   List<String> get allTags {
@@ -59,7 +62,8 @@ class NoteController extends Notifier<List<NoteItem>> {
     for (final n in state) {
       tags.addAll(n.tags);
     }
-    return tags.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return tags.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
   }
 
   void addNote(NoteItem note) {
@@ -122,14 +126,20 @@ class NoteController extends Notifier<List<NoteItem>> {
   void togglePin(String id) {
     final note = _box.get(id);
     if (note == null) return;
-    _box.put(id, note.copyWith(isPinned: !note.isPinned, updatedAt: DateTime.now()));
+    _box.put(
+      id,
+      note.copyWith(isPinned: !note.isPinned, updatedAt: DateTime.now()),
+    );
     _refreshState();
   }
 
   void toggleUrgent(String id) {
     final note = _box.get(id);
     if (note == null) return;
-    final updated = note.copyWith(isUrgent: !note.isUrgent, updatedAt: DateTime.now());
+    final updated = note.copyWith(
+      isUrgent: !note.isUrgent,
+      updatedAt: DateTime.now(),
+    );
     _box.put(id, updated);
     _refreshState();
     if (updated.isUrgent) {
@@ -228,8 +238,9 @@ class NoteController extends Notifier<List<NoteItem>> {
   }
 }
 
-final noteControllerProvider =
-    NotifierProvider<NoteController, List<NoteItem>>(NoteController.new);
+final noteControllerProvider = NotifierProvider<NoteController, List<NoteItem>>(
+  NoteController.new,
+);
 
 /// Alias for backward compatibility — screens that still reference the old name.
 final notesControllerProvider = noteControllerProvider;

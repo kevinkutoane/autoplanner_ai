@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -447,7 +448,9 @@ class GhostBtn extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: d ? Colors.white.withAlpha(35) : Colors.black.withAlpha(22),
+              color: d
+                  ? Colors.white.withAlpha(35)
+                  : Colors.black.withAlpha(22),
               width: 1,
             ),
           ),
@@ -554,7 +557,8 @@ class GlassChip extends StatelessWidget {
                             : const Color(0xFF7C7C8A)),
                 ),
               ),
-              if (trailing != null) ...[                const SizedBox(width: 4),
+              if (trailing != null) ...[
+                const SizedBox(width: 4),
                 Icon(
                   trailing,
                   size: 13,
@@ -931,4 +935,3 @@ class BrandedLoader extends StatelessWidget {
     );
   }
 }
-

@@ -46,7 +46,8 @@ class SmartNotificationScheduler {
     // Use the user's configured time unless it's the default (08:00),
     // in which case we auto-calculate from tomorrow's first task.
     final isDefaultTime =
-        settings.morningBriefingHour == 8 && settings.morningBriefingMinute == 0;
+        settings.morningBriefingHour == 8 &&
+        settings.morningBriefingMinute == 0;
 
     if (!isDefaultTime) {
       // User has explicitly set a custom time — respect it.
@@ -96,8 +97,9 @@ class SmartNotificationScheduler {
     }
 
     // Subtract lead time.
-    final briefingTime =
-        earliest.startTime.subtract(Duration(minutes: _leadMinutes));
+    final briefingTime = earliest.startTime.subtract(
+      Duration(minutes: _leadMinutes),
+    );
     var hour = briefingTime.hour;
     var minute = briefingTime.minute;
 
@@ -119,10 +121,12 @@ class SmartNotificationScheduler {
     final tomorrow = DateTime(now.year, now.month, now.day + 1);
     final dayAfter = DateTime(now.year, now.month, now.day + 2);
 
-    final tomorrowTasks = tasks.where((t) =>
-        !t.isCompleted &&
-        t.startTime.isAfter(tomorrow) &&
-        t.startTime.isBefore(dayAfter));
+    final tomorrowTasks = tasks.where(
+      (t) =>
+          !t.isCompleted &&
+          t.startTime.isAfter(tomorrow) &&
+          t.startTime.isBefore(dayAfter),
+    );
 
     final count = tomorrowTasks.length;
     if (count == 0) return 'No tasks scheduled. Enjoy your day!';

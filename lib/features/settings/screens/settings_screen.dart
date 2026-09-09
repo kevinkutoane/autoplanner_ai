@@ -1,6 +1,8 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../../services/backup_service.dart';
@@ -629,8 +631,7 @@ class SettingsScreen extends ConsumerWidget {
                           _ListTile(
                             icon: Icons.restart_alt_rounded,
                             title: 'Reset all settings',
-                            subtitle:
-                                'Restore defaults — does not delete tasks or notes',
+                            subtitle: 'Restore defaults — does not delete tasks or notes',
                             titleColor: kCoral,
                             iconColor: kCoral,
                             onTap: () => _confirmReset(context, ctrl),
@@ -1228,8 +1229,7 @@ class _MorningBriefingTileState extends ConsumerState<_MorningBriefingTile> {
           .scheduleMorningBriefing(
             hour: picked.hour,
             minute: picked.minute,
-            body:
-                'Good morning! Your AI planner is ready to help you plan the day.',
+            body: 'Good morning! Your AI planner is ready to help you plan the day.',
           );
     }
   }
@@ -1308,9 +1308,8 @@ class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
         final message = syncResult.hasError
             ? 'Connected to $email, but the first sync failed: ${syncResult.error}'
             : 'Connected to $email. Imported ${syncResult.pulled} event${syncResult.pulled == 1 ? '' : 's'}.';
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
       } else {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1320,9 +1319,8 @@ class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Google sign-in failed: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Google sign-in failed: $e')));
     }
   }
 

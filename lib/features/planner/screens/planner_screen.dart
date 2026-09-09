@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:intl/intl.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../planner/controllers/task_controller.dart';
@@ -39,9 +40,7 @@ class PlannerScreen extends ConsumerWidget {
                   (t.note?.toLowerCase().contains(searchQuery) ?? false) ||
                   t.tags.any((tag) => tag.toLowerCase().contains(searchQuery)),
             )
-            .where(
-              (t) => goalFilter == null || t.linkedGoalId == goalFilter,
-            )
+            .where((t) => goalFilter == null || t.linkedGoalId == goalFilter)
             .toList()
           ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
@@ -146,9 +145,10 @@ class PlannerScreen extends ConsumerWidget {
                       prefixIcon: const Icon(Icons.search, size: 20),
                       isDense: true,
                       filled: true,
-                      fillColor: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest.withAlpha(100),
+                      fillColor: Theme.of(context)
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withAlpha(100),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -351,13 +351,15 @@ class _TaskRow extends ConsumerWidget {
     final pColors = _priorityGradient(task.priority);
     // Resolve linked goal (if any) for the badge
     final linkedGoal = task.linkedGoalId != null
-        ? ref.watch(goalControllerProvider.select((goals) {
-            try {
-              return goals.firstWhere((g) => g.id == task.linkedGoalId);
-            } catch (_) {
-              return null;
-            }
-          }))
+        ? ref.watch(
+            goalControllerProvider.select((goals) {
+              try {
+                return goals.firstWhere((g) => g.id == task.linkedGoalId);
+              } catch (_) {
+                return null;
+              }
+            }),
+          )
         : null;
 
     return Padding(
@@ -2036,7 +2038,8 @@ class _TaskEditSheetState extends ConsumerState<_TaskEditSheet> {
                 ],
               ),
               // Custom day picker — shown only when recurrence == 'custom'
-              if (_recurrence == 'custom') ...[                const SizedBox(height: 8),
+              if (_recurrence == 'custom') ...[
+                const SizedBox(height: 8),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
@@ -2184,8 +2187,9 @@ class _LinkedGoalSection extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final allGoals = ref.watch(goalControllerProvider);
     final currentGoalId = task.linkedGoalId;
-    final currentGoal =
-        allGoals.where((g) => g.id == currentGoalId).firstOrNull;
+    final currentGoal = allGoals
+        .where((g) => g.id == currentGoalId)
+        .firstOrNull;
 
     void unlink() {
       ref.read(taskControllerProvider.notifier).unlinkGoal(task.id);
@@ -2197,8 +2201,9 @@ class _LinkedGoalSection extends ConsumerWidget {
     }
 
     Future<void> showLinkDialog() async {
-      final available =
-          allGoals.where((g) => !g.isArchived && !g.isCompleted).toList();
+      final available = allGoals
+          .where((g) => !g.isArchived && !g.isCompleted)
+          .toList();
       if (available.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No active goals available.')),
@@ -2224,9 +2229,7 @@ class _LinkedGoalSection extends ConsumerWidget {
       );
       if (chosen != null) {
         ref.read(taskControllerProvider.notifier).linkGoal(task.id, chosen.id);
-        ref
-            .read(goalControllerProvider.notifier)
-            .linkTask(chosen.id, task.id);
+        ref.read(goalControllerProvider.notifier).linkTask(chosen.id, task.id);
       }
     }
 
@@ -2519,7 +2522,9 @@ class _GoalFilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? kCoral.withAlpha(isDark ? 50 : 35)
-              : (isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(8)),
+              : (isDark
+                    ? Colors.white.withAlpha(12)
+                    : Colors.black.withAlpha(8)),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected ? kCoral.withAlpha(120) : Colors.transparent,

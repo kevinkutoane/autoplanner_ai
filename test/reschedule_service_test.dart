@@ -68,8 +68,10 @@ void main() {
         count: 2,
       );
       // First free slot should be at or after 10:00 + buffer.
-      expect(slots.first.isAfter(workStart.add(const Duration(minutes: 59))),
-          isTrue);
+      expect(
+        slots.first.isAfter(workStart.add(const Duration(minutes: 59))),
+        isTrue,
+      );
     });
 
     test('skips calendar-event-occupied block', () {
@@ -83,8 +85,10 @@ void main() {
         calendarBlocks: [block],
         count: 1,
       );
-      expect(slots.first.isAfter(workStart.add(const Duration(minutes: 89))),
-          isTrue);
+      expect(
+        slots.first.isAfter(workStart.add(const Duration(minutes: 89))),
+        isTrue,
+      );
     });
 
     test('returns fewer slots than count when day is nearly full', () {
@@ -130,11 +134,7 @@ void main() {
     });
 
     test('proposedEndTime falls back to 1h when endTime is null', () {
-      final task = TaskItem(
-        id: 'x',
-        title: 'No end',
-        startTime: workStart,
-      );
+      final task = TaskItem(id: 'x', title: 'No end', startTime: workStart);
       final proposed = workStart.add(const Duration(hours: 3));
       final s = RescheduleSuggestion(task: task, proposedTime: proposed);
       expect(s.proposedEndTime, proposed.add(const Duration(hours: 1)));

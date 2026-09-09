@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
+
 import '../core/ai/ai_guard.dart';
 import '../core/ai/ai_provider.dart';
 import '../core/ai/token_tracker.dart';
@@ -74,11 +76,7 @@ class AIService {
 
   static const _uuid = Uuid();
 
-  AIService({
-    required this._provider,
-    required this._tracker,
-    this._monitor,
-  });
+  AIService({required this._provider, required this._tracker, this._monitor});
 
   // ── Input sanitization ───────────────────────────────────────────────────
 

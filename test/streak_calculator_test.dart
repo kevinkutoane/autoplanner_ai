@@ -4,19 +4,19 @@ import 'package:autoplanner_ai/core/utils/streak_calculator.dart';
 
 /// Helper to create a completed task on a specific date.
 TaskItem _completedOn(DateTime date) => TaskItem(
-      id: 'task_${date.millisecondsSinceEpoch}',
-      title: 'Task on ${date.toIso8601String().substring(0, 10)}',
-      startTime: date,
-      isCompleted: true,
-    );
+  id: 'task_${date.millisecondsSinceEpoch}',
+  title: 'Task on ${date.toIso8601String().substring(0, 10)}',
+  startTime: date,
+  isCompleted: true,
+);
 
 /// Helper to create an incomplete task on a specific date.
 TaskItem _incompletedOn(DateTime date) => TaskItem(
-      id: 'task_${date.millisecondsSinceEpoch}_inc',
-      title: 'Incomplete on ${date.toIso8601String().substring(0, 10)}',
-      startTime: date,
-      isCompleted: false,
-    );
+  id: 'task_${date.millisecondsSinceEpoch}_inc',
+  title: 'Incomplete on ${date.toIso8601String().substring(0, 10)}',
+  startTime: date,
+  isCompleted: false,
+);
 
 void main() {
   group('calculateStreak', () {

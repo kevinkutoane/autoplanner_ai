@@ -1,7 +1,9 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/ai/ai_guard.dart';
 import '../../../core/providers/providers.dart';
@@ -60,7 +62,9 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
     final newContent = _contentCtrl.text.trim();
     if (newTitle.isEmpty && newContent.isEmpty) return;
     if (newTitle == note.title && newContent == note.content) return;
-    ref.read(noteControllerProvider.notifier).updateNote(
+    ref
+        .read(noteControllerProvider.notifier)
+        .updateNote(
           note.copyWith(
             title: newTitle.isNotEmpty ? newTitle : note.title,
             content: newContent,
@@ -90,9 +94,9 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
       if (summary != null && summary.isNotEmpty) {
         ref.read(noteControllerProvider.notifier).setSummary(note.id, summary);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Summary generated ✓')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Summary generated ✓')));
         }
       }
     } on ContentPolicyException catch (e) {
@@ -116,9 +120,8 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Summary failed: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Summary failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _summarising = false);
@@ -150,9 +153,7 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
             hintStyle: TextStyle(
               color: isDark ? Colors.white38 : Colors.black38,
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         actions: [
@@ -168,7 +169,9 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
             onTap: () {
               final tag = tagCtrl.text.trim();
               if (tag.isEmpty) return;
-              ref.read(noteControllerProvider.notifier).addTag(widget.noteId, tag);
+              ref
+                  .read(noteControllerProvider.notifier)
+                  .addTag(widget.noteId, tag);
               Navigator.pop(ctx);
             },
           ),
@@ -244,12 +247,15 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
                             ),
                           ),
                           trailing: isLinked
-                              ? const Icon(Icons.check_circle_rounded,
-                                  color: kCyan)
+                              ? const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: kCyan,
+                                )
                               : null,
                           onTap: () {
-                            final noteCtrl =
-                                ref.read(noteControllerProvider.notifier);
+                            final noteCtrl = ref.read(
+                              noteControllerProvider.notifier,
+                            );
                             if (isLinked) {
                               noteCtrl.unlinkTask(widget.noteId, task.id);
                             } else {
@@ -271,7 +277,9 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final note = ref.watch(noteControllerProvider).where((n) => n.id == widget.noteId);
+    final note = ref
+        .watch(noteControllerProvider)
+        .where((n) => n.id == widget.noteId);
     if (note.isEmpty) {
       return Scaffold(
         body: OrbBackground(
@@ -283,10 +291,7 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
                 const SizedBox(height: 12),
                 const Text('Note not found'),
                 const SizedBox(height: 12),
-                GhostBtn(
-                  label: 'Go back',
-                  onTap: () => Navigator.pop(context),
-                ),
+                GhostBtn(label: 'Go back', onTap: () => Navigator.pop(context)),
               ],
             ),
           ),
@@ -338,10 +343,13 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
                         n.isPinned
                             ? Icons.push_pin_rounded
                             : Icons.push_pin_outlined,
-                        color: n.isPinned ? kAmber : (isDark ? Colors.white54 : Colors.black45),
+                        color: n.isPinned
+                            ? kAmber
+                            : (isDark ? Colors.white54 : Colors.black45),
                       ),
-                      onPressed: () =>
-                          ref.read(noteControllerProvider.notifier).togglePin(n.id),
+                      onPressed: () => ref
+                          .read(noteControllerProvider.notifier)
+                          .togglePin(n.id),
                     ),
                     PopupMenuButton<String>(
                       icon: Icon(
@@ -395,11 +403,13 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
                           value: 'delete',
                           child: Row(
                             children: [
-                              Icon(Icons.delete_outline_rounded,
-                                  size: 18, color: kCoral),
+                              Icon(
+                                Icons.delete_outline_rounded,
+                                size: 18,
+                                color: kCoral,
+                              ),
                               SizedBox(width: 8),
-                              Text('Delete',
-                                  style: TextStyle(color: kCoral)),
+                              Text('Delete', style: TextStyle(color: kCoral)),
                             ],
                           ),
                         ),
@@ -476,8 +486,11 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.auto_awesome_rounded,
-                                      size: 16, color: kIndigo),
+                                  const Icon(
+                                    Icons.auto_awesome_rounded,
+                                    size: 16,
+                                    color: kIndigo,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     'AI Summary',
@@ -494,7 +507,9 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
                                 n.summary!,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: isDark ? Colors.white70 : Colors.black54,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black54,
                                   height: 1.5,
                                 ),
                               ),
@@ -562,7 +577,9 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
           ),
           TextButton(
             onPressed: () {
-              ref.read(noteControllerProvider.notifier).removeNote(widget.noteId);
+              ref
+                  .read(noteControllerProvider.notifier)
+                  .removeNote(widget.noteId);
               Navigator.pop(ctx);
               Navigator.pop(context);
             },

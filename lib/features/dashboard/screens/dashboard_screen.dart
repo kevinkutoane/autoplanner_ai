@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../planner/controllers/task_controller.dart';
@@ -216,8 +218,7 @@ class DashboardScreen extends ConsumerWidget {
                                           ],
                                         )
                                       : Text(
-                                          insightAsync.value ??
-                                              'Start adding tasks to get personalised insights!',
+                                          insightAsync.value ?? 'Start adding tasks to get personalised insights!',
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 14,

@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
@@ -68,15 +69,12 @@ class SentryCrashReporter extends CrashReporter {
     FutureOr<void> Function() appRunner, {
     required String environment,
   }) async {
-    await SentryFlutter.init(
-      (options) {
-        options.dsn = dsn;
-        options.environment = environment;
-        options.attachStacktrace = true;
-        options.enableAutoPerformanceTracing = false;
-      },
-      appRunner: () async => appRunner(),
-    );
+    await SentryFlutter.init((options) {
+      options.dsn = dsn;
+      options.environment = environment;
+      options.attachStacktrace = true;
+      options.enableAutoPerformanceTracing = false;
+    }, appRunner: () async => appRunner());
   }
 
   @override
@@ -100,11 +98,7 @@ class SentryCrashReporter extends CrashReporter {
     Map<String, dynamic>? data,
   }) {
     Sentry.addBreadcrumb(
-      Breadcrumb(
-        message: message,
-        category: category ?? 'app',
-        data: data,
-      ),
+      Breadcrumb(message: message, category: category ?? 'app', data: data),
     );
   }
 }

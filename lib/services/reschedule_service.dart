@@ -38,10 +38,7 @@ class RescheduleService {
   final AIService _ai;
   final SchedulerService _scheduler;
 
-  RescheduleService({
-    required this._ai,
-    required this._scheduler,
-  });
+  RescheduleService({required this._ai, required this._scheduler});
 
   /// Checks whether any of [tasks] are overdue today and, if so, proposes an
   /// AI-selected reschedule slot.
@@ -122,9 +119,9 @@ class RescheduleService {
     // Look up the linked goal (if any) so the AI can factor in its deadline.
     final linkedGoal = task.linkedGoalId != null
         ? goals.cast<GoalItem?>().firstWhere(
-              (g) => g!.id == task.linkedGoalId,
-              orElse: () => null,
-            )
+            (g) => g!.id == task.linkedGoalId,
+            orElse: () => null,
+          )
         : null;
 
     final proposed = await _ai.suggestReschedule(

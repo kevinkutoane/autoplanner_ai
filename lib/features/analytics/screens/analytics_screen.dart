@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../planner/controllers/task_controller.dart';
@@ -553,8 +554,8 @@ class _GoalsOverviewCard extends StatelessWidget {
       final linkedTasks = tasks.where((t) => linked.contains(t.id));
       if (linkedTasks.isEmpty) continue;
       goalsWithTasks++;
-      avgCompletion += linkedTasks.where((t) => t.isCompleted).length /
-          linkedTasks.length;
+      avgCompletion +=
+          linkedTasks.where((t) => t.isCompleted).length / linkedTasks.length;
     }
     if (goalsWithTasks > 0) avgCompletion /= goalsWithTasks;
 
@@ -1392,9 +1393,8 @@ class _AppHealthTab extends ConsumerWidget {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        DateFormat(
-                                          'MMM d, HH:mm',
-                                        ).format(e.timestamp),
+                                        DateFormat('MMM d, HH:mm')
+                                            .format(e.timestamp),
                                         style: TextStyle(
                                           fontSize: 10,
                                           color: isDark
