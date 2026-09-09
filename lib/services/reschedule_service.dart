@@ -39,10 +39,9 @@ class RescheduleService {
   final SchedulerService _scheduler;
 
   RescheduleService({
-    required AIService ai,
-    required SchedulerService scheduler,
-  }) : _ai = ai,
-       _scheduler = scheduler;
+    required this._ai,
+    required this._scheduler,
+  });
 
   /// Checks whether any of [tasks] are overdue today and, if so, proposes an
   /// AI-selected reschedule slot.

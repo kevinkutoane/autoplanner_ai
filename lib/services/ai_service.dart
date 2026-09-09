@@ -75,12 +75,10 @@ class AIService {
   static const _uuid = Uuid();
 
   AIService({
-    required AIProvider provider,
-    required TokenTracker tracker,
-    AppMonitorService? monitor,
-  }) : _provider = provider,
-       _tracker = tracker,
-       _monitor = monitor;
+    required this._provider,
+    required this._tracker,
+    this._monitor,
+  });
 
   // ── Input sanitization ───────────────────────────────────────────────────
 

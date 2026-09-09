@@ -85,10 +85,12 @@ class BackupService {
     final file = File('${dir.path}/autoplanner_backup_$stamp.json');
     await file.writeAsString(json, flush: true);
 
-    await Share.shareXFiles(
-      [XFile(file.path, mimeType: 'application/json')],
-      subject: 'AutoPlanner AI Backup',
-      text: 'AutoPlanner AI — full data backup',
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'application/json')],
+        subject: 'AutoPlanner AI Backup',
+        text: 'AutoPlanner AI — full data backup',
+      ),
     );
   }
 
@@ -103,15 +105,13 @@ class BackupService {
   /// Throws [FormatException] when the file is not valid JSON or uses an
   /// unsupported backup version.
   Future<BackupImportResult?> importFromFile() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
     );
-    if (result == null || result.files.isEmpty) return null;
+    if (result.isEmpty) return null;
 
-    final path = result.files.first.path;
-    if (path == null) throw const FormatException('Could not read file path');
-    final bytes = await File(path).readAsBytes();
+    final bytes = await File(result.first.path!).readAsBytes();
     if (bytes.isEmpty) throw const FormatException('Could not read file data');
 
     final jsonStr = utf8.decode(bytes);

@@ -37,10 +37,9 @@ class CalendarSyncService {
   final http.Client _client;
 
   CalendarSyncService({
-    required GoogleAuthService googleAuth,
+    required this._googleAuth,
     http.Client? client,
-  }) : _googleAuth = googleAuth,
-       _client = client ?? http.Client();
+  }) : _client = client ?? http.Client();
 
   Box<CalendarEvent> get _box => Hive.box<CalendarEvent>('calendarBox');
 
