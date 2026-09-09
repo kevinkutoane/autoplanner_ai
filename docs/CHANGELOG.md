@@ -6,6 +6,19 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.0] — 2026-09-09
+
+### Phase 1.2: Smart Scheduling Engine
+
+- **Task Constraints & Domain Expansion**: Added Hive fields 12–22 to `TaskItem` (`deadline`, `earliestStart`, `latestFinish`, `isFixed`, `energyLevel`, `preferredTimeOfDay`, `splittable`, `preferredBlockMinutes`, `dependsOnTaskIds`, `linkedProjectId`, `parentTaskId`) with complete backward compatibility.
+- **Task Dependencies Directed Acyclic Graph (DAG)**: Created `DependencyGraphService` with Kahn's algorithm for topological sorting and cycle detection, guaranteeing dependent tasks start strictly after prerequisite tasks finish.
+- **Task Splitting Engine**: Decomposes long tasks (`splittable == true`) into discrete focus blocks with restorative transition breaks.
+- **Immovable Anchors**: Fixed tasks (`isFixed: true`) anchor their specified time slot, causing other tasks to schedule around them.
+- **Multi-Factor Planning Score**: Optimized candidate slot selection considering priority, deadline urgency, goal alignment, energy level, preferred time of day, and context switching.
+- **Schedule Explainability**: Introduced `ScheduleResult`, `TaskPlacementRationale`, and `ScheduleWarning` providing transparent factor breakdowns for every scheduled task.
+
+---
+
 ## [1.1.0] — 2026-09-09
 
 ### Phase 1.1: Reliability & Hardening

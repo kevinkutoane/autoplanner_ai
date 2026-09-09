@@ -375,4 +375,208 @@ void main() {
       });
     });
   });
+
+  group('Phase 1.2 Smart Scheduling Engine Tests', () {
+    final fixedDate = DateTime(2099, 1, 15);
+
+    test(
+      'scheduleDayWithDetails returns ScheduleResult with explainability',
+      () {
+        final task = _task(id: 't1', priority: 2);
+        final result = scheduler.scheduleDayWithDetails(
+          tasks: [task],
+          day: fixedDate,
+          workStartHour: 9,
+          workHoursPerDay: 8,
+        );
+
+        expect(result.scheduledTasks, hasLength(1));
+        expect(result.unplacedTasks, isEmpty);
+        expect(result.explanations.containsKey('t1'), isTrue);
+
+        final rationale = result.explanations['t1']!;
+        expect(rationale.taskId, equals('t1'));
+        expect(rationale.score, greaterThan(0));
+        expect(rationale.factors, isNotEmpty);
+        expect(rationale.factors.any((f) => f.contains('priority')), isTrue);
+      },
+    );
+
+    test('task dependencies enforce temporal ordering', () {
+      // Task B depends on Task A. Even if Task B is Urgent (priority 3) and A is Low (priority 0),
+      // Task A must be scheduled first and Task B must start after Task A ends + buffer.
+      final taskA = _task(id: 'taskA', priority: 0);
+      final taskB = TaskItem(
+        id: 'taskB',
+        title: 'Task B',
+        priority: 3,
+        startTime: fixedDate,
+        dependsOnTaskIds: ['taskA'],
+      );
+
+      final result = scheduler.scheduleDayWithDetails(
+        tasks: [taskB, taskA],
+        day: fixedDate,
+        workStartHour: 9,
+        workHoursPerDay: 8,
+      );
+
+      final scheduledA = result.scheduledTasks.firstWhere(
+        (t) => t.id == 'taskA',
+      );
+      final scheduledB = result.scheduledTasks.firstWhere(
+        (t) => t.id == 'taskB',
+      );
+
+      expect(scheduledA.startTime, DateTime(2099, 1, 15, 9, 0));
+      // Task A: 09:00 - 10:00. Buffer: 10m. Task B must start at or after 10:10.
+      expect(scheduledB.startTime.isAfter(scheduledA.endTime!), isTrue);
+      expect(
+        scheduledB.startTime.difference(scheduledA.endTime!).inMinutes,
+        greaterThanOrEqualTo(10),
+      );
+    });
+
+    test(
+      'task splitting decomposes long tasks into linked sub-tasks with buffer',
+      () {
+        // 120-minute task with splittable: true and preferredBlockMinutes: 60
+        final bigTask = TaskItem(
+          id: 'big1',
+          title: 'Deep Research',
+          priority: 2,
+          startTime: fixedDate,
+          endTime: fixedDate.add(const Duration(minutes: 120)),
+          splittable: true,
+          preferredBlockMinutes: 60,
+        );
+
+        final result = scheduler.scheduleDayWithDetails(
+          tasks: [bigTask],
+          day: fixedDate,
+          workStartHour: 9,
+          workHoursPerDay: 8,
+        );
+
+        // Should be split into 2 chunks of 60m
+        expect(result.scheduledTasks, hasLength(2));
+        final chunk1 = result.scheduledTasks[0];
+        final chunk2 = result.scheduledTasks[1];
+
+        expect(chunk1.id, 'big1_chunk_1');
+        expect(chunk1.title, contains('Part 1/2'));
+        expect(chunk1.endTime!.difference(chunk1.startTime).inMinutes, 60);
+
+        expect(chunk2.id, 'big1_chunk_2');
+        expect(chunk2.title, contains('Part 2/2'));
+        expect(chunk2.endTime!.difference(chunk2.startTime).inMinutes, 60);
+
+        // Chunk 2 must start after chunk 1 + buffer
+        expect(
+          chunk2.startTime.difference(chunk1.endTime!).inMinutes,
+          greaterThanOrEqualTo(10),
+        );
+      },
+    );
+
+    test('immovable fixed tasks (isFixed: true) anchor their time slot', () {
+      final fixedTask = TaskItem(
+        id: 'fixed1',
+        title: 'Team Standup',
+        priority: 1,
+        isFixed: true,
+        startTime: DateTime(2099, 1, 15, 10, 0),
+        endTime: DateTime(2099, 1, 15, 10, 30),
+      );
+      final normalTask = _task(id: 'normal', priority: 2);
+
+      final result = scheduler.scheduleDayWithDetails(
+        tasks: [normalTask, fixedTask],
+        day: fixedDate,
+        workStartHour: 9,
+        workHoursPerDay: 8,
+      );
+
+      final fixedOut = result.scheduledTasks.firstWhere(
+        (t) => t.id == 'fixed1',
+      );
+      final normalOut = result.scheduledTasks.firstWhere(
+        (t) => t.id == 'normal',
+      );
+
+      // Fixed task must not have moved
+      expect(fixedOut.startTime, DateTime(2099, 1, 15, 10, 0));
+      expect(fixedOut.endTime, DateTime(2099, 1, 15, 10, 30));
+
+      // Normal task starts at 09:00 - 10:00 (fits right before fixed task)
+      expect(normalOut.startTime, DateTime(2099, 1, 15, 9, 0));
+      expect(normalOut.endTime, DateTime(2099, 1, 15, 10, 0));
+    });
+
+    test(
+      'earliestStart constraint prevents scheduling before specified time',
+      () {
+        final task = TaskItem(
+          id: 't_early',
+          title: 'Wait for call',
+          priority: 3,
+          startTime: fixedDate,
+          earliestStart: DateTime(2099, 1, 15, 13, 0),
+        );
+
+        final result = scheduler.scheduleDayWithDetails(
+          tasks: [task],
+          day: fixedDate,
+          workStartHour: 9,
+          workHoursPerDay: 8,
+        );
+
+        final scheduled = result.scheduledTasks.firstWhere(
+          (t) => t.id == 't_early',
+        );
+        expect(scheduled.startTime, isNot(DateTime(2099, 1, 15, 9, 0)));
+        expect(
+          scheduled.startTime.isAtSameMomentAs(DateTime(2099, 1, 15, 13, 0)) ||
+              scheduled.startTime.isAfter(DateTime(2099, 1, 15, 13, 0)),
+          isTrue,
+        );
+      },
+    );
+
+    test('deadline exceeded produces a warning', () {
+      // 09:00 - 10:30 blocker
+      final blocker = TaskItem(
+        id: 'blocker',
+        title: 'Morning blocker',
+        priority: 2,
+        isFixed: true,
+        startTime: DateTime(2099, 1, 15, 9, 0),
+        endTime: DateTime(2099, 1, 15, 10, 30),
+      );
+      // Deadline was 10:00, but can only be scheduled after 10:30 + 10m = 10:40
+      final taskWithDeadline = TaskItem(
+        id: 'urgent_deadline',
+        title: 'Missed deadline task',
+        priority: 3,
+        startTime: fixedDate,
+        deadline: DateTime(2099, 1, 15, 10, 0),
+      );
+
+      final result = scheduler.scheduleDayWithDetails(
+        tasks: [blocker, taskWithDeadline],
+        day: fixedDate,
+        workStartHour: 9,
+        workHoursPerDay: 8,
+      );
+
+      expect(
+        result.warnings.any(
+          (w) =>
+              w.code == 'deadline_exceeded' &&
+              w.affectedTaskId == 'urgent_deadline',
+        ),
+        isTrue,
+      );
+    });
+  });
 }

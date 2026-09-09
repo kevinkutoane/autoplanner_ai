@@ -52,6 +52,29 @@ void main() {
     test('recurrence defaults to null', () {
       expect(makeTask().recurrence, isNull);
     });
+
+    test('deadline, earliestStart, latestFinish default to null', () {
+      final task = makeTask();
+      expect(task.deadline, isNull);
+      expect(task.earliestStart, isNull);
+      expect(task.latestFinish, isNull);
+    });
+
+    test('isFixed and splittable default to false', () {
+      final task = makeTask();
+      expect(task.isFixed, isFalse);
+      expect(task.splittable, isFalse);
+    });
+
+    test('dependsOnTaskIds defaults to empty list', () {
+      expect(makeTask().dependsOnTaskIds, isEmpty);
+    });
+
+    test('energyLevel and preferredTimeOfDay default to null', () {
+      final task = makeTask();
+      expect(task.energyLevel, isNull);
+      expect(task.preferredTimeOfDay, isNull);
+    });
   });
 
   group('TaskItem.copyWith', () {
@@ -85,6 +108,30 @@ void main() {
       final task = makeTask(isCompleted: false);
       final done = task.copyWith(isCompleted: true);
       expect(done.isCompleted, isTrue);
+    });
+
+    test('copyWith can set and update constraints', () {
+      final deadline = DateTime(2026, 3, 12, 18, 0);
+      final task = makeTask().copyWith(
+        deadline: deadline,
+        isFixed: true,
+        splittable: true,
+        preferredBlockMinutes: 45,
+        energyLevel: 'high',
+        preferredTimeOfDay: 'morning',
+        dependsOnTaskIds: ['t0'],
+      );
+      expect(task.deadline, equals(deadline));
+      expect(task.isFixed, isTrue);
+      expect(task.splittable, isTrue);
+      expect(task.preferredBlockMinutes, equals(45));
+      expect(task.energyLevel, equals('high'));
+      expect(task.preferredTimeOfDay, equals('morning'));
+      expect(task.dependsOnTaskIds, equals(['t0']));
+
+      // Can clear deadline with sentinel
+      final cleared = task.copyWith(deadline: null);
+      expect(cleared.deadline, isNull);
     });
   });
 

@@ -62,6 +62,50 @@ class TaskItem extends HiveObject {
   @HiveField(11)
   String? linkedGoalId;
 
+  /// Hard deadline; scheduler flags warning if unable to fit before this time.
+  @HiveField(12)
+  DateTime? deadline;
+
+  /// Earliest moment this task is permitted to start.
+  @HiveField(13)
+  DateTime? earliestStart;
+
+  /// Latest moment this task must finish.
+  @HiveField(14)
+  DateTime? latestFinish;
+
+  /// If true, startTime/endTime cannot be moved by auto-scheduler.
+  @HiveField(15)
+  bool isFixed;
+
+  /// Energy requirement: 'low' | 'medium' | 'high'.
+  @HiveField(16)
+  String? energyLevel;
+
+  /// Preferred time of day: 'morning' | 'afternoon' | 'evening'.
+  @HiveField(17)
+  String? preferredTimeOfDay;
+
+  /// Whether long tasks can be split across multiple sessions.
+  @HiveField(18)
+  bool splittable;
+
+  /// Target chunk size in minutes when split (e.g. 60m).
+  @HiveField(19)
+  int? preferredBlockMinutes;
+
+  /// IDs of tasks that must complete before this task can start.
+  @HiveField(20)
+  List<String> dependsOnTaskIds;
+
+  /// ID of the parent ProjectItem, if any.
+  @HiveField(21)
+  String? linkedProjectId;
+
+  /// For split tasks: ID of the parent task this chunk belongs to.
+  @HiveField(22)
+  String? parentTaskId;
+
   TaskItem({
     required this.id,
     required this.title,
@@ -75,6 +119,17 @@ class TaskItem extends HiveObject {
     this.recurrence,
     this.recurrenceDays = const [],
     this.linkedGoalId,
+    this.deadline,
+    this.earliestStart,
+    this.latestFinish,
+    this.isFixed = false,
+    this.energyLevel,
+    this.preferredTimeOfDay,
+    this.splittable = false,
+    this.preferredBlockMinutes,
+    this.dependsOnTaskIds = const [],
+    this.linkedProjectId,
+    this.parentTaskId,
   });
 
   TaskItem copyWith({
@@ -90,6 +145,17 @@ class TaskItem extends HiveObject {
     Object? recurrence = _sentinel,
     List<int>? recurrenceDays,
     Object? linkedGoalId = _sentinel,
+    Object? deadline = _sentinel,
+    Object? earliestStart = _sentinel,
+    Object? latestFinish = _sentinel,
+    bool? isFixed,
+    Object? energyLevel = _sentinel,
+    Object? preferredTimeOfDay = _sentinel,
+    bool? splittable,
+    Object? preferredBlockMinutes = _sentinel,
+    List<String>? dependsOnTaskIds,
+    Object? linkedProjectId = _sentinel,
+    Object? parentTaskId = _sentinel,
   }) {
     return TaskItem(
       id: id ?? this.id,
@@ -109,6 +175,31 @@ class TaskItem extends HiveObject {
       linkedGoalId: linkedGoalId == _sentinel
           ? this.linkedGoalId
           : linkedGoalId as String?,
+      deadline: deadline == _sentinel ? this.deadline : deadline as DateTime?,
+      earliestStart: earliestStart == _sentinel
+          ? this.earliestStart
+          : earliestStart as DateTime?,
+      latestFinish: latestFinish == _sentinel
+          ? this.latestFinish
+          : latestFinish as DateTime?,
+      isFixed: isFixed ?? this.isFixed,
+      energyLevel: energyLevel == _sentinel
+          ? this.energyLevel
+          : energyLevel as String?,
+      preferredTimeOfDay: preferredTimeOfDay == _sentinel
+          ? this.preferredTimeOfDay
+          : preferredTimeOfDay as String?,
+      splittable: splittable ?? this.splittable,
+      preferredBlockMinutes: preferredBlockMinutes == _sentinel
+          ? this.preferredBlockMinutes
+          : preferredBlockMinutes as int?,
+      dependsOnTaskIds: dependsOnTaskIds ?? this.dependsOnTaskIds,
+      linkedProjectId: linkedProjectId == _sentinel
+          ? this.linkedProjectId
+          : linkedProjectId as String?,
+      parentTaskId: parentTaskId == _sentinel
+          ? this.parentTaskId
+          : parentTaskId as String?,
     );
   }
 
