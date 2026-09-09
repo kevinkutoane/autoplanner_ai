@@ -67,8 +67,9 @@ class BackupService {
       'exportedAt': DateTime.now().toIso8601String(),
       'tasks': Hive.box<TaskItem>('tasksBox').values.map(_taskToMap).toList(),
       'goals': Hive.box<GoalItem>('goalsBox').values.map(_goalToMap).toList(),
-      'projects':
-          Hive.box<ProjectItem>('projectsBox').values.map(_projectToMap).toList(),
+      'projects': Hive.box<ProjectItem>(
+        'projectsBox',
+      ).values.map(_projectToMap).toList(),
       'memories': Hive.box<MemoryEntry>(
         'memoryBox',
       ).values.map(_memoryToMap).toList(),
@@ -104,13 +105,15 @@ class BackupService {
   /// Throws [FormatException] when the file is not valid JSON or uses an
   /// unsupported backup version.
   Future<BackupImportResult?> importFromFile() async {
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
     );
-    if (result.isEmpty) return null;
+    if (result == null || result.files.isEmpty) return null;
 
-    final bytes = await File(result.first.path!).readAsBytes();
+    final path = result.files.first.path;
+    if (path == null) throw const FormatException('Could not read file path');
+    final bytes = await File(path).readAsBytes();
     if (bytes.isEmpty) throw const FormatException('Could not read file data');
 
     final jsonStr = utf8.decode(bytes);

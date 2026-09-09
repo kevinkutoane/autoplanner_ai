@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:http/http.dart' as http;
@@ -23,12 +24,14 @@ class MockGoogleAuthService extends GoogleAuthService {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late Directory tempDir;
   late MockGoogleAuthService authService;
   late Box<CalendarEvent> calendarBox;
   late Box<dynamic> settingsBox;
 
   setUp(() async {
-    Hive.init('test_hive_calendar');
+    tempDir = Directory.systemTemp.createTempSync('cal_sync_test_');
+    Hive.init(tempDir.path);
     if (!Hive.isAdapterRegistered(2)) {
       Hive.registerAdapter(CalendarEventAdapter());
     }
@@ -38,11 +41,12 @@ void main() {
   });
 
   tearDown(() async {
-    await calendarBox.clear();
-    await settingsBox.clear();
-    await Hive.deleteBoxFromDisk('calendarBox');
-    await Hive.deleteBoxFromDisk('settingsBox');
     await Hive.close();
+    try {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    } catch (_) {}
   });
 
   test('incrementalSync executes full sync when no syncToken exists', () async {

@@ -109,9 +109,11 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
           setState(() => _ctrl.text = result.recognizedWords);
         }
       },
-      listenFor: const Duration(seconds: 60),
-      pauseFor: const Duration(seconds: 4),
-      listenOptions: stt.SpeechListenOptions(partialResults: true),
+      listenOptions: stt.SpeechListenOptions(
+        partialResults: true,
+        listenFor: const Duration(seconds: 60),
+        pauseFor: const Duration(seconds: 4),
+      ),
     );
   }
 
