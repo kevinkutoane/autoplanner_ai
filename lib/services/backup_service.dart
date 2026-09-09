@@ -85,12 +85,10 @@ class BackupService {
     final file = File('${dir.path}/autoplanner_backup_$stamp.json');
     await file.writeAsString(json, flush: true);
 
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(file.path, mimeType: 'application/json')],
-        subject: 'AutoPlanner AI Backup',
-        text: 'AutoPlanner AI — full data backup',
-      ),
+    await Share.shareXFiles(
+      [XFile(file.path, mimeType: 'application/json')],
+      subject: 'AutoPlanner AI Backup',
+      text: 'AutoPlanner AI — full data backup',
     );
   }
 
