@@ -59,16 +59,41 @@ All AI calls route through `AIService`, which abstracts the underlying `AIProvid
 
 ## Core Systems & Flows
 
-### Deterministic Scheduling Algorithm
+### Intelligent Constraint-Based Scheduling Engine
 
-`SchedulerService.scheduleDay` is an AI-free, pure-Dart deterministic engine:
+`SchedulerService.scheduleDayWithDetails` is a pure-Dart deterministic engine operating without unvetted AI slot decisions:
 
-1. **Clock Abstraction:** Uses `package:clock` (`clock.now()`) to enable 100% deterministic testing without hardcoded wall-clock time dependencies.
-2. **Immovable Blocks:** Completed tasks and external calendar events are treated as immovable blocks.
-3. **Prioritization:** Pending tasks are sorted by priority (Urgent > High > Medium > Low).
-4. **Greedy Forward Scan:** The engine scans for the first free slot ≥ the task's duration, places it, and advances the cursor with a 10-minute buffer.
-5. **Slot Rounding & Breathing Room:** When scheduling for today, the initial cursor starts from the next rounded slot boundary with breathing room to prevent scheduling in the past.
-6. **End-of-Day Extension:** When scheduling after normal work hours on the current day, the scheduling window automatically extends to 23:59.
+1. **Clock Abstraction:** Uses `package:clock` (`clock.now()`) to enable 100% deterministic testing without hardcoded wall-clock time dependencies across all edge cases.
+2. **Immovable Anchors & Blocks:** Completed tasks, external Google Calendar events, and user-fixed tasks (`isFixed == true`) are treated as immovable blocks. Other tasks schedule around them.
+3. **Directed Acyclic Graph (DAG) Resolution (`DependencyGraphService`):**
+   - Builds a dependency graph from `dependsOnTaskIds`.
+   - Executes cycle detection via Kahn's algorithm; if cycles exist, breaks them safely by removing the lowest-priority edge and emits an `UnresolvableDependencyWarning`.
+   - Topologically sorts candidate tasks so prerequisites are guaranteed to be scheduled prior to dependents:
+     $$\text{startTime}(B) \ge \text{endTime}(A) + \text{bufferMinutes} \quad (\forall A \in B.\text{dependsOnTaskIds})$$
+4. **Task Splitting Engine:**
+   - Tasks with `splittable == true` whose duration exceeds `preferredBlockMinutes` are decomposed into $N = \lceil \text{duration} / \text{preferredBlockMinutes} \rceil$ sequential focus chunks linked by `parentTaskId`.
+   - Automatic restorative transition buffers (10–15 min) are enforced between chunks.
+5. **Multi-Factor Planning Score Function:**
+   Instead of a naive 1D sort, candidate tasks and slots are evaluated using a multi-factor score:
+   $$\text{Score}(T, S) = W_p \cdot P(T) + W_d \cdot U(T, S) + W_g \cdot G(T) + W_e \cdot E(T, S) - C(T, S_{\text{prev}})$$
+   - $P(T) \in [0, 3]$: Priority score (Urgent=3, High=2, Medium=1, Low=0).
+   - $U(T, S) \in [0, 5]$: Deadline Urgency (exponential escalation as slot $S$ approaches deadline $D$).
+   - $G(T) \in \{0, 1.5\}$: Goal Alignment boost for tasks linked to active high-level goals.
+   - $E(T, S) \in [0, 2]$: Energy Level fit (e.g. high-energy matched to peak morning slots).
+   - Preferred time-of-day fit (morning: 08:00–12:00, afternoon: 12:00–17:00, evening: 17:00+).
+   - $C(T, S_{\text{prev}}) \in [0, 1]$: Context Switching penalty for adjacent tasks with disjoint tags/projects.
+6. **Hard Constraint Validation:**
+   - Respects `earliestStart` (task cannot start before this timestamp).
+   - Respects `latestFinish` and `deadline` (flags `ScheduleWarning` if unavailable).
+7. **Explainability & Warning Diagnostics:**
+   - Generates a structured `ScheduleResult`:
+     - `scheduledTasks`: Successfully placed tasks with assigned start/end times.
+     - `unplacedTasks`: Tasks that could not fit within the working window.
+     - `explanations`: Map of `taskId` to `TaskPlacementRationale` (score + transparent list of factor reasons).
+     - `warnings`: List of `ScheduleWarning` (deadline misses, no slot available, cycle warnings).
+8. **Slot Rounding & End-of-Day Extension:**
+   - Future cursor starts from the next rounded slot boundary with breathing room to prevent scheduling in the past.
+   - When planning after normal work hours on the current day, the scheduling window automatically extends to 23:59.
 
 ### Proactive Rescheduling Flow
 
@@ -113,11 +138,14 @@ Link/unlink operations update both sides atomically via their respective Riverpo
 
 ```text
 User taps "Plan My Day"
-  → AIService.planDay()            # AI scores + estimates durations
-  → AIValidator.validateTaskDomain() # Validates task bounds & fields
-  → SchedulerService.scheduleDay() # Deterministic time placement
-  → TaskController.updateTask()    # Persisted to Hive (encrypted)
-  → Riverpod rebuilds UI
+  → AIService.planDay()                   # AI enrichment: re-scores priority & estimates duration
+  → AIValidator.validateTaskDomain()        # Schema & bounds validation boundary
+  → SchedulerService.scheduleDayWithDetails() # Intelligent constraint & DAG scheduling
+  → scheduleRationaleProvider.state ← result.explanations # Riverpod explainability state
+  → TaskController.updateTask()           # Persists scheduled placements to Hive (AES-256)
+  → PlannerScreen renders:
+      • ScheduleWarningBanner (if warnings or unplaced tasks exist)
+      • Task cards with "Why Here?" info button (opens _ScheduleRationaleSheet)
 ```
 
 ---
@@ -128,13 +156,13 @@ All boxes are AES-256 encrypted. The encryption key is generated on first launch
 
 | Box Name | TypeId | Model | Key Fields |
 | --- | --- | --- | --- |
-| `tasksBox` | 0 | `TaskItem` | id, title, startTime, endTime, priority, tags, isCompleted, linkedNoteIds, recurrence |
-| `notesBox` | 1 | `NoteItem` | id, title, content, summary, tags, createdAt, linkedTaskIds, isPinned |
-| `calendarBox` | 2 | `CalendarEvent` | id, title, startTime, endTime, source, etag, syncStatus |
-| `memoryBox` | 3 | `MemoryEntry` | id, content, sourceType, sourceId, tags, relevanceScore |
-| `goalsBox` | 4 | `GoalItem` | id, title, description, targetDate, isCompleted, progress, linkedTaskIds |
-| `projectsBox`| 5 | `ProjectItem` | id, name, description, status, deadlines, linkedTaskIds |
+| `tasksBox` | 0 | `TaskItem` | `id`, `title`, `startTime`, `endTime`, `priority`, `tags`, `isCompleted`, `recurrence`, `recurrenceDays`, `linkedGoalId`, `deadline`, `earliestStart`, `latestFinish`, `isFixed`, `energyLevel`, `preferredTimeOfDay`, `splittable`, `preferredBlockMinutes`, `dependsOnTaskIds`, `linkedProjectId`, `parentTaskId` |
+| `notesBox` | 1 | `NoteItem` | `id`, `title`, `content`, `summary`, `tags`, `createdAt`, `linkedTaskIds`, `isPinned` |
+| `calendarBox` | 2 | `CalendarEvent` | `id`, `title`, `startTime`, `endTime`, `source`, `etag`, `syncStatus` |
+| `memoryBox` | 3 | `MemoryEntry` | `id`, `content`, `sourceType`, `sourceId`, `tags`, `relevanceScore` |
+| `goalsBox` | 4 | `GoalItem` | `id`, `title`, `description`, `targetDate`, `isCompleted`, `progress`, `linkedTaskIds` |
+| `projectsBox`| 5 | `ProjectItem` | `id`, `name`, `description`, `status`, `deadlines`, `linkedTaskIds` |
 | `settingsBox` | — | `AppSettings` | (Manual map) work schedule, theme, biometric lock, sync tokens, etc. |
-| `aiLogsBox` | 10 | `AILogEntry` | id, model, promptTokens, completionTokens, latencyMs, timestamp, success |
-| `appEventsBox`| 11 | `AppEvent` | id, type, description, timestamp, stackTrace |
-| `offlineAIQueueBox` | — | `QueuedAIRequest` | (Manual map) id, method, argsJson, queuedAt, attempts, lastError |
+| `aiLogsBox` | 10 | `AILogEntry` | `id`, `model`, `promptTokens`, `completionTokens`, `latencyMs`, `timestamp`, `success` |
+| `appEventsBox`| 11 | `AppEvent` | `id`, `type`, `description`, `timestamp`, `stackTrace` |
+| `offlineAIQueueBox` | — | `QueuedAIRequest` | (Manual map) `id`, `method`, `argsJson`, `queuedAt`, `attempts`, `lastError` |

@@ -21,17 +21,18 @@
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Phase 1.2 — Smart Scheduling Engine [READY FOR EXECUTION]                   │
+│ Phase 1.2 — Smart Scheduling Engine [COMPLETED]                             │
 │ • Constraint-Based Planning (Deadlines, Earliest Start, Latest Finish)      │
 │ • Task Dependencies DAG (Topological Sort, Cycle Detection)                 │
 │ • Task Splitting (Large focus blocks + break intervals)                     │
 │ • Multi-Factor Planning Score Function                                      │
-│ • Schedule Explainability ("Why was this task placed here?")                │
+│ • Schedule Explainability ("Why Here?" rationale & warning diagnostics)     │
+│ • UI Integration (Advanced Scheduling Panel, Warnings Banner, Sheets)       │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Phase 1.3 — Personal Intelligence & Behavioral Learning                     │
+│ Phase 1.3 — Personal Intelligence & Behavioral Learning [NEXT UP]           │
 │ • Estimated vs. Actual Duration Tracking & Feedback Loop                    │
 │ • Productivity Health Metrics (Accuracy, Carry-over, Planning Debt)         │
 │ • Personal Productivity Model (Deep work windows, Underestimation offsets)  │
@@ -81,27 +82,24 @@
 
 ---
 
-### Phase 1.2: Smart Scheduling Engine `[SPECIFIED]`
+### Phase 1.2: Smart Scheduling Engine `[COMPLETED]`
 - **Goal**: Transition from a naive priority-based greedy slot-packer into an intelligent constraint-based planning engine.
-- **Key Capabilities**:
-  1. **Task Constraints**:
-     - Hard constraints: `deadline`, `earliestStart`, `latestFinish`, `isFixed`.
-     - Soft constraints: `energyLevel` (low/medium/high), `preferredTimeOfDay` (morning/afternoon/evening).
-  2. **Task Dependencies DAG**:
-     - Tasks declare `dependsOnTaskIds`.
-     - Cycle detection via Kahn's algorithm or DFS.
-     - Dependent tasks can only be scheduled after all prerequisites have concluded.
-  3. **Task Splitting**:
-     - Tasks flagged `splittable: true` with `preferredBlockMinutes` (e.g. 60m).
-     - Scheduler breaks long tasks (e.g., 240m) across multiple free slots with restorative break buffers.
+- **Delivered**:
+  1. **Domain Evolution (`TaskItem`)**: Added backward-compatible fields 12–22 (`deadline`, `earliestStart`, `latestFinish`, `isFixed`, `energyLevel`, `preferredTimeOfDay`, `splittable`, `preferredBlockMinutes`, `dependsOnTaskIds`, `linkedProjectId`, `parentTaskId`).
+  2. **Task Dependencies DAG (`DependencyGraphService`)**: Built dependency graph resolution with Kahn's algorithm cycle detection and topological sorting, guaranteeing dependent tasks start strictly after prerequisite tasks finish.
+  3. **Task Splitting Engine**: Decomposes large tasks (`splittable == true`) into discrete focus blocks with restorative transition breaks.
   4. **Multi-Factor Planning Score**:
-     $$\text{PlanningScore} = W_p \cdot \text{Priority} + W_d \cdot \text{DeadlineUrgency} + W_g \cdot \text{GoalWeight} + W_e \cdot \text{EnergyFit} - \text{ContextSwitchPenalty}$$
-  5. **Explainability**:
-     - Engine outputs a structured `SchedulePlan` containing placement reasoning per task for transparent UI inspectability ("Why 10:30?").
+     $$\text{PlanningScore} = W_p \cdot \text{Priority} + W_d \cdot \text{DeadlineUrgency} + W_g \cdot \text{GoalWeight} + W_e \cdot \text{EnergyFit} + W_t \cdot \text{TimeOfDayFit} - \text{ContextSwitchPenalty}$$
+  5. **Explainability & Diagnostics**: Engine generates `ScheduleResult` with transparent factor breakdowns (`TaskPlacementRationale`) and warnings (`ScheduleWarning`).
+  6. **UI Integration**:
+     - Advanced Scheduling Panel in Task Edit sheet with date-time pickers, fixed toggle, energy chips, time-of-day chips, and split controls.
+     - "Plan My Day" executes `scheduleDayWithDetails`, stores explanations in Riverpod `scheduleRationaleProvider`, and presents `_ScheduleWarningsBanner`.
+     - Interactive "Why Here?" bottom sheet (`_ScheduleRationaleSheet`) displaying score breakdown and decision factors per task.
+  7. **Verification**: 449 unit and integration tests passing, 0 analyzer issues.
 
 ---
 
-### Phase 1.3: Personal Intelligence & Behavioral Learning `[PLANNED]`
+### Phase 1.3: Personal Intelligence & Behavioral Learning `[NEXT UP / PLANNED]`
 - **Goal**: Move from static user rules to an adaptive personal productivity model.
 - **Key Capabilities**:
   1. **Feedback Loops**: Post-task prompt ("Was estimated 60m accurate?").

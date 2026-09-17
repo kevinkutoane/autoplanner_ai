@@ -1,7 +1,7 @@
 # AutoPlanner AI — Phase 1.2 Specification: Smart Scheduling Engine
 
-> **Document Status**: READY FOR IMPLEMENTATION  
-> **Target Version**: `1.2.0`  
+> **Document Status**: COMPLETED & VERIFIED  
+> **Release Version**: `1.2.0` (2026-09-17)  
 > **Prerequisites**: Phase 1.1 (Reliability & Hardening) Completed & Verified  
 
 ---
@@ -143,10 +143,26 @@ class TaskPlacementRationale {
 ---
 
 ## 7. Implementation Phasing for Phase 1.2
+ 
+ 1. **Step 1: Domain & Hive Schema**: Update `TaskItem`, add fields 12–22, update TypeAdapter and tests. `[DONE]`
+ 2. **Step 2: DAG & Dependency Validator**: Implement cycle detection and topological sorting in `lib/services/dependency_graph_service.dart`. `[DONE]`
+ 3. **Step 3: Task Splitting Logic**: Implement block decomposition for splittable tasks. `[DONE]`
+ 4. **Step 4: Constraint Solver & Scoring**: Upgrade `SchedulerService.scheduleDayWithDetails` with multi-factor scoring. `[DONE]`
+ 5. **Step 5: Explainability & UI**: Integrate `ScheduleResult` and surface rationale in the day planner UI. `[DONE]`
+ 6. **Step 6: Verification**: Unit tests, DAG property tests, invariant tests, analyze, and build. `[DONE]`
 
-1. **Step 1: Domain & Hive Schema**: Update `TaskItem`, add fields 12–22, update TypeAdapter and tests.
-2. **Step 2: DAG & Dependency Validator**: Implement cycle detection and topological sorting in `lib/services/dependency_graph_service.dart`.
-3. **Step 3: Task Splitting Logic**: Implement block decomposition for splittable tasks.
-4. **Step 5: Constraint Solver & Scoring**: Upgrade `SchedulerService.scheduleDay` with multi-factor scoring.
-5. **Step 5: Explainability & UI**: Integrate `ScheduleResult` and surface rationale in the day planner UI.
-6. **Step 6: Verification**: Unit tests, DAG property tests, invariant tests, analyze, and build.
+---
+
+## 8. Delivery & Verification Summary
+
+- **Engine Implementation**:
+  - `DependencyGraphService` with Kahn's algorithm topological sort and cycle resolution.
+  - `SchedulerService.scheduleDayWithDetails` implementing multi-factor planning scoring, task splitting, immovable anchors (`isFixed`), hard constraints (`earliestStart`, `latestFinish`), and soft constraints (`energyLevel`, `preferredTimeOfDay`).
+  - Structured output models: `ScheduleResult`, `TaskPlacementRationale`, `ScheduleWarning`.
+- **UI Integration**:
+  - `_TaskEditSheet` Advanced Scheduling Panel: full date-time pickers for deadline, earliest start, latest finish; fixed toggle; energy & preferred time chips; splitting toggle with block size.
+  - `PlannerScreen`: "Plan My Day" runs `scheduleDayWithDetails`, stores rationale in `scheduleRationaleProvider`, and presents `_ScheduleWarningsBanner` for unplaced tasks or deadline misses.
+  - `_ScheduleRationaleSheet`: Tap "Why Here?" on any scheduled task to inspect score bar and all contributing factors.
+- **Verification**:
+  - `flutter test`: 449/449 tests passing across 24 test suites.
+  - `flutter analyze`: 0 errors, 0 warnings, 0 infos.

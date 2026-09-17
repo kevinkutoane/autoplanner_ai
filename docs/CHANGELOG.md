@@ -6,9 +6,19 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased / In-Tree Preview — Subject to Approval Gate]
+## [Unreleased]
 
-### Phase 1.2: Smart Scheduling Engine
+### Phase 1.3: Personal Intelligence & Behavioral Learning (Planned)
+- Estimated vs. actual duration tracking and user feedback loop
+- Category-based estimation variance learning ($\Delta$ offset models)
+- Personal productivity profile (deep work focus windows)
+- Productivity health and planning debt metrics
+
+---
+
+## [1.2.0] — 2026-09-17
+
+### Phase 1.2: Smart Scheduling Engine & UI Integration
 
 - **Task Constraints & Domain Expansion**: Added Hive fields 12–22 to `TaskItem` (`deadline`, `earliestStart`, `latestFinish`, `isFixed`, `energyLevel`, `preferredTimeOfDay`, `splittable`, `preferredBlockMinutes`, `dependsOnTaskIds`, `linkedProjectId`, `parentTaskId`) with complete backward compatibility.
 - **Task Dependencies Directed Acyclic Graph (DAG)**: Created `DependencyGraphService` with Kahn's algorithm for topological sorting and cycle detection, guaranteeing dependent tasks start strictly after prerequisite tasks finish.

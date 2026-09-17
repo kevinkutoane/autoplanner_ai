@@ -2,13 +2,19 @@
 
 > **AI-powered daily planner for Android & iOS** — turn a stream-of-consciousness brain dump into a fully scheduled, priority-scored day in seconds.
 
-**Version:** 1.1.0 · **Flutter SDK:** `^3.8.1` · **Dart SDK:** `^3.8.1` · **AI Model:** Gemini 2.5 Flash
+**Version:** 1.2.0 · **Flutter SDK:** `^3.8.1` · **Dart SDK:** `^3.8.1` · **AI Model:** Gemini 2.5 Flash
 
 ---
 
-## Architecture
+## Documentation Directory
 
-For a detailed breakdown of the app's structural design, unified startup lifecycle, deterministic scheduling algorithm, and offline-first data flows, see [ARCHITECTURE.md](ARCHITECTURE.md).
+| Document | Description |
+| --- | --- |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | High-level system architecture, startup lifecycle, constraint scheduling engine, and data flows |
+| [PHASE_1_2_SPEC.md](PHASE_1_2_SPEC.md) | Technical specification & delivery verification for the Smart Scheduling Engine |
+| [ROADMAP.md](ROADMAP.md) | Multi-phase strategic product and architectural roadmap from 1.1 to 2.0 |
+| [CHANGELOG.md](CHANGELOG.md) | Detailed release notes, breaking changes, and migration history |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Developer guide, coding standards, test execution, and pull request checklist |
 
 ---
 
@@ -19,8 +25,12 @@ For a detailed breakdown of the app's structural design, unified startup lifecyc
 - **Brain Dump** — paste or speak anything on your mind; AI classifies it into tasks, notes, and long-term memories in real time with streaming output
 - **AI Task Parser** — natural language → structured tasks with start time, realistic duration, and priority (Low / Medium / High / Urgent)
 - **AI Output Validation** — strict schema and domain validation boundary (`AIValidator`) preventing malformed or out-of-bounds LLM outputs from polluting state
-- **Plan My Day** — one-tap AI enrichment pass re-scores all pending tasks, estimates durations, then a deterministic scheduling engine packs them into your work window with zero conflicts
-- **Day Planner** — drag-reorder, inline complete/delete, and tap-to-edit any task (title, priority, time, duration, note)
+- **Smart Constraint-Based Scheduler** — multi-factor deterministic engine evaluating priority, deadline urgency, goal alignment, energy levels, preferred time of day, and context switching with zero overlapping conflicts
+- **Task Dependencies DAG** — declare task dependencies; Kahn's topological sort guarantees dependent tasks start strictly after prerequisites finish with automatic cycle breaking
+- **Task Splitting** — long tasks decomposed into manageable focus blocks with automatic restorative transition breaks
+- **Schedule Explainability ("Why Here?")** — tap any scheduled task to view transparent factor breakdown and planning score bar
+- **Schedule Diagnostics & Warnings** — amber warning banner flags deadline misses, unplaced tasks, or dependency cycles
+- **Day Planner** — drag-reorder, inline complete/delete, and tap-to-edit any task with an Advanced Scheduling panel (deadlines, earliest start, latest finish, fixed anchors, energy & time-of-day chips)
 - **Goals & Projects** — structure your life's ambition by linking tasks, notes, and events directly to larger objectives and project containers
 - **Notes** — rich editor with AI-generated summaries, auto-tags, and action-item extraction directly into the planner
 - **Note ↔ Task Linking** — link notes to tasks (and vice versa) via a picker UI; related items surface in both the note editor and task detail sheet
@@ -174,11 +184,11 @@ Automated tests and quality checks run via GitHub Actions (`.github/workflows/ci
 # Run static analysis
 flutter analyze lib test --fatal-infos
 
-# Run full test suite (402 tests)
+# Run full test suite (449 tests across 24 suites)
 flutter test
 
-# Run scheduler behavioral tests with clock abstraction
-flutter test test/scheduler_service_test.dart
+# Run scheduler behavioral and constraint tests
+flutter test test/scheduler_service_test.dart test/dependency_graph_service_test.dart
 
 # Build verification
 flutter build apk --debug
