@@ -86,7 +86,7 @@ class OfflineAIQueue {
 
   late Box<Map> _box;
   StreamSubscription? _connectivitySub;
-  bool _draining = false;
+  Future<void>? _currentDrain;
 
   /// Callback that executes the actual AI call.
   /// Receives the method name and decoded arguments map.
@@ -143,71 +143,80 @@ class OfflineAIQueue {
   /// Requests that fail are retried up to [_maxAttempts] times.
   /// Requests exceeding the limit are removed from the queue.
   Future<void> drain() async {
-    if (_draining) return;
-    _draining = true;
-
+    if (_currentDrain != null) {
+      await _currentDrain;
+      return;
+    }
+    final drainFuture = _performDrain();
+    _currentDrain = drainFuture;
     try {
-      // Process in insertion order (Hive preserves insertion order for maps).
-      final keys = _box.keys.toList();
-      for (final key in keys) {
-        final raw = _box.get(key);
-        if (raw == null) continue;
+      await drainFuture;
+    } finally {
+      if (_currentDrain == drainFuture) {
+        _currentDrain = null;
+      }
+    }
+  }
 
-        final request = QueuedAIRequest.fromMap(raw);
+  Future<void> _performDrain() async {
+    // Process in insertion order (Hive preserves insertion order for maps).
+    final keys = _box.keys.toList();
+    for (final key in keys) {
+      final raw = _box.get(key);
+      if (raw == null) continue;
 
-        if (request.isPermanentFailure) continue;
+      final request = QueuedAIRequest.fromMap(raw);
 
+      if (request.isPermanentFailure) continue;
+
+      if (request.attempts >= _maxAttempts) {
+        // Exceeded max attempts — mark as permanent failure instead of deleting.
+        request.isPermanentFailure = true;
+        request.lastError = 'Exceeded $_maxAttempts attempts';
+        await _box.put(key, request.toMap());
+        _updatePendingCount();
+        if (kDebugMode) {
+          debugPrint(
+            'OfflineAIQueue: marked ${request.method} as permanent failure',
+          );
+        }
+        continue;
+      }
+
+      try {
+        final args = jsonDecode(request.argsJson) as Map<String, dynamic>;
+        await executeCallback(request.method, args);
+        // Success — remove from queue.
+        await _box.delete(key);
+        _updatePendingCount();
+        if (kDebugMode) {
+          debugPrint('OfflineAIQueue: completed ${request.method}');
+        }
+      } catch (e) {
+        // Failure — increment attempts and store the error.
+        request.attempts++;
+        request.lastError = e.toString();
+
+        // Fail safely for unknown operations (UnsupportedError) or max attempts
         if (request.attempts >= _maxAttempts) {
-          // Exceeded max attempts — mark as permanent failure instead of deleting.
           request.isPermanentFailure = true;
           request.lastError = 'Exceeded $_maxAttempts attempts';
-          await _box.put(key, request.toMap());
-          _updatePendingCount();
-          if (kDebugMode) {
-            debugPrint(
-              'OfflineAIQueue: marked ${request.method} as permanent failure',
-            );
-          }
-          continue;
+        } else if (e is UnsupportedError || e is FormatException) {
+          request.isPermanentFailure = true;
         }
 
-        try {
-          final args = jsonDecode(request.argsJson) as Map<String, dynamic>;
-          await executeCallback(request.method, args);
-          // Success — remove from queue.
-          await _box.delete(key);
-          _updatePendingCount();
-          if (kDebugMode) {
-            debugPrint('OfflineAIQueue: completed ${request.method}');
-          }
-        } catch (e) {
-          // Failure — increment attempts and store the error.
-          request.attempts++;
-          request.lastError = e.toString();
-
-          // Fail safely for unknown operations (UnsupportedError) or max attempts
-          if (request.attempts >= _maxAttempts) {
-            request.isPermanentFailure = true;
-            request.lastError = 'Exceeded $_maxAttempts attempts';
-          } else if (e is UnsupportedError || e is FormatException) {
-            request.isPermanentFailure = true;
-          }
-
-          await _box.put(key, request.toMap());
-          _updatePendingCount();
-          if (kDebugMode) {
-            debugPrint(
-              'OfflineAIQueue: ${request.method} attempt ${request.attempts} failed: $e',
-            );
-          }
-          // Stop draining on first transient failure — likely still offline or rate limited.
-          if (!request.isPermanentFailure) {
-            break;
-          }
+        await _box.put(key, request.toMap());
+        _updatePendingCount();
+        if (kDebugMode) {
+          debugPrint(
+            'OfflineAIQueue: ${request.method} attempt ${request.attempts} failed: $e',
+          );
+        }
+        // Stop draining on first transient failure — likely still offline or rate limited.
+        if (!request.isPermanentFailure) {
+          break;
         }
       }
-    } finally {
-      _draining = false;
     }
   }
 

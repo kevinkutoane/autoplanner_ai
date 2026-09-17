@@ -15,14 +15,11 @@ class MockAIProvider implements AIProvider {
     final lower = prompt.toLowerCase();
 
     String text;
-    // Check for memory/pattern extraction FIRST so prompts that say
-    // "Extract … from this task context" don't accidentally match the
-    // task-JSON branch below.
-    if (lower.contains('extract') || lower.contains('memory')) {
-      text = 'User prefers morning schedules and blocks deep work before noon.';
-    } else if (lower.contains('brain dump') || lower.contains('brain_dump')) {
+    if (lower.contains('brain dump') || lower.contains('brain_dump')) {
       // Return the full structured object the parser expects.
-      text = '''{"tasks":[{"title":"Review action items","startTime":"09:00","estimatedMinutes":30,"priority":1,"tags":["work"]},{"title":"Deep work block","startTime":"10:00","estimatedMinutes":90,"priority":2,"tags":["focus"]}],"notes":[{"title":"Ideas captured","content":"Remember to follow up on the project proposal next week."}],"memories":["User prefers focused work blocks in the morning."]}''';
+      text = '''{"tasks":[{"title":"Review action items","startTime":"09:00","estimatedMinutes":30,"priority":1,"tags":["work"]},{"title":"Deep work block","startTime":"10:00","estimatedMinutes":90,"priority":2,"tags":["focus"]}],"goals":[{"title":"Launch MVP","description":"Ship version 1.0 of the planner"}],"memories":["User prefers focused work blocks in the morning."]}''';
+    } else if (lower.contains('extract') || lower.contains('memory')) {
+      text = 'User prefers morning schedules and blocks deep work before noon.';
     } else if (lower.contains('insight') || lower.contains('daily')) {
       text = 'You tend to be most productive in the morning. Try scheduling your hardest task before 10am.';
     } else if (lower.contains('task') ||

@@ -222,6 +222,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton(
+        heroTag: null,
         onPressed: _showAddProjectDialog,
         backgroundColor: kIndigo,
         foregroundColor: Colors.white,

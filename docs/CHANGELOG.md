@@ -17,6 +17,13 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - **Multi-Factor Planning Score**: Optimized candidate slot selection considering priority, deadline urgency, goal alignment, energy level, preferred time of day, and context switching.
 - **Schedule Explainability**: Introduced `ScheduleResult`, `TaskPlacementRationale`, and `ScheduleWarning` providing transparent factor breakdowns for every scheduled task.
 
+#### Phase 1.2 UI Integration (2026-09-17)
+- **Advanced Scheduling Panel**: Added collapsible "Advanced scheduling ›" `ExpansionTile` to the Task Edit sheet exposing all Phase 1.2 constraint fields: deadline date-time picker, earliest start / latest finish pickers, fixed time slot toggle (📌), energy level chip selector (🔋/⚡/🔥), preferred time of day chips (🌅/☀️/🌙), and allow-splitting toggle with configurable block size. Shows an "Active" badge when any constraint is set.
+- **`scheduleDayWithDetails` Integration**: "Plan My Day" flow now calls `SchedulerService.scheduleDayWithDetails` instead of the legacy `scheduleDay` wrapper, fully activating the multi-factor DAG-aware scheduler.
+- **Schedule Warning Banner**: Dismissible amber banner displayed after planning when `ScheduleWarning` entries are present, with per-code icons (deadline exceeded 🔴, no slot available 🟠, cycle detected 🔵) and unplaced task count.
+- **"Why Here?" Rationale Sheet**: Each task card displays an ℹ️ icon (after AI scheduling) that opens a `_ScheduleRationaleSheet` bottom sheet showing assigned time, planning score progress bar, and the full factor list used by the multi-factor scorer.
+- **`scheduleRationaleProvider`**: New Riverpod `NotifierProvider<Map<String, TaskPlacementRationale>>` in `providers.dart` persists rationale across widget rebuilds, cleanly bridging `_PlanMyDaySheetState` → `_TaskRow` without prop-drilling.
+
 ---
 
 ## [1.1.0] — 2026-09-09 (Current Approved Baseline)

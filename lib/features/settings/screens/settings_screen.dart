@@ -855,32 +855,35 @@ class _ListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return ListTile(
-      leading: Icon(
-        icon,
-        size: 20,
-        color: iconColor ?? (isDark ? Colors.white60 : Colors.black54),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: titleColor ?? (isDark ? Colors.white : kDark0),
+    return Material(
+      type: MaterialType.transparency,
+      child: ListTile(
+        leading: Icon(
+          icon,
+          size: 20,
+          color: iconColor ?? (isDark ? Colors.white60 : Colors.black54),
         ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: titleColor ?? (isDark ? Colors.white : kDark0),
+          ),
+        ),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle!,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                ),
+              )
+            : null,
+        trailing: trailing,
+        onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
-      subtitle: subtitle != null
-          ? Text(
-              subtitle!,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? Colors.white38 : Colors.black38,
-              ),
-            )
-          : null,
-      trailing: trailing,
-      onTap: onTap,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     );
   }
 }
@@ -1343,62 +1346,65 @@ class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
     final connected = widget.settings.isGoogleCalendarConnected;
     final email = widget.settings.googleAccountEmail;
 
-    return ListTile(
-      leading: _loading
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(
-              Icons.calendar_month_rounded,
-              size: 20,
-              color: connected
-                  ? kCyan
-                  : (isDark ? Colors.white60 : Colors.black54),
-            ),
-      title: Text(
-        'Google Calendar',
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white : kDark0,
-        ),
-      ),
-      subtitle: Text(
-        connected ? email : 'Sync events with Google Calendar',
-        style: TextStyle(
-          fontSize: 12,
-          color: connected ? kCyan : (isDark ? Colors.white38 : Colors.black38),
-        ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: _loading
-          ? null
-          : connected
-          ? TextButton(
-              onPressed: _disconnect,
-              child: const Text(
-                'Disconnect',
-                style: TextStyle(color: kCoral, fontSize: 12),
+    return Material(
+      type: MaterialType.transparency,
+      child: ListTile(
+        leading: _loading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(
+                Icons.calendar_month_rounded,
+                size: 20,
+                color: connected
+                    ? kCyan
+                    : (isDark ? Colors.white60 : Colors.black54),
               ),
-            )
-          : TextButton(
-              onPressed: _connect,
-              child: ShaderMask(
-                shaderCallback: (b) => kGradientMain.createShader(b),
+        title: Text(
+          'Google Calendar',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white : kDark0,
+          ),
+        ),
+        subtitle: Text(
+          connected ? email : 'Sync events with Google Calendar',
+          style: TextStyle(
+            fontSize: 12,
+            color: connected ? kCyan : (isDark ? Colors.white38 : Colors.black38),
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: _loading
+            ? null
+            : connected
+            ? TextButton(
+                onPressed: _disconnect,
                 child: const Text(
-                  'Connect',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                  'Disconnect',
+                  style: TextStyle(color: kCoral, fontSize: 12),
+                ),
+              )
+            : TextButton(
+                onPressed: _connect,
+                child: ShaderMask(
+                  shaderCallback: (b) => kGradientMain.createShader(b),
+                  child: const Text(
+                    'Connect',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
-            ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
     );
   }
 }

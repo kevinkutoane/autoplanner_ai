@@ -3,10 +3,13 @@
 // Every feature imports from here — no more duplicate providers.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/schedule_result.dart';
+
 import '../ai/ai_provider.dart';
 import '../ai/gemini_provider.dart';
 import '../ai/mock_ai_provider.dart';
 import '../ai/token_tracker.dart';
+import '../config/env_config.dart';
 import '../../services/ai_service.dart';
 import '../../services/memory_service.dart';
 import '../../services/scheduler_service.dart';
@@ -40,7 +43,13 @@ final aiProviderProvider = Provider<AIProvider>((ref) {
   final settings = ref.watch(settingsProvider);
   if (settings.useMockAI) return MockAIProvider();
   // Prefer the user-supplied key from secure storage; fall back to .env.
-  final key = settings.geminiApiKey.isNotEmpty ? settings.geminiApiKey : null;
+  final key = settings.geminiApiKey.isNotEmpty
+      ? settings.geminiApiKey
+      : (appConfig.geminiApiKey.isNotEmpty ? appConfig.geminiApiKey : null);
+  if (key == null || key.isEmpty) {
+    // Fall back cleanly to MockAIProvider instead of failing with unregistered caller exceptions
+    return MockAIProvider();
+  }
   return GeminiProvider(apiKey: key);
 });
 
@@ -209,3 +218,27 @@ final taskSuggestionsProvider = FutureProvider.autoDispose<List<String>>((
     recentHistory: tasks.take(20).toList(),
   );
 });
+
+// ── Schedule Rationale Provider ───────────────────────────────────────────────────
+
+class ScheduleRationaleNotifier
+    extends Notifier<Map<String, TaskPlacementRationale>> {
+  @override
+  Map<String, TaskPlacementRationale> build() => {};
+
+  /// Replaces the entire rationale map after a "Plan My Day" run.
+  void setRationale(Map<String, TaskPlacementRationale> rationale) =>
+      state = rationale;
+
+  /// Clears all stored rationale (e.g. on day change).
+  void clear() => state = {};
+}
+
+/// Stores [TaskPlacementRationale] keyed by task ID after each
+/// [SchedulerService.scheduleDayWithDetails] run. Consumed by [_TaskRow]
+/// to show the ℹ️ explainability button.
+final scheduleRationaleProvider =
+    NotifierProvider<ScheduleRationaleNotifier,
+        Map<String, TaskPlacementRationale>>(
+      ScheduleRationaleNotifier.new,
+    );

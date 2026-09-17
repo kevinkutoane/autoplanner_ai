@@ -738,6 +738,7 @@ class _GoalsFabState extends State<_GoalsFab>
           ),
         ),
         FloatingActionButton(
+          heroTag: null,
           onPressed: _toggle,
           backgroundColor: kCoral,
           foregroundColor: Colors.white,

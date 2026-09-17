@@ -517,6 +517,18 @@ void main() {
         expect(callCount, equals(1));
       },
     );
+
+    test(
+      'brainDump returns tasks, goals, and memories with MockAIProvider',
+      () async {
+        final result = await service.brainDump(
+          'Need to finish the quarterly budget and buy groceries.',
+        );
+        expect(result.tasks, isNotEmpty);
+        expect(result.goals, isNotEmpty);
+        expect(result.memories, isNotEmpty);
+      },
+    );
   });
 }
 

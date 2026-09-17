@@ -35,6 +35,7 @@ class GoogleAuthService {
 
   /// Attempts a silent sign-in from cached credentials on app start.
   Future<void> tryRestoreSession() async {
+    if (kIsWeb) return;
     try {
       final stored = await SecureKeyService.getGoogleTokens();
       if (stored == null) return;
@@ -51,6 +52,14 @@ class GoogleAuthService {
   /// Launches the Google sign-in flow. Returns the signed-in email or null
   /// if the user cancels.
   Future<String?> signIn() async {
+    if (kIsWeb) {
+      if (kDebugMode) {
+        debugPrint(
+          'GoogleAuth: Web sign-in requires Google Identity Services button integration.',
+        );
+      }
+      return null;
+    }
     try {
       final account = await _googleSignIn.authenticate(
         scopeHint: ['email', 'profile', _calendarScope],

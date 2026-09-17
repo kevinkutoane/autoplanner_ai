@@ -7,6 +7,7 @@ import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../planner/controllers/task_controller.dart';
 import '../../../core/models/task_model.dart';
+import '../../../core/models/schedule_result.dart';
 import '../../../core/ai/ai_guard.dart';
 import '../../../core/ai/token_tracker.dart';
 import '../../goals/controllers/goal_controller.dart';
@@ -275,6 +276,11 @@ class PlannerScreen extends ConsumerWidget {
                         },
                         itemBuilder: (ctx, i) {
                           final task = tasks[i];
+                          final rationale = ref.watch(
+                            scheduleRationaleProvider.select(
+                              (r) => r[task.id],
+                            ),
+                          );
                           return AnimationConfiguration.staggeredList(
                             key: ValueKey(task.id),
                             position: i,
@@ -288,6 +294,7 @@ class PlannerScreen extends ConsumerWidget {
                                   isConflicting: conflictingIds.contains(
                                     task.id,
                                   ),
+                                  rationale: rationale,
                                 ),
                               ),
                             ),
@@ -339,10 +346,12 @@ class _TaskRow extends ConsumerWidget {
   final TaskItem task;
   final int index;
   final bool isConflicting;
+  final TaskPlacementRationale? rationale;
   const _TaskRow({
     required this.task,
     required this.index,
     this.isConflicting = false,
+    this.rationale,
   });
 
   @override
@@ -597,6 +606,36 @@ class _TaskRow extends ConsumerWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // rationale info icon — shown when AI scheduling data is available
+                      if (rationale != null)
+                        Semantics(
+                          button: true,
+                          label: 'Why was ${task.title} scheduled here?',
+                          child: GestureDetector(
+                            onTap: () {
+                              showModalBottomSheet<void>(
+                                context: context,
+                                backgroundColor: Colors.transparent,
+                                isScrollControlled: true,
+                                builder: (_) => _ScheduleRationaleSheet(
+                                  task: task,
+                                  rationale: rationale!,
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 10,
+                              ),
+                              child: Icon(
+                                Icons.info_outline_rounded,
+                                size: 17,
+                                color: kIndigo.withAlpha(160),
+                              ),
+                            ),
+                          ),
+                        ),
                       // complete toggle
                       Semantics(
                         button: true,
@@ -1388,6 +1427,9 @@ class _PlanMyDaySheetState extends ConsumerState<_PlanMyDaySheet> {
   int _scheduledCount = 0;
   String? _error;
   bool _feedbackGiven = false;
+  List<ScheduleWarning> _scheduleWarnings = [];
+  List<TaskItem> _unplacedTasks = [];
+  bool _warningsDismissed = false;
 
   @override
   void dispose() {
@@ -1434,13 +1476,16 @@ class _PlanMyDaySheetState extends ConsumerState<_PlanMyDaySheet> {
       if (!mounted) return;
       setState(() => _statusMsg = 'Packing tasks into your work window…');
 
-      // Step 2: Deterministic slot-packing — assigns real start/end times.
-      final scheduled = scheduler.scheduleDay(
+      // Step 2: Intelligent constraint-based slot-packing — assigns real
+      // start/end times, resolves DAG dependencies, evaluates multi-factor
+      // score, and returns warnings + explainability rationale.
+      final scheduleResult = scheduler.scheduleDayWithDetails(
         tasks: enriched,
         day: now,
         workStartHour: settings.workStartHour,
         workHoursPerDay: settings.workHoursPerDay,
       );
+      final scheduled = scheduleResult.scheduledTasks;
 
       // Step 3: Persist — update existing tasks, add brand-new ones.
       final existingIds = {for (final t in todayTasks) t.id};
@@ -1451,6 +1496,16 @@ class _PlanMyDaySheetState extends ConsumerState<_PlanMyDaySheet> {
           taskCtrl.addTask(t);
         }
       }
+
+      // Capture warnings and rationale for UI display.
+      _scheduleWarnings = scheduleResult.warnings;
+      _unplacedTasks = scheduleResult.unplacedTasks;
+      _warningsDismissed = false;
+      // Persist rationale into the global provider so _TaskRow widgets can
+      // display the ℹ️ explainability icon without prop-drilling.
+      ref
+          .read(scheduleRationaleProvider.notifier)
+          .setRationale(scheduleResult.explanations);
 
       if (!mounted) return;
 
@@ -1572,6 +1627,15 @@ class _PlanMyDaySheetState extends ConsumerState<_PlanMyDaySheet> {
                 ),
               ),
               const SizedBox(height: 16),
+              // ── Schedule warnings banner ──────────────────────────────
+              if (_scheduleWarnings.isNotEmpty && !_warningsDismissed) ...[
+                const SizedBox(height: 8),
+                _ScheduleWarningBanner(
+                  warnings: _scheduleWarnings,
+                  unplacedTasks: _unplacedTasks,
+                  onDismiss: () => setState(() => _warningsDismissed = true),
+                ),
+              ],
               if (!_feedbackGiven)
                 _AiFeedbackBar(
                   onFeedback: (isPositive) {
@@ -1693,11 +1757,22 @@ class _TaskEditSheet extends ConsumerStatefulWidget {
 class _TaskEditSheetState extends ConsumerState<_TaskEditSheet> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _noteCtrl;
+  late final TextEditingController _blockSizeCtrl;
   late int _priority;
   late TimeOfDay _startTime;
   late int _durationMinutes;
   late String? _recurrence;
   late List<int> _customDays;
+
+  // ── Phase 1.2 constraint fields ──────────────────────────────────────────
+  late DateTime? _deadline;
+  late DateTime? _earliestStart;
+  late DateTime? _latestFinish;
+  late bool _isFixed;
+  late String? _energyLevel;
+  late String? _preferredTimeOfDay;
+  late bool _splittable;
+  late int? _preferredBlockMinutes;
 
   static const _durationOptions = [15, 30, 60, 90, 120];
 
@@ -1718,12 +1793,25 @@ class _TaskEditSheetState extends ConsumerState<_TaskEditSheet> {
           )..sort((a, b) => (a - dur).abs().compareTo((b - dur).abs()))).first;
     _recurrence = widget.task.recurrence;
     _customDays = List<int>.from(widget.task.recurrenceDays);
+    // Phase 1.2 fields
+    _deadline = widget.task.deadline;
+    _earliestStart = widget.task.earliestStart;
+    _latestFinish = widget.task.latestFinish;
+    _isFixed = widget.task.isFixed;
+    _energyLevel = widget.task.energyLevel;
+    _preferredTimeOfDay = widget.task.preferredTimeOfDay;
+    _splittable = widget.task.splittable;
+    _preferredBlockMinutes = widget.task.preferredBlockMinutes;
+    _blockSizeCtrl = TextEditingController(
+      text: (_preferredBlockMinutes ?? 60).toString(),
+    );
   }
 
   @override
   void dispose() {
     _titleCtrl.dispose();
     _noteCtrl.dispose();
+    _blockSizeCtrl.dispose();
     super.dispose();
   }
 
@@ -1738,6 +1826,10 @@ class _TaskEditSheetState extends ConsumerState<_TaskEditSheet> {
       _startTime.hour,
       _startTime.minute,
     );
+    // Parse block size if splittable is enabled.
+    final blockSize = _splittable
+        ? (int.tryParse(_blockSizeCtrl.text.trim()) ?? 60)
+        : null;
     final updated = widget.task.copyWith(
       title: title,
       priority: _priority,
@@ -1746,6 +1838,15 @@ class _TaskEditSheetState extends ConsumerState<_TaskEditSheet> {
       note: _noteCtrl.text.trim().isNotEmpty ? _noteCtrl.text.trim() : null,
       recurrence: _recurrence,
       recurrenceDays: _recurrence == 'custom' ? _customDays : [],
+      // Phase 1.2 constraint fields
+      deadline: _deadline,
+      earliestStart: _earliestStart,
+      latestFinish: _latestFinish,
+      isFixed: _isFixed,
+      energyLevel: _energyLevel,
+      preferredTimeOfDay: _preferredTimeOfDay,
+      splittable: _splittable,
+      preferredBlockMinutes: blockSize,
     );
     ref.read(taskControllerProvider.notifier).updateTask(updated);
     Navigator.pop(context);
@@ -2086,8 +2187,29 @@ class _TaskEditSheetState extends ConsumerState<_TaskEditSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Linked Notes
+              // Linked Goal
               _LinkedGoalSection(task: widget.task),
+              const SizedBox(height: 16),
+
+              // ── Advanced Scheduling ──────────────────────────────────────
+              _AdvancedSchedulingSection(
+                deadline: _deadline,
+                earliestStart: _earliestStart,
+                latestFinish: _latestFinish,
+                isFixed: _isFixed,
+                energyLevel: _energyLevel,
+                preferredTimeOfDay: _preferredTimeOfDay,
+                splittable: _splittable,
+                blockSizeCtrl: _blockSizeCtrl,
+                onDeadlineChanged: (v) => setState(() => _deadline = v),
+                onEarliestStartChanged: (v) => setState(() => _earliestStart = v),
+                onLatestFinishChanged: (v) => setState(() => _latestFinish = v),
+                onIsFixedChanged: (v) => setState(() => _isFixed = v),
+                onEnergyLevelChanged: (v) => setState(() => _energyLevel = v),
+                onPreferredTimeOfDayChanged: (v) =>
+                    setState(() => _preferredTimeOfDay = v),
+                onSplittableChanged: (v) => setState(() => _splittable = v),
+              ),
               const SizedBox(height: 24),
 
               // Actions
@@ -2550,6 +2672,851 @@ class _GoalFilterChip extends StatelessWidget {
                       ? kCoral
                       : (isDark ? Colors.white60 : Colors.black54),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Advanced Scheduling Section ──────────────────────────────────────────────
+
+class _AdvancedSchedulingSection extends StatefulWidget {
+  final DateTime? deadline;
+  final DateTime? earliestStart;
+  final DateTime? latestFinish;
+  final bool isFixed;
+  final String? energyLevel;
+  final String? preferredTimeOfDay;
+  final bool splittable;
+  final TextEditingController blockSizeCtrl;
+  final ValueChanged<DateTime?> onDeadlineChanged;
+  final ValueChanged<DateTime?> onEarliestStartChanged;
+  final ValueChanged<DateTime?> onLatestFinishChanged;
+  final ValueChanged<bool> onIsFixedChanged;
+  final ValueChanged<String?> onEnergyLevelChanged;
+  final ValueChanged<String?> onPreferredTimeOfDayChanged;
+  final ValueChanged<bool> onSplittableChanged;
+
+  const _AdvancedSchedulingSection({
+    required this.deadline,
+    required this.earliestStart,
+    required this.latestFinish,
+    required this.isFixed,
+    required this.energyLevel,
+    required this.preferredTimeOfDay,
+    required this.splittable,
+    required this.blockSizeCtrl,
+    required this.onDeadlineChanged,
+    required this.onEarliestStartChanged,
+    required this.onLatestFinishChanged,
+    required this.onIsFixedChanged,
+    required this.onEnergyLevelChanged,
+    required this.onPreferredTimeOfDayChanged,
+    required this.onSplittableChanged,
+  });
+
+  @override
+  State<_AdvancedSchedulingSection> createState() =>
+      _AdvancedSchedulingSectionState();
+}
+
+class _AdvancedSchedulingSectionState
+    extends State<_AdvancedSchedulingSection> {
+  static final _dtFmt = DateFormat('EEE d MMM, HH:mm');
+
+  Future<DateTime?> _pickDateTime({
+    required BuildContext context,
+    required DateTime? initial,
+  }) async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial ?? now,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 5),
+    );
+    if (date == null || !context.mounted) return null;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: initial != null
+          ? TimeOfDay.fromDateTime(initial)
+          : TimeOfDay.fromDateTime(now),
+    );
+    if (time == null) return null;
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  Widget _dateTimeTile({
+    required BuildContext context,
+    required String label,
+    required String icon,
+    required DateTime? value,
+    required ValueChanged<DateTime?> onChanged,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasValue = value != null;
+    return GestureDetector(
+      onTap: () async {
+        final picked = await _pickDateTime(context: context, initial: value);
+        if (picked != null) onChanged(picked);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: hasValue
+                ? kIndigo.withAlpha(120)
+                : (isDark ? Colors.white24 : Colors.black12),
+          ),
+          borderRadius: BorderRadius.circular(12),
+          color: hasValue ? kIndigo.withAlpha(14) : Colors.transparent,
+        ),
+        child: Row(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 15)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                hasValue ? '$label: ${_dtFmt.format(value)}' : label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight:
+                      hasValue ? FontWeight.w600 : FontWeight.w400,
+                  color: hasValue
+                      ? kIndigo
+                      : (isDark ? Colors.white54 : Colors.black45),
+                ),
+              ),
+            ),
+            if (hasValue)
+              GestureDetector(
+                onTap: () => onChanged(null),
+                child: const Padding(
+                  padding: EdgeInsets.only(left: 6),
+                  child: Icon(Icons.close_rounded, size: 16, color: kCoral),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final anySet = widget.deadline != null ||
+        widget.earliestStart != null ||
+        widget.latestFinish != null ||
+        widget.isFixed ||
+        widget.energyLevel != null ||
+        widget.preferredTimeOfDay != null ||
+        widget.splittable;
+
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        initiallyExpanded: anySet,
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(top: 12),
+        title: Row(
+          children: [
+            Icon(
+              Icons.tune_rounded,
+              size: 16,
+              color: anySet ? kIndigo : (isDark ? Colors.white38 : Colors.black38),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Advanced scheduling',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: anySet
+                    ? kIndigo
+                    : (isDark ? Colors.white60 : Colors.black54),
+              ),
+            ),
+            if (anySet) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: kIndigo.withAlpha(25),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'Active',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: kIndigo,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        children: [
+          // ── Deadline ────────────────────────────────────────────────
+          _dateTimeTile(
+            context: context,
+            label: 'Deadline',
+            icon: '📅',
+            value: widget.deadline,
+            onChanged: widget.onDeadlineChanged,
+          ),
+
+          // ── Pin to time slot ────────────────────────────────────────
+          Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: widget.isFixed
+                    ? kAmber.withAlpha(120)
+                    : (isDark ? Colors.white24 : Colors.black12),
+              ),
+              borderRadius: BorderRadius.circular(12),
+              color: widget.isFixed ? kAmber.withAlpha(14) : Colors.transparent,
+            ),
+            child: SwitchListTile(
+              dense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+              title: const Row(
+                children: [
+                  Text('📌 ', style: TextStyle(fontSize: 15)),
+                  Text(
+                    'Fixed time slot',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              subtitle: Text(
+                "Scheduler won't move this task",
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                ),
+              ),
+              value: widget.isFixed,
+              activeThumbColor: kAmber,
+              onChanged: widget.onIsFixedChanged,
+            ),
+          ),
+
+          // ── Energy level ────────────────────────────────────────────
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '⚡ Energy required',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  _ConstraintChip(
+                    label: '🔋 Low',
+                    value: 'low',
+                    selected: widget.energyLevel == 'low',
+                    color: const Color(0xFF6BCB77),
+                    onTap: () => widget.onEnergyLevelChanged(
+                      widget.energyLevel == 'low' ? null : 'low',
+                    ),
+                    isDark: isDark,
+                  ),
+                  _ConstraintChip(
+                    label: '⚡ Medium',
+                    value: 'medium',
+                    selected: widget.energyLevel == 'medium',
+                    color: kAmber,
+                    onTap: () => widget.onEnergyLevelChanged(
+                      widget.energyLevel == 'medium' ? null : 'medium',
+                    ),
+                    isDark: isDark,
+                  ),
+                  _ConstraintChip(
+                    label: '🔥 High',
+                    value: 'high',
+                    selected: widget.energyLevel == 'high',
+                    color: kCoral,
+                    onTap: () => widget.onEnergyLevelChanged(
+                      widget.energyLevel == 'high' ? null : 'high',
+                    ),
+                    isDark: isDark,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+            ],
+          ),
+
+          // ── Preferred time of day ───────────────────────────────────
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '🕐 Preferred time of day',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  _ConstraintChip(
+                    label: '🌅 Morning',
+                    value: 'morning',
+                    selected: widget.preferredTimeOfDay == 'morning',
+                    color: const Color(0xFFFFB347),
+                    onTap: () => widget.onPreferredTimeOfDayChanged(
+                      widget.preferredTimeOfDay == 'morning' ? null : 'morning',
+                    ),
+                    isDark: isDark,
+                  ),
+                  _ConstraintChip(
+                    label: '☀️ Afternoon',
+                    value: 'afternoon',
+                    selected: widget.preferredTimeOfDay == 'afternoon',
+                    color: kIndigo,
+                    onTap: () => widget.onPreferredTimeOfDayChanged(
+                      widget.preferredTimeOfDay == 'afternoon'
+                          ? null
+                          : 'afternoon',
+                    ),
+                    isDark: isDark,
+                  ),
+                  _ConstraintChip(
+                    label: '🌙 Evening',
+                    value: 'evening',
+                    selected: widget.preferredTimeOfDay == 'evening',
+                    color: const Color(0xFF7B61FF),
+                    onTap: () => widget.onPreferredTimeOfDayChanged(
+                      widget.preferredTimeOfDay == 'evening' ? null : 'evening',
+                    ),
+                    isDark: isDark,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+            ],
+          ),
+
+          // ── Task splitting ──────────────────────────────────────────
+          Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: widget.splittable
+                    ? kIndigo.withAlpha(120)
+                    : (isDark ? Colors.white24 : Colors.black12),
+              ),
+              borderRadius: BorderRadius.circular(12),
+              color: widget.splittable
+                  ? kIndigo.withAlpha(10)
+                  : Colors.transparent,
+            ),
+            child: Column(
+              children: [
+                SwitchListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+                  title: const Row(
+                    children: [
+                      Text('✂️ ', style: TextStyle(fontSize: 15)),
+                      Text(
+                        'Allow splitting',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  subtitle: Text(
+                    'Break large tasks into focus blocks',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                  ),
+                  value: widget.splittable,
+                  activeThumbColor: kIndigo,
+                  onChanged: widget.onSplittableChanged,
+                ),
+                if (widget.splittable)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                    child: Row(
+                      children: [
+                        const Text(
+                          'Block size:',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        SizedBox(
+                          width: 70,
+                          child: TextField(
+                            controller: widget.blockSizeCtrl,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: isDark
+                                      ? Colors.white24
+                                      : Colors.black12,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'min',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.white54 : Colors.black45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // ── Earliest start / latest finish ──────────────────────────
+          _dateTimeTile(
+            context: context,
+            label: 'Earliest start',
+            icon: '⏰',
+            value: widget.earliestStart,
+            onChanged: widget.onEarliestStartChanged,
+          ),
+          _dateTimeTile(
+            context: context,
+            label: 'Latest finish',
+            icon: '🏁',
+            value: widget.latestFinish,
+            onChanged: widget.onLatestFinishChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Constraint chip ───────────────────────────────────────────────────────────
+
+class _ConstraintChip extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool selected;
+  final Color color;
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _ConstraintChip({
+    required this.label,
+    required this.value,
+    required this.selected,
+    required this.color,
+    required this.onTap,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? color.withAlpha(40) : Colors.transparent,
+          border: Border.all(
+            color: selected ? color : (isDark ? Colors.white24 : Colors.black12),
+            width: selected ? 1.5 : 1,
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+            color: selected
+                ? color
+                : (isDark ? Colors.white60 : Colors.black54),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Schedule Warning Banner ───────────────────────────────────────────────────
+
+class _ScheduleWarningBanner extends StatelessWidget {
+  final List<ScheduleWarning> warnings;
+  final List<TaskItem> unplacedTasks;
+  final VoidCallback onDismiss;
+
+  const _ScheduleWarningBanner({
+    required this.warnings,
+    required this.unplacedTasks,
+    required this.onDismiss,
+  });
+
+  IconData _iconFor(String code) {
+    switch (code) {
+      case 'deadline_exceeded':
+        return Icons.alarm_rounded;
+      case 'no_slot_available':
+        return Icons.event_busy_rounded;
+      case 'cycle_detected':
+        return Icons.loop_rounded;
+      default:
+        return Icons.warning_amber_rounded;
+    }
+  }
+
+  Color _colorFor(String code) {
+    switch (code) {
+      case 'deadline_exceeded':
+        return kCoral;
+      case 'no_slot_available':
+        return kAmber;
+      case 'cycle_detected':
+        return kIndigo;
+      default:
+        return kAmber;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Show at most 3 warnings to avoid clutter.
+    final shown = warnings.take(3).toList();
+    final extra = warnings.length - shown.length;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+      decoration: BoxDecoration(
+        color: kAmber.withAlpha(isDark ? 20 : 15),
+        border: Border.all(color: kAmber.withAlpha(80)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                size: 15,
+                color: kAmber,
+              ),
+              const SizedBox(width: 6),
+              const Expanded(
+                child: Text(
+                  'Scheduling notices',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: onDismiss,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                    color: isDark ? Colors.white38 : Colors.black38,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...shown.map((w) {
+            final color = _colorFor(w.code);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(_iconFor(w.code), size: 13, color: color),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      w.message,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white70 : Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          if (extra > 0)
+            Text(
+              '+$extra more notice${extra == 1 ? '' : 's'}',
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? Colors.white38 : Colors.black38,
+              ),
+            ),
+          if (unplacedTasks.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(
+                  Icons.event_busy_rounded,
+                  size: 13,
+                  color: kCoral,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${unplacedTasks.length} task${unplacedTasks.length == 1 ? '' : 's'} couldn\'t fit in today\'s window',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: kCoral,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Schedule Rationale Sheet ──────────────────────────────────────────────────
+
+class _ScheduleRationaleSheet extends StatelessWidget {
+  final TaskItem task;
+  final TaskPlacementRationale rationale;
+
+  const _ScheduleRationaleSheet({
+    required this.task,
+    required this.rationale,
+  });
+
+  static final _timeFmt = DateFormat('h:mm a');
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF17172E) : Colors.white;
+    // Normalise score to 0–1 for the progress bar (max reasonable score ~60)
+    final normalised = (rationale.score / 60.0).clamp(0.0, 1.0);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: kGradientMain,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Why was this scheduled here?',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        '${_timeFmt.format(rationale.assignedStart)} – ${_timeFmt.format(rationale.assignedEnd)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.white54 : Colors.black45,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Planning score bar
+            Text(
+              'Planning score',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white54 : Colors.black45,
+                letterSpacing: 0.4,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: normalised,
+                      minHeight: 8,
+                      backgroundColor:
+                          isDark ? Colors.white12 : Colors.black.withAlpha(20),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        normalised > 0.6
+                            ? const Color(0xFF00C896)
+                            : normalised > 0.3
+                                ? kAmber
+                                : kCoral,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  rationale.score.toStringAsFixed(1),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: kIndigo,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Factor list
+            Text(
+              'Decision factors',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white54 : Colors.black45,
+                letterSpacing: 0.4,
+              ),
+            ),
+            const SizedBox(height: 10),
+            ...rationale.factors.map(
+              (factor) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 5, right: 10),
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: kGradientMain,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        factor,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Task title footer
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.task_alt_rounded, size: 15, color: kIndigo),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      task.title,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

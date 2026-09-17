@@ -14,6 +14,11 @@ class HomeWidgetService {
   static const _iOSWidgetName = 'AutoPlannerWidget';
 
   static Future<void> update(List<TaskItem> allTasks) async {
+    if (kIsWeb ||
+        (defaultTargetPlatform != TargetPlatform.android &&
+            defaultTargetPlatform != TargetPlatform.iOS)) {
+      return;
+    }
     try {
       await HomeWidget.setAppGroupId('group.autoplanner_ai');
 

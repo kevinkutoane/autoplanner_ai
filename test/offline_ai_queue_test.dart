@@ -243,8 +243,12 @@ void main() {
         // Wait for the synchronous part of enqueue's background drain to finish
         await Future.delayed(const Duration(milliseconds: 50));
 
-        // Let's manually drain it enough times to exceed maxAttempts (which is 5).
-        for (var i = 0; i < 5; i++) {
+        // Drain until marked as permanent failure (maxAttempts = 5).
+        for (var i = 0; i < 6; i++) {
+          if (queue.pendingRequests.isNotEmpty &&
+              queue.pendingRequests.first.isPermanentFailure) {
+            break;
+          }
           await queue.drain();
           await Future.delayed(const Duration(milliseconds: 20));
         }
