@@ -186,4 +186,58 @@ void main() {
       await box.close();
     },
   );
+
+  test('storage / filesystem error rethrows without deleting or corrupting existing data', () async {
+    // 1. Create a healthy box
+    final box = await AppBootstrapper.openBoxSafe<String>(
+      'storageErrorBox',
+      validCipher,
+      customDir: tempDir.path,
+    );
+    await box.put('k1', 'val1');
+    await box.close();
+
+    final hiveFile = File('${tempDir.path}/storageerrorbox.hive');
+    expect(hiveFile.existsSync(), isTrue);
+    final originalLength = hiveFile.lengthSync();
+
+    // 2. Attempt to open with an invalid / inaccessible storage path (simulating disk/permission failure)
+    bool didRethrowStorage = false;
+    final completer = Completer<void>();
+    runZonedGuarded(
+      () async {
+        try {
+          await AppBootstrapper.openBoxSafe<String>(
+            'storageErrorBox',
+            validCipher,
+            customDir: Platform.isWindows
+                ? 'Z:\\non_existent_volume_dir'
+                : '/proc/invalid_path',
+          );
+        } catch (e) {
+          didRethrowStorage = true;
+        } finally {
+          if (!completer.isCompleted) completer.complete();
+        }
+      },
+      (error, stack) {
+        didRethrowStorage = true;
+        if (!completer.isCompleted) completer.complete();
+      },
+    );
+    await completer.future;
+    expect(didRethrowStorage, isTrue);
+
+    // 3. Invariant: Original box in valid path remains untouched and preserved
+    expect(hiveFile.existsSync(), isTrue);
+    expect(hiveFile.lengthSync(), equals(originalLength));
+
+    // 4. Invariant: No backup quarantine files were generated for storage failures
+    final bakFiles = tempDir.listSync().where(
+      (f) =>
+          f.path.toLowerCase().contains('storageerrorbox') &&
+          f.path.contains('.bak'),
+    );
+    expect(bakFiles, isEmpty);
+  });
 }
