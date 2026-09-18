@@ -11,6 +11,7 @@
 | Document | Description |
 | --- | --- |
 | [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) | Release Candidate verification matrix, empirical certification evidence, and quality checklist |
+| [BETA_TESTING_GUIDE.md](BETA_TESTING_GUIDE.md) | Comprehensive beta test cases, real-device QA matrix, and defect severity classification |
 | [ARCHITECTURE_DEBT.md](ARCHITECTURE_DEBT.md) | Formally tracked non-blocking architectural debt, impact, risks, and deferral rationale |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Complete system architecture map, runtime data flows, AI safety boundary, and Hive schema |
 | [PHASE_1_2_SPEC.md](PHASE_1_2_SPEC.md) | Technical specification & delivery verification for the Smart Scheduling Engine |

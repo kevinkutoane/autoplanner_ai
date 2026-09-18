@@ -19,6 +19,7 @@ Explore the technical and architectural documentation:
 | Document | Purpose |
 | --- | --- |
 | 🛡️ [PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md) | Release Candidate verification matrix, empirical certification evidence, and quality checklist |
+| 🧪 [BETA_TESTING_GUIDE.md](docs/BETA_TESTING_GUIDE.md) | Comprehensive beta test cases, real-device QA matrix, and defect severity classification |
 | 🧱 [ARCHITECTURE_DEBT.md](docs/ARCHITECTURE_DEBT.md) | Formally tracked non-blocking architectural debt, impact, risks, and deferral rationale |
 | 🏗️ [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Complete system architecture map, runtime data flows, AI safety boundary, and Hive schema |
 | 📋 [PHASE_1_2_SPEC.md](docs/PHASE_1_2_SPEC.md) | Technical specification and verification details for the Smart Scheduling Engine |
