@@ -137,6 +137,28 @@ class CalendarSyncService {
     }
   }
 
+  /// Delete a single event from Google Calendar.
+  Future<bool> deleteEvent(String externalId) async {
+    final token = await _googleAuth.getAccessToken();
+    if (token == null) return false;
+    try {
+      final response = await _client.delete(
+        Uri.parse('$_baseUrl/calendars/$_calendarId/events/$externalId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 204) return true;
+      if (kDebugMode) {
+        debugPrint(
+          'CalendarSync.deleteEvent failed ${response.statusCode}: ${response.body}',
+        );
+      }
+      return false;
+    } catch (e) {
+      if (kDebugMode) debugPrint('CalendarSync.deleteEvent error: $e');
+      return false;
+    }
+  }
+
   // ── Internal helpers ───────────────────────────────────────────────────────
 
   Future<_FetchResult> _pullAll(String token) async {

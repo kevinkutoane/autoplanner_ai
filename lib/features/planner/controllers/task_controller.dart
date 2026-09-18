@@ -13,6 +13,7 @@ import '../../../services/smart_notification_scheduler.dart';
 import '../../../features/settings/models/app_settings_model.dart';
 import '../../memory/controllers/memory_controller.dart';
 import '../../calendar/controllers/calendar_controller.dart';
+import '../../../services/gamification_service.dart';
 
 const _uuid = Uuid();
 
@@ -79,7 +80,8 @@ class TaskController extends Notifier<List<TaskItem>> {
     _refreshState();
     _calendarCtrl.upsertTaskEvent(task);
     _createTaskMemory(task, 'created');
-    _notifications.scheduleTaskReminder(task);
+    final settings = ref.read(settingsProvider);
+    _notifications.scheduleTaskReminder(task, settings);
     if (task.priority == 3) {
       _notifications.scheduleUrgentAlert(
         id: task.id,
@@ -117,8 +119,17 @@ class TaskController extends Notifier<List<TaskItem>> {
     if (oldTask != null && !oldTask.isCompleted && task.isCompleted) {
       _createTaskMemory(task, 'completed');
       _notifications.cancelTaskReminder(task.id);
+      ref.read(gamificationServiceProvider.notifier).awardTaskCompletion(
+            task,
+            actualMinutes: task.actualDurationMinutes,
+          );
+      final today = todayTasks;
+      if (today.isNotEmpty && today.every((t) => t.isCompleted)) {
+        ref.read(gamificationServiceProvider.notifier).awardCleanSlate();
+      }
     } else if (!task.isCompleted) {
-      _notifications.scheduleTaskReminder(task);
+      final settings = ref.read(settingsProvider);
+      _notifications.scheduleTaskReminder(task, settings);
       // Fire an immediate alert when priority rises to Urgent.
       final wasUrgent = oldTask?.priority == 3;
       if (task.priority == 3 && !wasUrgent) {
@@ -129,6 +140,20 @@ class TaskController extends Notifier<List<TaskItem>> {
         );
       }
     }
+  }
+
+  /// Batch updates multiple tasks atomically, syncing with Hive and reminders.
+  void batchUpdateTasks(List<TaskItem> tasks) {
+    if (_box == null || tasks.isEmpty) return;
+    final settings = ref.read(settingsProvider);
+    for (final task in tasks) {
+      _box!.put(task.id, task);
+      _calendarCtrl.upsertTaskEvent(task);
+      if (!task.isCompleted) {
+        _notifications.scheduleTaskReminder(task, settings);
+      }
+    }
+    _refreshState();
   }
 
   void toggleComplete(String taskId) {

@@ -8,8 +8,10 @@ import '../core/ai/ai_provider.dart';
 import '../core/ai/token_tracker.dart';
 import '../core/models/task_model.dart';
 import '../core/models/goal_model.dart';
+import '../core/models/note_model.dart';
 import '../core/models/memory_entry_model.dart';
 import '../core/ai/ai_validator.dart';
+import '../features/commands/models/schedule_command.dart';
 import 'app_monitor_service.dart';
 
 // ── Brain Dump result types ───────────────────────────────────────────────
@@ -30,8 +32,8 @@ class BrainGoal {
 
 /// Aggregated output of a single brain-dump AI invocation.
 ///
-/// Contains three categories of structured items extracted from free-form
-/// user input — tasks, goals, and long-term memory strings — which are
+/// Contains four categories of structured items extracted from free-form
+/// user input — tasks, goals, notes, and long-term memory strings — which are
 /// persisted to their respective Hive boxes by the caller.
 class BrainDumpResult {
   /// Tasks extracted from the brain dump, ready to be written to `tasksBox`.
@@ -39,6 +41,9 @@ class BrainDumpResult {
 
   /// Goals extracted from the brain dump, ready to be written to `goalsBox`.
   final List<BrainGoal> goals;
+
+  /// Notes and ideas extracted from the brain dump, ready to be written to `notesBox`.
+  final List<NoteItem> notes;
 
   /// Raw memory strings to be stored in `memoryBox` as [MemoryEntry] records.
   final List<String> memories;
@@ -50,12 +55,17 @@ class BrainDumpResult {
   const BrainDumpResult({
     required this.tasks,
     required this.goals,
+    this.notes = const [],
     required this.memories,
     this.taskGoalLinks = const {},
   });
 
-  /// True when all three result lists are empty (model produced nothing useful).
-  bool get isEmpty => tasks.isEmpty && goals.isEmpty && memories.isEmpty;
+  /// True when all result lists are empty (model produced nothing useful).
+  bool get isEmpty =>
+      tasks.isEmpty && goals.isEmpty && notes.isEmpty && memories.isEmpty;
+
+  /// Total count of all extracted structured entities.
+  int get totalCount => tasks.length + goals.length + notes.length + memories.length;
 }
 
 /// Unified AI service layer.
@@ -200,6 +210,37 @@ User input: "${_sanitize(input)}"
       final response = await _provider.complete(prompt);
       await _tracker.log(action: 'parseTasks', response: response);
       return _parseTasksFromJson(response.text);
+    });
+  }
+
+  /// Interactive AI Coach chat
+  Future<String> chatWithCoach(String message, List<Map<String, String>> history) async {
+    final safeInput = _guard.validateInput(message, context: 'chat');
+    
+    var conversation = history.map((m) => "${m['role'] == 'user' ? 'User' : 'Coach'}: ${m['content']}").join("\n");
+    
+    final prompt = '''
+You are AutoPlanner AI Coach & Productivity Tutor, a world-class personal performance mentor embedded inside the AutoPlanner app.
+Your mission is to help the user master their time, plan their days, overcome procrastination, achieve goals, build routines, and utilize AutoPlanner's features (Brain Dump, Focus Hub, Goals, Calendar, Notes, Analytics).
+
+STRICT GUARDRAILS & SCOPE:
+1. ONLY answer questions relevant to personal productivity, time management, daily/weekly planning, anti-procrastination, goal setting, habits, energy management, work-life balance, and AutoPlanner features.
+2. If the user asks an off-topic question unrelated to productivity, self-improvement, or the app (e.g. cooking recipes, sports scores, trivia, movie plots, general coding outside productivity workflows):
+   POLITELY and warmly decline and steer them back to planning and productivity:
+   "I am your AutoPlanner AI Coach! 🎯 My focus is helping you master your daily schedule, stay focused, and achieve your goals. What priority or task would you like to tackle today?"
+3. Tone: Warm, energetic, highly motivating, actionable, and structured.
+4. Formatting: Use clean markdown, emojis, bullet points, and bold text.
+5. IMPORTANT: NEVER respond with raw JSON or code blocks containing task arrays. Always write natural conversational coaching advice.
+
+Chat History:
+$conversation
+User: ${_sanitize(safeInput)}
+Coach:''';
+
+    return await _withRetry(() async {
+      final response = await _provider.complete(prompt);
+      await _tracker.log(action: 'chatWithCoach', response: response);
+      return response.text.trim();
     });
   }
 
@@ -485,25 +526,61 @@ ${_sanitize(context)}
     // Validate and sanitise before building the prompt — this is the
     // highest-risk user input path (free-form, long-form text).
     final input = _guard.validateInput(rawInput, context: 'brainDump');
+    final now = DateTime.now();
+    final baseHour = now.hour < 8 ? 9 : (now.minute > 40 ? now.hour + 1 : now.hour);
+    final baseMinute = now.hour < 8 ? 0 : (((now.minute / 15).ceil() * 15) % 60);
+    final suggestedStartTime =
+        '${baseHour.toString().padLeft(2, '0')}:${baseMinute.toString().padLeft(2, '0')}';
+
     final prompt =
         '''
 You are AutoPlanner AI. Parse this stream-of-consciousness brain dump.
-Classify every piece into tasks, goals, or memories.
+Classify every piece into:
+1. "tasks": Concrete action items or to-dos with clear completion state.
+2. "notes": Fleeting thoughts, ideas, takeaways, observations, drafts (not actionable to-dos).
+3. "goals": Multi-step milestones, projects, quarterly or yearly aspirational targets.
+4. "memories": Long-term behavioral preferences, user habits, rules ("always workout mornings").
 
 Respond ONLY with valid JSON (no markdown fences):
 {
-  "tasks": [{"title":"...","startTime":"HH:mm","estimatedMinutes":60,"priority":0,"tags":[],"goalTitle":""}],
-  "goals": [{"title":"...","description":"..."}],
-  "memories": ["one-sentence fact worth remembering long-term"]
+  "tasks": [
+    {
+      "title": "...",
+      "startTime": "HH:mm",
+      "estimatedMinutes": 30,
+      "priority": 1,
+      "tags": ["work"],
+      "energyLevel": "medium",
+      "goalTitle": ""
+    }
+  ],
+  "notes": [
+    {
+      "title": "...",
+      "content": "...",
+      "tags": ["idea"]
+    }
+  ],
+  "goals": [
+    {
+      "title": "...",
+      "description": "..."
+    }
+  ],
+  "memories": [
+    "one-sentence fact worth remembering long-term"
+  ]
 }
 
 Rules:
 - tasks = concrete actions or to-dos with a clear completion state
-- goals = aspirational outcomes, bigger intentions, projects to pursue, ideas to develop
+- notes = fleeting thoughts, ideas, meeting takeaways, reflections, or drafts (not to-do actions)
+- goals = aspirational outcomes, bigger intentions, projects to pursue, milestones
 - memories = recurring preferences, key life facts, important patterns
-- startTime = best suggested time in HH:mm (default "09:00")
-- estimatedMinutes = realistic time to complete (15–240)
+- startTime = suggest sequential realistic times starting around $suggestedStartTime today (space tasks out by estimatedMinutes!)
+- estimatedMinutes = realistic time to complete (15–180)
 - priority = 0 low, 1 medium, 2 high, 3 urgent
+- energyLevel = "high", "medium", or "low"
 - goalTitle = if a task clearly belongs to one of the extracted goals, set this to the exact goal title; otherwise ""
 - Use [] for any empty category
 
@@ -761,6 +838,29 @@ Respond with ONLY the review text.
       }
 
       final tasks = _parseTasksFromJson(jsonEncode(rawTasks));
+      final now = DateTime.now();
+      final rawNotes = data['notes'] as List<dynamic>? ?? [];
+      final notes = rawNotes
+          .map((n) {
+            if (n is! Map<String, dynamic>) return null;
+            final title = (n['title'] as String?)?.trim() ?? 'Note';
+            final content = (n['content'] as String?)?.trim() ?? '';
+            final tags = (n['tags'] as List<dynamic>?)
+                    ?.map((e) => e.toString())
+                    .toList() ??
+                ['braindump'];
+            return NoteItem(
+              id: _uuid.v4(),
+              title: title,
+              content: content.isNotEmpty ? content : title,
+              tags: tags.contains('braindump') ? tags : [...tags, 'braindump'],
+              createdAt: now,
+              updatedAt: now,
+            );
+          })
+          .whereType<NoteItem>()
+          .toList();
+
       final goals = (data['goals'] as List<dynamic>? ?? [])
           .map(
             (g) => BrainGoal(
@@ -777,6 +877,7 @@ Respond with ONLY the review text.
       return BrainDumpResult(
         tasks: tasks,
         goals: goals,
+        notes: notes,
         memories: memories,
         taskGoalLinks: taskGoalLinks,
       );
@@ -882,6 +983,7 @@ Respond with ONLY the review text.
               startTime: start,
               endTime: start.add(Duration(minutes: estimatedMins)),
               priority: (task['priority'] as int?) ?? 1,
+              energyLevel: task['energyLevel'] as String?,
               tags:
                   (task['tags'] as List<dynamic>?)
                       ?.map((e) => e.toString())
@@ -927,5 +1029,177 @@ Respond with ONLY the review text.
         .map((m) => '  - ${_sanitize(m.content)}')
         .join('\n');
     return lines.isEmpty ? '' : '\nUser memory context:\n$lines\n';
+  }
+
+  /// Parses a natural-language schedule command into an actionable [ScheduleCommand].
+  ///
+  /// Combines local instant pattern recognition for common commands with
+  /// AI LLM parsing for complex instructions.
+  Future<ScheduleCommand> parseScheduleCommand({
+    required String query,
+    required List<TaskItem> currentTasks,
+    DateTime? referenceTime,
+  }) async {
+    final cleanQuery = _sanitize(query).trim();
+    if (cleanQuery.isEmpty) {
+      return ScheduleCommand.unknown(explanation: 'Please enter a command.');
+    }
+
+    final now = referenceTime ?? DateTime.now();
+
+    // 1. Instant deterministic heuristic parse
+    final localResult = _tryLocalScheduleCommandParse(cleanQuery, now);
+    if (localResult != null) {
+      return localResult;
+    }
+
+    // 2. Fall back to LLM structured output
+    final prompt = '''
+You are an expert schedule assistant for AutoPlanner AI.
+Analyze the user's natural language command and output a single JSON object.
+
+Current date & time: ${now.toIso8601String().substring(0, 16)}
+
+User Command: "$cleanQuery"
+
+JSON Schema:
+{
+  "action": "shift" | "clear_window" | "quick_add" | "find_fit" | "start_focus" | "unknown",
+  "minutes": <int or null>,
+  "afterTime": "HH:mm" or null,
+  "fromTime": "HH:mm" or null,
+  "toTime": "HH:mm" or null,
+  "targetDate": "YYYY-MM-DD" or null,
+  "taskTitle": <string or null>,
+  "priority": <0..3 or null>,
+  "tags": [<string>, ...],
+  "explanation": "<brief summary of what will happen>"
+}
+
+Output ONLY valid JSON.
+''';
+
+    try {
+      final response = await _withRetry(() => _provider.complete(prompt));
+      final json = AIValidator.extractObject(response.text, context: 'parseScheduleCommand');
+      return ScheduleCommand.fromJson(json, referenceTime: now);
+    } catch (e) {
+      if (kDebugMode) debugPrint('parseScheduleCommand AI failed: $e, falling back to unknown');
+      return ScheduleCommand.unknown(
+        explanation: 'Could not process "$cleanQuery". Try "push afternoon by 30 mins" or "find tasks in 20m".',
+      );
+    }
+  }
+
+  ScheduleCommand? _tryLocalScheduleCommandParse(String query, DateTime now) {
+    final lower = query.toLowerCase();
+
+    // Pattern: "what can i do in 20 mins" / "what fits in 15m" / "fit in 30 mins"
+    final fitMatch = RegExp(r'(?:what can i do in|what fits in|fit(?:ting)? in|under)\s+(\d+)\s*(?:m|min|mins|minutes)?', caseSensitive: false).firstMatch(lower);
+    if (fitMatch != null) {
+      final mins = int.tryParse(fitMatch.group(1) ?? '30') ?? 30;
+      return ScheduleCommand(
+        type: ScheduleCommandType.findFit,
+        minutes: mins,
+        explanation: 'Find pending tasks fitting in $mins minutes.',
+      );
+    }
+
+    // Pattern: "focus on <task>" / "start focus"
+    if (lower.startsWith('focus on ') || lower.startsWith('start focus')) {
+      final title = lower.startsWith('focus on ')
+          ? query.substring(9).trim()
+          : (lower.startsWith('start focus on ') ? query.substring(15).trim() : null);
+      return ScheduleCommand(
+        type: ScheduleCommandType.startFocus,
+        taskTitle: title != null && title.isNotEmpty ? title : null,
+        explanation: title != null ? 'Start focus session on "$title".' : 'Start focus on next scheduled task.',
+      );
+    }
+
+    // Pattern: "push afternoon by 30m" / "delay afternoon by 1 hour"
+    final pushMatch = RegExp(r'(?:push|delay|bump|shift)\s+(afternoon|morning|all|tasks)?\s*(?:by\s+)?(\d+)\s*(m|min|mins|minutes|h|hr|hour|hours)?', caseSensitive: false).firstMatch(lower);
+    if (pushMatch != null) {
+      final window = pushMatch.group(1);
+      final val = int.tryParse(pushMatch.group(2) ?? '30') ?? 30;
+      final unit = pushMatch.group(3) ?? 'm';
+      final minutes = unit.startsWith('h') ? val * 60 : val;
+
+      DateTime? after;
+      if (window == 'afternoon') {
+        after = DateTime(now.year, now.month, now.day, 12, 0);
+      } else if (window == 'morning') {
+        after = DateTime(now.year, now.month, now.day, 8, 0);
+      } else {
+        after = now;
+      }
+
+      return ScheduleCommand(
+        type: ScheduleCommandType.shift,
+        minutes: minutes,
+        afterTime: after,
+        targetDate: now,
+        explanation: 'Shift tasks${window != null ? ' in the $window' : ''} by $minutes minutes.',
+      );
+    }
+
+    // Pattern: "clear afternoon" / "clear 2pm to 4pm" / "free up 14:00 to 16:00"
+    if (lower.contains('clear afternoon') || lower.contains('free up afternoon')) {
+      return ScheduleCommand(
+        type: ScheduleCommandType.clearWindow,
+        fromTime: DateTime(now.year, now.month, now.day, 12, 0),
+        toTime: DateTime(now.year, now.month, now.day, 17, 0),
+        targetDate: now,
+        explanation: 'Clear afternoon from 12:00 PM to 5:00 PM.',
+      );
+    }
+    final clearWindowMatch = RegExp(r'(?:clear|free up)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:to|-)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?', caseSensitive: false).firstMatch(lower);
+    if (clearWindowMatch != null) {
+      int h1 = int.tryParse(clearWindowMatch.group(1) ?? '0') ?? 0;
+      final m1 = int.tryParse(clearWindowMatch.group(2) ?? '0') ?? 0;
+      final ampm1 = clearWindowMatch.group(3)?.toLowerCase();
+      if (ampm1 == 'pm' && h1 < 12) h1 += 12;
+      if (ampm1 == 'am' && h1 == 12) h1 = 0;
+
+      int h2 = int.tryParse(clearWindowMatch.group(4) ?? '0') ?? 0;
+      final m2 = int.tryParse(clearWindowMatch.group(5) ?? '0') ?? 0;
+      final ampm2 = clearWindowMatch.group(6)?.toLowerCase();
+      if (ampm2 == 'pm' && h2 < 12) h2 += 12;
+      if (ampm2 == 'am' && h2 == 12) h2 = 0;
+
+      return ScheduleCommand(
+        type: ScheduleCommandType.clearWindow,
+        fromTime: DateTime(now.year, now.month, now.day, h1, m1),
+        toTime: DateTime(now.year, now.month, now.day, h2, m2),
+        targetDate: now,
+        explanation: 'Clear window between $h1:${m1.toString().padLeft(2, '0')} and $h2:${m2.toString().padLeft(2, '0')}.',
+      );
+    }
+
+    // Pattern: "add <task> at <time>" / "schedule <task> at <time>"
+    final addMatch = RegExp(
+      r'(?:add|schedule|create)\s+(?:task\s+)?(.+?)\s+at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?',
+      caseSensitive: false,
+    ).firstMatch(query);
+    if (addMatch != null) {
+      final taskTitle = addMatch.group(1)?.trim();
+      int h = int.tryParse(addMatch.group(2) ?? '0') ?? 0;
+      final m = int.tryParse(addMatch.group(3) ?? '0') ?? 0;
+      final ampm = addMatch.group(4)?.toLowerCase();
+      if (ampm == 'pm' && h < 12) h += 12;
+      if (ampm == 'am' && h == 12) h = 0;
+
+      return ScheduleCommand(
+        type: ScheduleCommandType.quickAdd,
+        taskTitle: taskTitle,
+        fromTime: DateTime(now.year, now.month, now.day, h, m),
+        minutes: 30,
+        priority: 1,
+        targetDate: now,
+        explanation: 'Add "$taskTitle" at $h:${m.toString().padLeft(2, '0')}.',
+      );
+    }
+
+    return null;
   }
 }

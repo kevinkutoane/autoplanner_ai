@@ -9,6 +9,7 @@ import '../../../core/models/task_model.dart';
 import '../../../core/models/goal_model.dart';
 import '../../../core/models/memory_entry_model.dart';
 import '../../../core/providers/providers.dart';
+import '../../../services/gamification_service.dart';
 import '../controllers/settings_controller.dart';
 import '../models/app_settings_model.dart';
 
@@ -34,7 +35,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   late final List<Animation<double>> _sectionFades;
   late final List<Animation<Offset>> _sectionSlides;
 
-  static const int _sectionCount = 6;
+  static const int _sectionCount = 8;
 
   @override
   void initState() {
@@ -171,21 +172,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   _stagger(0, _IdentityBlock(settings: settings)),
-                  const SizedBox(height: 24),
-                  _stagger(1, _StatsRow(stats: _stats, countCtrl: _countCtrl)),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
+                  _stagger(1, const _GamificationMasteryHero()),
+                  const SizedBox(height: 18),
+                  _stagger(2, _ProductivityPersonaCard(settings: settings)),
+                  const SizedBox(height: 18),
+                  _stagger(3, _StatsRow(stats: _stats, countCtrl: _countCtrl)),
+                  const SizedBox(height: 18),
                   _stagger(
-                    2,
+                    4,
                     _GlassCard(child: _WorkScheduleContent(settings: settings)),
                   ),
                   const SizedBox(height: 16),
                   _stagger(
-                    3,
+                    5,
                     _GlassCard(child: _AIPrefsContent(settings: settings)),
                   ),
                   const SizedBox(height: 28),
                   _stagger(
-                    4,
+                    6,
                     _GradientButton(
                       label: 'Edit Profile',
                       icon: Icons.edit_rounded,
@@ -194,7 +199,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   ),
                   const SizedBox(height: 12),
                   _stagger(
-                    5,
+                    7,
                     _GhostButton(
                       label: 'Back to Settings',
                       icon: Icons.arrow_back_ios_new_rounded,
@@ -633,6 +638,356 @@ class _IdentityBlock extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+// ── Flagship Gamification Mastery Hero ─────────────────────────────────────
+
+class _GamificationMasteryHero extends ConsumerWidget {
+  const _GamificationMasteryHero();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(gamificationServiceProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final progress = profile.levelProgress;
+    final currentXp = profile.currentLevelXp;
+    final neededXp = profile.currentLevelRange;
+    final multiplier = profile.streakMultiplier;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(22),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF1E1B4B).withAlpha(200), const Color(0xFF172554).withAlpha(180)]
+                  : [const Color(0xFFEEF2FF).withAlpha(220), const Color(0xFFE0E7FF).withAlpha(200)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: isDark ? const Color(0xFF6366F1).withAlpha(80) : const Color(0xFF818CF8).withAlpha(100),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF6366F1).withAlpha(isDark ? 50 : 30),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Level & Title Header + Streak Badge
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)]),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'LVL ${profile.currentLevel}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      profile.levelTitle,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : const Color(0xFF1E1B4B),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF97316).withAlpha(isDark ? 40 : 25),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFF97316).withAlpha(120)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('🔥 ', style: TextStyle(fontSize: 12)),
+                        Text(
+                          '${profile.currentStreak}d',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFFEA580C),
+                          ),
+                        ),
+                        if (multiplier > 1.0) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            '• ${multiplier.toStringAsFixed(1)}x',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFFEA580C),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // 2. Animated Glow XP Progress Bar
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '$currentXp / $neededXp XP to Next Rank',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white70 : const Color(0xFF4B5563),
+                    ),
+                  ),
+                  Text(
+                    '${(progress * 100).toInt()}%',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF6366F1),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  height: 10,
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    backgroundColor: isDark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(15),
+                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // 3. Lifetime Stats pill
+              Row(
+                children: [
+                  Icon(Icons.military_tech_rounded, size: 16, color: isDark ? Colors.white60 : Colors.black54),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Total Earned: ${profile.totalXp} XP  •  ${profile.unlockedBadgeIds.length} Badges Unlocked',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Flagship Productivity Persona & Mantra Card ─────────────────────────────
+
+class _ProductivityPersonaCard extends StatelessWidget {
+  final AppSettings settings;
+  const _ProductivityPersonaCard({required this.settings});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final chronotypeLabel = switch (settings.chronotype) {
+      'early_bird' => '🌅 Early Bird (Peak AM)',
+      'night_owl' => '🌙 Night Owl (Peak PM)',
+      _ => '⚖️ Balanced (Circadian Flow)',
+    };
+
+    final coachingLabel = switch (settings.coachingStyle) {
+      'direct' => '⚡ Direct & Sharp',
+      'empathetic' => '🌱 Empathetic & Supportive',
+      _ => '🎯 Strategic & Balanced',
+    };
+
+    final deepWorkLabel = '${settings.dailyFocusGoalMinutes ~/ 60}h ${settings.dailyFocusGoalMinutes % 60 > 0 ? "${settings.dailyFocusGoalMinutes % 60}m" : ""}';
+
+    return _GlassCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Motto / Mantra Banner if provided
+            if (settings.userMotto.trim().isNotEmpty) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFF00D4AA).withAlpha(isDark ? 35 : 25),
+                      const Color(0xFF6C63FF).withAlpha(isDark ? 35 : 25),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF00D4AA).withAlpha(80),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Text('💬', style: TextStyle(fontSize: 16)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '"${settings.userMotto.trim()}"',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontStyle: FontStyle.italic,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : const Color(0xFF1E1B4B),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
+
+            Text(
+              'Productivity Identity',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : const Color(0xFF1A1A2E),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                Expanded(
+                  child: _PersonaPill(
+                    icon: Icons.access_time_rounded,
+                    title: 'Chronotype',
+                    value: chronotypeLabel,
+                    color: const Color(0xFF00D4AA),
+                    isDark: isDark,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _PersonaPill(
+                    icon: Icons.track_changes_rounded,
+                    title: 'Daily Deep Work',
+                    value: '$deepWorkLabel Target',
+                    color: const Color(0xFF6C63FF),
+                    isDark: isDark,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _PersonaPill(
+              icon: Icons.psychology_rounded,
+              title: 'AI Coach Persona',
+              value: coachingLabel,
+              color: const Color(0xFFF59E0B),
+              isDark: isDark,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PersonaPill extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  final Color color;
+  final bool isDark;
+
+  const _PersonaPill({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.color,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withAlpha(isDark ? 25 : 15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withAlpha(isDark ? 60 : 40)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: color),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : const Color(0xFF1E1B4B),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1475,6 +1830,7 @@ class _ProfileEditDialogState extends State<ProfileEditDialog> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _emailCtrl;
   late final TextEditingController _jobCtrl;
+  late final TextEditingController _mottoCtrl;
   late String _selectedEmoji;
 
   static const List<String> _emojiOptions = [
@@ -1490,6 +1846,10 @@ class _ProfileEditDialogState extends State<ProfileEditDialog> {
     '📊',
     '🎨',
     '🔥',
+    '🦁',
+    '🧘',
+    '🏆',
+    '💎',
   ];
 
   @override
@@ -1498,6 +1858,7 @@ class _ProfileEditDialogState extends State<ProfileEditDialog> {
     _nameCtrl = TextEditingController(text: widget.settings.userName);
     _emailCtrl = TextEditingController(text: widget.settings.userEmail);
     _jobCtrl = TextEditingController(text: widget.settings.userJobTitle);
+    _mottoCtrl = TextEditingController(text: widget.settings.userMotto);
     _selectedEmoji = widget.settings.avatarEmoji;
   }
 
@@ -1506,6 +1867,7 @@ class _ProfileEditDialogState extends State<ProfileEditDialog> {
     _nameCtrl.dispose();
     _emailCtrl.dispose();
     _jobCtrl.dispose();
+    _mottoCtrl.dispose();
     super.dispose();
   }
 
@@ -1674,6 +2036,14 @@ class _ProfileEditDialogState extends State<ProfileEditDialog> {
                     isDark: isDark,
                     capitalization: TextCapitalization.words,
                   ),
+                  const SizedBox(height: 12),
+                  _GlassTextField(
+                    controller: _mottoCtrl,
+                    label: 'Personal Mantra / Motto',
+                    icon: Icons.format_quote_rounded,
+                    isDark: isDark,
+                    capitalization: TextCapitalization.sentences,
+                  ),
                   const SizedBox(height: 28),
 
                   Row(
@@ -1697,6 +2067,7 @@ class _ProfileEditDialogState extends State<ProfileEditDialog> {
                               email: _emailCtrl.text.trim(),
                               jobTitle: _jobCtrl.text.trim(),
                               avatarEmoji: _selectedEmoji,
+                              userMotto: _mottoCtrl.text.trim(),
                             );
                             if (context.mounted) Navigator.pop(context);
                           },

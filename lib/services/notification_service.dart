@@ -7,6 +7,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../core/models/task_model.dart';
 import '../core/models/note_model.dart';
 import '../core/models/goal_model.dart';
+import '../features/settings/models/app_settings_model.dart';
 
 /// Wraps flutter_local_notifications.
 /// Call [init] once at app startup (after Hive, before runApp).
@@ -38,6 +39,14 @@ class NotificationService {
   static const _briefingChannelDesc =
       'Daily morning notification to start your day';
   static const _briefingNotificationId = 9000;
+
+  static const _shutdownChannelId = 'autoplanner_rituals';
+  static const _shutdownChannelName = 'Daily Rituals & Shutdown';
+  static const _shutdownChannelDesc =
+      'Daily morning kickoff and evening shutdown rituals';
+  static const _shutdownNotificationId = 9001;
+
+  static const _streakNotificationId = 9002;
 
   // Offset applied to goal notification IDs to avoid collision with task IDs.
   static const _goalIdOffset = 1000000;
@@ -93,41 +102,73 @@ class NotificationService {
     );
     await androidImpl?.createNotificationChannel(briefingChannel);
 
+    // Daily rituals & shutdown channel.
+    const shutdownChannel = AndroidNotificationChannel(
+      _shutdownChannelId,
+      _shutdownChannelName,
+      description: _shutdownChannelDesc,
+      importance: Importance.high,
+    );
+    await androidImpl?.createNotificationChannel(shutdownChannel);
+
     _ready = true;
   }
 
   // ── Tasks ────────────────────────────────────────────────────────────────
 
-  /// Schedules a timed reminder [_reminderMinutesBefore] minutes before
-  /// [task.startTime]. Only fires for priority ≥ 2 (High or Urgent).
-  /// No-ops if notifications are unavailable or the reminder time is past.
-  Future<void> scheduleTaskReminder(TaskItem task) async {
+  /// Schedules a timed reminder before [task.startTime].
+  ///
+  /// Honors user settings:
+  /// - If [settings] is provided and [settings.taskRemindersEnabled] is false, does nothing.
+  /// - If [settings.remindCrucialTasksOnly] is true, only priority ≥ 2 (High or Urgent) fires.
+  /// - Uses [settings.reminderLeadTimeMinutes] (default 10) as the lead time.
+  /// - Uses Urgent channel for Priority 3 (Urgent) tasks.
+  Future<void> scheduleTaskReminder(TaskItem task, [AppSettings? settings]) async {
     if (!_ready) return;
-    if (task.priority < 2) return; // Low / Medium: no timed reminder noise
+    if (settings != null && !settings.taskRemindersEnabled) return;
+
+    final crucialOnly = settings?.remindCrucialTasksOnly ?? true;
+    if (crucialOnly && task.priority < 2) return;
+
+    final leadMinutes = settings?.reminderLeadTimeMinutes ?? _reminderMinutesBefore;
     final reminderTime = task.startTime.subtract(
-      const Duration(minutes: _reminderMinutesBefore),
+      Duration(minutes: leadMinutes),
     );
     if (reminderTime.isBefore(DateTime.now())) return;
 
     final id = task.id.hashCode;
     final tzTime = tz.TZDateTime.from(reminderTime, tz.local);
 
+    final isUrgent = task.priority == 3;
+    final channelId = isUrgent ? _urgentChannelId : _channelId;
+    final channelName = isUrgent ? _urgentChannelName : _channelName;
+    final channelDesc = isUrgent ? _urgentChannelDesc : _channelDesc;
+    final importance = isUrgent ? Importance.max : Importance.high;
+    final priority = isUrgent ? Priority.max : Priority.high;
+
     try {
       await _plugin.zonedSchedule(
         id: id,
-        title: '⏰  ${task.title}',
-        body: 'Starting in $_reminderMinutesBefore minutes',
+        title: isUrgent ? '🚨  ${task.title}' : '⏰  ${task.title}',
+        body: 'Starting in $leadMinutes minutes${isUrgent ? " • High Priority" : ""}',
         scheduledDate: tzTime,
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
-            _channelId,
-            _channelName,
-            channelDescription: _channelDesc,
-            importance: Importance.high,
-            priority: Priority.high,
+            channelId,
+            channelName,
+            channelDescription: channelDesc,
+            importance: importance,
+            priority: priority,
             icon: '@mipmap/ic_launcher',
+            playSound: settings?.notificationSoundEnabled ?? true,
+            enableVibration: settings?.notificationVibrateEnabled ?? true,
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: DarwinNotificationDetails(
+            interruptionLevel: isUrgent
+                ? InterruptionLevel.timeSensitive
+                : InterruptionLevel.active,
+            presentSound: settings?.notificationSoundEnabled ?? true,
+          ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
@@ -141,6 +182,7 @@ class NotificationService {
   /// Cancels any pending timed reminder for [taskId].
   Future<void> cancelTaskReminder(String taskId) async {
     if (!_ready) return;
+    await _plugin.cancel(id: taskId.hashCode);
     await _plugin.cancel(id: 'task_start_$taskId'.hashCode);
   }
 
@@ -341,5 +383,113 @@ class NotificationService {
   Future<void> cancelMorningBriefing() async {
     if (!_ready) return;
     await _plugin.cancel(id: _briefingNotificationId);
+  }
+
+  // ── Evening shutdown ritual ──────────────────────────────────────────────
+
+  /// Schedules daily evening shutdown ritual reminder.
+  Future<void> scheduleEveningShutdown({
+    required int hour,
+    required int minute,
+    String body = 'Time to review wins, reset the board, and log reflections.',
+  }) async {
+    if (!_ready) return;
+    try {
+      final now = tz.TZDateTime.now(tz.local);
+      var scheduled = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        hour,
+        minute,
+      );
+      if (scheduled.isBefore(now)) {
+        scheduled = scheduled.add(const Duration(days: 1));
+      }
+
+      await _plugin.zonedSchedule(
+        id: _shutdownNotificationId,
+        title: '🌙  Evening Shutdown',
+        body: body,
+        scheduledDate: scheduled,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _shutdownChannelId,
+            _shutdownChannelName,
+            channelDescription: _shutdownChannelDesc,
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    } catch (e) {
+      if (kDebugMode) debugPrint('scheduleEveningShutdown: $e');
+    }
+  }
+
+  /// Cancels evening shutdown reminder.
+  Future<void> cancelEveningShutdown() async {
+    if (!_ready) return;
+    await _plugin.cancel(id: _shutdownNotificationId);
+  }
+
+  // ── Streak Shield reminder ───────────────────────────────────────────────
+
+  /// Schedules an alert at [hour]:[minute] to protect an active streak.
+  Future<void> scheduleStreakShield({
+    int hour = 20,
+    int minute = 0,
+    required int currentStreak,
+  }) async {
+    if (!_ready || currentStreak <= 0) return;
+    try {
+      final now = tz.TZDateTime.now(tz.local);
+      var scheduled = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        hour,
+        minute,
+      );
+      if (scheduled.isBefore(now)) {
+        scheduled = scheduled.add(const Duration(days: 1));
+      }
+
+      await _plugin.zonedSchedule(
+        id: _streakNotificationId,
+        title: '🛡️  Streak Shield: Keep your streak alive!',
+        body: 'You have a $currentStreak-day streak! Complete a task or log your evening reflection.',
+        scheduledDate: scheduled,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _urgentChannelId,
+            _urgentChannelName,
+            channelDescription: _urgentChannelDesc,
+            importance: Importance.max,
+            priority: Priority.max,
+            icon: '@mipmap/ic_launcher',
+          ),
+          iOS: DarwinNotificationDetails(
+            interruptionLevel: InterruptionLevel.timeSensitive,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    } catch (e) {
+      if (kDebugMode) debugPrint('scheduleStreakShield: $e');
+    }
+  }
+
+  /// Cancels the streak shield reminder.
+  Future<void> cancelStreakShield() async {
+    if (!_ready) return;
+    await _plugin.cancel(id: _streakNotificationId);
   }
 }

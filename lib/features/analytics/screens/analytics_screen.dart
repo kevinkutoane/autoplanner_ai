@@ -9,6 +9,7 @@ import '../../planner/controllers/task_controller.dart';
 import '../../goals/controllers/goal_controller.dart';
 import '../../../core/utils/streak_calculator.dart';
 import 'weekly_review_screen.dart';
+import '../widgets/productivity_health_card.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
@@ -43,30 +44,53 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
           headerSliverBuilder: (context, _) => [
             SliverToBoxAdapter(
               child: GradientHeader(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1A1040), Color(0xFF0D2040), kIndigo],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                gradient: kGradientAnalytics,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Analytics',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Your productivity at a glance',
-                      style: TextStyle(
-                        color: Colors.white.withAlpha(160),
-                        fontSize: 14,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          margin: const EdgeInsets.only(right: 12),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withAlpha(30),
+                            border: Border.all(color: Colors.white.withAlpha(60)),
+                          ),
+                          child: const Icon(
+                            Icons.insights_rounded,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Analytics & Insights',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                'Your productivity trends & performance',
+                                style: TextStyle(
+                                  color: Colors.white.withAlpha(190),
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     TabBar(
@@ -276,6 +300,14 @@ class _PerformanceTab extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+        ),
+
+        // ── Personal Intelligence & Productivity Health ─────
+        const SliverPadding(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+          sliver: SliverToBoxAdapter(
+            child: ProductivityHealthCard(),
           ),
         ),
 

@@ -40,13 +40,16 @@ class TaskItemAdapter extends TypeAdapter<TaskItem> {
       dependsOnTaskIds: (fields[20] as List?)?.cast<String>() ?? const [],
       linkedProjectId: fields[21] as String?,
       parentTaskId: fields[22] as String?,
+      actualDurationMinutes: fields[23] as int?,
+      completedAt: fields[24] as DateTime?,
+      focusSessionsCount: fields[25] as int? ?? 0,
     );
   }
 
   @override
   void write(BinaryWriter writer, TaskItem obj) {
     writer
-      ..writeByte(23)
+      ..writeByte(26)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -93,7 +96,13 @@ class TaskItemAdapter extends TypeAdapter<TaskItem> {
       ..writeByte(21)
       ..write(obj.linkedProjectId)
       ..writeByte(22)
-      ..write(obj.parentTaskId);
+      ..write(obj.parentTaskId)
+      ..writeByte(23)
+      ..write(obj.actualDurationMinutes)
+      ..writeByte(24)
+      ..write(obj.completedAt)
+      ..writeByte(25)
+      ..write(obj.focusSessionsCount);
   }
 
   @override

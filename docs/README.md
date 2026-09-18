@@ -2,7 +2,7 @@
 
 > **AI-powered daily planner for Android & iOS** — turn a stream-of-consciousness brain dump into a fully scheduled, priority-scored day in seconds.
 
-**Version:** 1.2.0 · **Flutter SDK:** `^3.8.1` · **Dart SDK:** `^3.8.1` · **AI Model:** Gemini 2.5 Flash
+**Version:** 2.3.0 · **Flutter SDK:** `^3.8.1` · **Dart SDK:** `^3.8.1` · **AI Model:** Gemini 2.5 Flash
 
 ---
 
@@ -10,9 +10,9 @@
 
 | Document | Description |
 | --- | --- |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | High-level system architecture, startup lifecycle, constraint scheduling engine, and data flows |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Complete system architecture map, runtime data flows, AI safety boundary, and Hive schema |
 | [PHASE_1_2_SPEC.md](PHASE_1_2_SPEC.md) | Technical specification & delivery verification for the Smart Scheduling Engine |
-| [ROADMAP.md](ROADMAP.md) | Multi-phase strategic product and architectural roadmap from 1.1 to 2.0 |
+| [ROADMAP.md](ROADMAP.md) | Multi-phase strategic product and architectural roadmap from 1.1 to 2.3+ |
 | [CHANGELOG.md](CHANGELOG.md) | Detailed release notes, breaking changes, and migration history |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Developer guide, coding standards, test execution, and pull request checklist |
 
@@ -20,11 +20,74 @@
 
 ## Features
 
-### Core
+### ⚓ Ergonomic 5-Slot Dock & 4x2 Feature Sheet
+- **Balanced Floating Glass Dock (`_GlassNavBar`)**: Ergonomic 5-slot navigation bar (`Dashboard`, `Planner`, `[Center Action]`, `Focus`, `AI Coach`) rendered as a floating frosted glass pill, eliminating bottom bar crowding.
+- **Docked Brain Dump 2.0 Hero Action (`_DockedBrainDumpButton`)**: Elevated central button with multi-color neon sunset gradient glow (`kGradientNeonSunset`), tactile spring animation, and zero FAB overlap collisions.
+- **Responsive 4x2 More Features Grid (`_GlassMoreSheet`)**: Frosted modal sheet housing secondary modules (Goals, Projects, Memory, Notes, Analytics, Settings, Omnibar, Help) with color-coded glowing badges.
+- **Adaptive Dashboard Header**: Responsive layout with `Flexible` greeting wrappers and `FittedBox` date scaling to ensure zero header overflow across all screen sizes.
 
-- **Brain Dump** — paste or speak anything on your mind; AI classifies it into tasks, notes, and long-term memories in real time with streaming output
-- **AI Task Parser** — natural language → structured tasks with start time, realistic duration, and priority (Low / Medium / High / Urgent)
-- **AI Output Validation** — strict schema and domain validation boundary (`AIValidator`) preventing malformed or out-of-bounds LLM outputs from polluting state
+### 🎨 Signature Screen Palettes & Glowing Headers
+- **Curated Screen Gradients**: Distinct gradient color ways in `ui_kit.dart` giving each screen a memorable, unmistakable aesthetic:
+  - `kGradientPlanner` (Indigo & Violet) — task scheduling and temporal order.
+  - `kGradientCalendar` (Teal & Cyan) — event timeline clarity.
+  - `kGradientMemory` (Amber & Rose) — neural recall and reflection.
+  - `kGradientNotes` (Emerald & Teal) — creative ideation studio.
+  - `kGradientProjects` (Pink & Rose) — ambitious multi-step goals.
+  - `kGradientAnalytics` (Violet & Cyan) — telemetry and performance trends.
+  - `kGradientSettings` (Slate & Indigo) — device control room.
+- **Glowing Iconography Badges**: Header badges with ambient glow rings matching each screen's signature palette.
+
+### 🤖 AI Coach Persona, Strict Guardrails & Typing Wave
+- **Strict Productivity Scope**: Grounded exclusively in time management, scheduling, focus habits, circadian energy balance, and motivation. Off-topic queries are gracefully redirected to daily goals.
+- **Clean Markdown Enforcement**: Complete suppression of raw JSON or internal task schema leakage, backed by fallback sanitization in `_cleanMessageContent`.
+- **Interactive Visuals**: Glowing bot avatar with a cyan aura for the AI Coach, paired with the user's customizable profile badge.
+- **Animated 3-Dot Wave Typing Indicator (`_TypingBubble`)**: Inline pulsing wave indicator conveying live reasoning while the coach generates advice.
+
+### 🎙️ Brain Dump Voice Dictation & Emulator Simulator
+- **Android Microphone Permissions**: Runtime permission requests for `RECORD_AUDIO` and Bluetooth audio, backed by explicit `RecognitionService` queries in `AndroidManifest.xml`.
+- **Permission Recovery Flow**: Friendly guidance modal directing the user to system settings if permissions were denied.
+- **Emulator Voice Dictation Simulator**: In environments without speech recognition hardware (e.g. Android Emulators, headless/desktop testing), streams simulated voice input (`_simulateVoiceDictation`) that directly powers the 32-bar reactive equalizer and 4-pillar cognitive parser.
+
+### 🔔 Flagship Notification Center & Smart Reminders
+- **Differentiated Alert Channels**: Priority 3 critical tasks and urgent notes route to `autoplanner_urgent` (`Importance.max`) with heads-up prominence, while scheduled tasks route to `autoplanner_tasks` (`Importance.high`).
+- **Configurable Lead Times**: Quick-select reminder lead time chips (`5m`, `10m`, `15m`, `30m` before task start).
+- **Crucial Tasks Filter**: Toggle between alerting on all tasks or strictly crucial (High & Urgent) items to eliminate alert fatigue.
+- **Daily Ritual Alarms**: Timed reminders for Morning Kickoff and Evening Shutdown wrap-ups with dedicated time pickers.
+- **Streak Shield Protection**: Evening alert at 20:00 warning the user if their active planning streak is at risk.
+
+### 👤 Modern Profile Studio & Settings Hub
+- **Gamification Mastery Hero**: Real-time Level and Rank title, glowing XP progress bar, total earned XP, and active streak multiplier badge (`🔥 5d • 1.5x`).
+- **Productivity Persona Card**: Displays circadian chronotype (`🌅 Early Bird`, `⚖️ Balanced`, `🌙 Night Owl`), daily deep work focus targets (`1h` to `3h`), and AI coach persona styles (`Direct & Sharp`, `Strategic & Balanced`, `Empathetic`).
+- **Personal Mantra & Motto**: Custom quotation banner embedded on Profile and editable via `ProfileEditDialog`.
+- **Sensory & Haptic Controls**: Toggles for tactile micro-vibration feedback on interactive events and achievement celebration confetti.
+
+### 👑 Flagship Brain Dump 2.0
+- **Fluid Sensory Voice Studio**: Dynamic 9-bar reactive frequency equalizer (`AudioWaveformVisualizer`) that animates in real-time to microphone sound levels with harmonic sine wave rendering.
+- **4-Pillar Cognitive Extraction**: Parses stream-of-consciousness thoughts into **Tasks**, **Notes** (saved directly to `notesBox` with `#braindump`), **Goals** (auto-linked to tasks), and **Memories**.
+- **Smart Gap-Aware Auto-Scheduling**: Automatically packs newly extracted tasks into upcoming open calendar windows without collisions or past-time placement.
+- **Interactive Live Triage Canvas**: Inline duration selector chips (`15m`, `30m`, `45m`, `60m`), priority cycling, schedule fit status badges, and one-tap conversion between Tasks and Notes.
+- **Cognitive Clarity Rewards**: Mental declutter score banner with atomic multi-box persistence and instant **+50 XP** bonus.
+
+### 🌅 Multi-Agent Routines & Automated Rituals
+- **Morning Kickoff Ritual**: Sunrise sheet analyzing yesterday's rollover items, calendar commitments, and dynamically isolating **"The Big 3"** high-impact priorities (+50 XP).
+- **Evening Shutdown Ritual**: Twilight sheet offering one-tap task triaging (*Tomorrow*, *Backlog*, *Discard*), completion velocity analytics, and 1-line memory reflection (+50 XP).
+- **DailyRitualCard**: Context-aware banner on the Dashboard that smoothly alternates between Morning Kickoff and Evening Shutdown.
+
+### 🧠 Context-Aware Smart Engine & Dynamic Recommendations
+- **Circadian Energy Phases**: Dynamically shifts between Peak Deep Work (morning), Operational & Collaborative (afternoon), and Cooldown & Reflection (evening).
+- **Calendar Gap Detection & Micro-Wins**: Identifies 10–60 minute open windows before meetings and suggests matching quick-win tasks with a single-tap "Quick Flow" launcher.
+
+### 🏆 Gamification & Flow State Rewards Engine
+- **10 Progression Tiers**: From *Novice Planner (Lvl 1)* to *Grandmaster of Time (Lvl 10)*.
+- **Streak Multipliers**: Rewards daily consistency with scaling XP multipliers ($1.0\times$ up to $2.0\times$).
+- **Milestone Badges**: Live tracking for `early_bird`, `deep_diver`, `streak_hero`, `streak_titan`, `inbox_zero`, `zen_master`, and `time_oracle`.
+- **Celebration Dialogs**: Physics-driven fullscreen particle confetti upon leveling up and a dedicated trophy showcase in AI Coach.
+
+### 🎨 High-Vibrancy UI Design System
+- **Curated High-Vibrancy Palette**: Neon Violet, Neon Cyan, Electric Amber, Sunset Rose, and Ultra Emerald.
+- **Modern Glassmorphic Components**: `VibrantGlassCard` with rim glow, `GlowBadge` with pulsing status dots, `AnimatedXpBar`, and `PulsingAuraAvatar`.
+
+### 🧩 Core Productivity & Intelligent Scheduling Engine
 - **Smart Constraint-Based Scheduler** — multi-factor deterministic engine evaluating priority, deadline urgency, goal alignment, energy levels, preferred time of day, and context switching with zero overlapping conflicts
 - **Task Dependencies DAG** — declare task dependencies; Kahn's topological sort guarantees dependent tasks start strictly after prerequisites finish with automatic cycle breaking
 - **Task Splitting** — long tasks decomposed into manageable focus blocks with automatic restorative transition breaks
@@ -39,8 +102,9 @@
 - **Calendar** — visual day/week timeline synced with task changes in real time
 - **Dashboard** — daily insight card powered by AI, token usage meter, streak tracker
 - **Analytics** — 3-tab insights (overview, trends, tags) with `fl_chart` visualisations + AI weekly review
-- **Onboarding** — animated splash screen + guided walkthrough on first launch
-- **Settings** — theme picker, work schedule, biometric lock, API key management, mock AI toggle, profile editor
+- **Flagship Onboarding Walkthrough** — 6 rich capability slides highlighting Brain Dump 2.0, DAG autonomous scheduling, Daily Rituals, Circadian Focus, Gamification Mastery, and Living Memory with ambient dynamic glowing orbs
+- **Comprehensive In-App Help & Guide** — 5-stage daily productivity lifecycle diagram, 11 expandable capability deep dives, and rich interactive FAQs
+- **Settings & Profile Studio** — notification center, chronotype and productivity persona selector, haptic/sensory preferences, theme picker, biometric lock, API key management, mock AI toggle, and profile editor
 
 ### Proactive AI Rescheduling
 

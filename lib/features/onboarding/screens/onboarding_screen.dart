@@ -27,66 +27,110 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   static const _pages = [
     _PageData(
       gradient: LinearGradient(
-        colors: [Color(0xFF0A0A1A), Color(0xFF1A1040), Color(0xFF0D2040)],
+        colors: [Color(0xFF0A0A1A), Color(0xFF1E1045), Color(0xFF0F1A3A)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      icon: Icons.record_voice_over_rounded,
+      iconGradient: kGradientMain,
+      title: 'Brain Dump 2.0 Studio',
+      subtitle:
+          'Speak freely with real-time reactive audio waveforms or type chaotic thought streams. AutoPlanner structures everything.',
+      bullets: [
+        '32-band reactive audio waveform visualizer',
+        '4-pillar parsing: Tasks, Goals, Notes & Memories',
+        'Triage review & one-tap calendar gap auto-packing',
+      ],
+    ),
+    _PageData(
+      gradient: LinearGradient(
+        colors: [Color(0xFF0A0A1A), Color(0xFF091C36), Color(0xFF0C2B30)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
       icon: Icons.auto_awesome_rounded,
-      iconGradient: kGradientMain,
-      title: 'AI-Powered Planning',
-      subtitle: 'Describe your day in plain English. AutoPlanner turns it into a perfectly timed schedule — automatically.',
-      bullets: [
-        'Natural language task input',
-        'Smart scheduling & priorities',
-        'Auto-blocks your work hours',
-      ],
-    ),
-    _PageData(
-      gradient: LinearGradient(
-        colors: [Color(0xFF0A0A1A), Color(0xFF0A1A2E), Color(0xFF0E2020)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      icon: Icons.psychology_rounded,
       iconGradient: kGradientTeal,
-      title: 'Living Memory',
-      subtitle: 'AutoPlanner learns from your tasks, notes, and events. Ask it anything and it knows your context.',
+      title: 'Autonomous Scheduling',
+      subtitle:
+          'A deterministic constraint solver that packs your day with zero overlap, honoring buffer times and task prerequisites.',
       bullets: [
-        'Remembers your patterns',
-        'Contextual daily insights',
-        'Smart note summarisation',
+        'Dependency DAG ordering & split subtasks',
+        'Smart buffer times & work window boundaries',
+        'Proactive reschedule suggestions when plans shift',
       ],
     ),
     _PageData(
       gradient: LinearGradient(
-        colors: [Color(0xFF0A0A1A), Color(0xFF1A0A20), Color(0xFF2A1010)],
+        colors: [Color(0xFF0A0A1A), Color(0xFF2E1010), Color(0xFF261805)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      icon: Icons.calendar_month_rounded,
+      icon: Icons.wb_sunny_rounded,
       iconGradient: kGradientWarm,
-      title: 'Unified Calendar',
-      subtitle: 'All your tasks, events, and goals in one beautifully organised view — always in sync.',
+      title: 'Daily Rituals & Routines',
+      subtitle:
+          'Bookend your day with science-backed rituals. Lock in your Big 3 in the morning, and reflect & triage at evening shutdown.',
       bullets: [
-        'Task + event integration',
-        'Visual weekly overview',
-        'Never miss a deadline',
+        'Morning Kickoff with daily "The Big 3" focus commitments',
+        'Evening Shutdown to triage rollovers & celebrate wins',
+        'Automated ritual reminders synced to your schedule',
       ],
     ),
     _PageData(
       gradient: LinearGradient(
-        colors: [Color(0xFF0A0A1A), Color(0xFF1A1040), Color(0xFF001A10)],
+        colors: [Color(0xFF0A0A1A), Color(0xFF002228), Color(0xFF0A1F1C)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      icon: Icons.rocket_launch_rounded,
-      iconGradient: kGradientMain,
-      title: "You're All Set",
-      subtitle: "AutoPlanner is ready to make every day your most productive. Let's get started!",
+      icon: Icons.timer_rounded,
+      iconGradient: LinearGradient(
+        colors: [Color(0xFF00E5FF), Color(0xFF00B0FF), Color(0xFF1DE9B6)],
+      ),
+      title: 'Circadian Focus & Micro-Wins',
+      subtitle:
+          'Align complex work to your peak chronotype energy windows. Stay locked in with immersive radial timers and soundscapes.',
       bullets: [
-        'Personalised to your schedule',
-        'Offline-first with AI on demand',
-        'Your data stays on-device',
+        'Circadian energy curve task recommendations',
+        'Ambient soundscapes & distraction scratchpad',
+        'Flow state tracking with micro-break prompts',
+      ],
+    ),
+    _PageData(
+      gradient: LinearGradient(
+        colors: [Color(0xFF0A0A1A), Color(0xFF2D1E00), Color(0xFF211400)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      icon: Icons.military_tech_rounded,
+      iconGradient: LinearGradient(
+        colors: [Color(0xFFFFB300), Color(0xFFFF6D00), Color(0xFFFFD54F)],
+      ),
+      title: 'Mastery Ranks & Streaks',
+      subtitle:
+          'Turn consistency into an engaging game. Level up across 10 mastery tiers, unlock badges, and protect your streak.',
+      bullets: [
+        '10 progression tiers from Novice to Grandmaster',
+        'Streak multipliers & automated Streak Shield alerts',
+        'Over 20+ unlockable productivity achievements',
+      ],
+    ),
+    _PageData(
+      gradient: LinearGradient(
+        colors: [Color(0xFF0A0A1A), Color(0xFF1E0A36), Color(0xFF0D0A24)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      icon: Icons.shield_rounded,
+      iconGradient: LinearGradient(
+        colors: [Color(0xFF7C4DFF), Color(0xFF651FFF), Color(0xFF00E5FF)],
+      ),
+      title: 'Living Memory & Privacy',
+      subtitle:
+          'AutoPlanner remembers your evolving habits across sessions while keeping 100% of your data encrypted on your device.',
+      bullets: [
+        'Cross-session contextual memory auto-synthesis',
+        'AES-256 encrypted local storage with zero cloud leaks',
+        'Google Gemini API key kept in hardware Secure Enclave',
       ],
     ),
   ];
@@ -746,10 +790,13 @@ class _OnboardOrbPainter extends CustomPainter {
   _OnboardOrbPainter(this.t, this.pageIndex);
 
   static const _configs = [
-    [kIndigo, kCyan, kDark1],
-    [kCyan, kIndigo, kDark0],
-    [kCoral, kAmber, kDark1],
-    [kIndigo, kCyan, kDark0],
+    [kIndigo, Color(0xFF7C4DFF), kDark1], // Brain Dump 2.0 Studio
+    [kCyan, kIndigo, kDark0],             // Autonomous Scheduling
+    [kCoral, kAmber, kDark1],            // Daily Rituals & Routines
+    [Color(0xFF1DE9B6), kCyan, kDark0],   // Circadian Focus & Micro-Wins
+    [kAmber, Color(0xFFFF6D00), kDark1],  // Mastery Ranks & Streaks
+    [Color(0xFF7C4DFF), kCyan, kDark0],   // Living Memory & Privacy
+    [kIndigo, kCyan, kDark0],             // API Key Setup
   ];
 
   @override

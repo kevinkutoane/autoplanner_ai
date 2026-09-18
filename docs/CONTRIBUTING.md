@@ -108,7 +108,7 @@ flutter test test/scheduler_service_test.dart test/dependency_graph_service_test
 Before submitting a pull request, ensure:
 - [ ] Code is formatted with `dart format .`
 - [ ] `flutter analyze --fatal-infos` produces **zero** issues (no errors, no warnings, no infos)
-- [ ] `flutter test` passes all tests (currently 449/449 passing)
+- [ ] `flutter test` passes all tests (currently 503/503 passing)
 - [ ] New code is covered by automated unit/integration tests
 - [ ] `docs/CHANGELOG.md` is updated
 - [ ] Commit messages are clear and follow conventional commit syntax (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`).

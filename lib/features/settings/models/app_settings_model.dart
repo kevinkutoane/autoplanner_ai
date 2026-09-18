@@ -48,6 +48,57 @@ class AppSettings {
   /// Email of the connected Google account (empty when not connected).
   final String googleAccountEmail;
 
+  /// Whether to automatically sync tasks as events to Google Calendar.
+  final bool syncTasksToGoogleCalendar;
+
+  // ── Notification Enhancements ──
+  /// Whether task reminders are enabled globally.
+  final bool taskRemindersEnabled;
+
+  /// If true, only crucial (Priority 2 High and Priority 3 Urgent) tasks trigger timed reminders.
+  final bool remindCrucialTasksOnly;
+
+  /// Minutes before task start to trigger the reminder (e.g. 5, 10, 15, 30).
+  final int reminderLeadTimeMinutes;
+
+  /// Whether an evening shutdown reminder is enabled.
+  final bool eveningShutdownReminderEnabled;
+
+  /// Hour (0-23) for evening shutdown reminder.
+  final int eveningShutdownHour;
+
+  /// Minute (0-59) for evening shutdown reminder.
+  final int eveningShutdownMinute;
+
+  /// Whether to alert if daily streak is at risk in the evening.
+  final bool streakRemindersEnabled;
+
+  /// Whether notification audio sound is enabled.
+  final bool notificationSoundEnabled;
+
+  /// Whether notification vibration is enabled.
+  final bool notificationVibrateEnabled;
+
+  // ── Productivity & Circadian Persona ──
+  /// Circadian chronotype: 'early_bird', 'balanced', or 'night_owl'.
+  final String chronotype;
+
+  /// Daily focus / deep work target in minutes (e.g. 60, 90, 120, 180).
+  final int dailyFocusGoalMinutes;
+
+  /// AI Coach style: 'direct', 'balanced', or 'empathetic'.
+  final String coachingStyle;
+
+  /// User personal motto or mantra shown on profile.
+  final String userMotto;
+
+  // ── Sensory & Haptic Experience ──
+  /// Whether subtle haptic feedback is triggered on interactive events.
+  final bool hapticsEnabled;
+
+  /// Whether celebratory confetti / particles are shown on achievements.
+  final bool confettiCelebrationsEnabled;
+
   const AppSettings({
     required this.userName,
     required this.userEmail,
@@ -68,6 +119,22 @@ class AppSettings {
     this.morningBriefingMinute = 0,
     this.isGoogleCalendarConnected = false,
     this.googleAccountEmail = '',
+    this.syncTasksToGoogleCalendar = true,
+    this.taskRemindersEnabled = true,
+    this.remindCrucialTasksOnly = true,
+    this.reminderLeadTimeMinutes = 10,
+    this.eveningShutdownReminderEnabled = true,
+    this.eveningShutdownHour = 17,
+    this.eveningShutdownMinute = 30,
+    this.streakRemindersEnabled = true,
+    this.notificationSoundEnabled = true,
+    this.notificationVibrateEnabled = true,
+    this.chronotype = 'early_bird',
+    this.dailyFocusGoalMinutes = 120,
+    this.coachingStyle = 'balanced',
+    this.userMotto = '',
+    this.hapticsEnabled = true,
+    this.confettiCelebrationsEnabled = true,
   });
 
   factory AppSettings.defaults() => AppSettings(
@@ -90,6 +157,22 @@ class AppSettings {
     morningBriefingMinute: 0,
     isGoogleCalendarConnected: false,
     googleAccountEmail: '',
+    syncTasksToGoogleCalendar: true,
+    taskRemindersEnabled: true,
+    remindCrucialTasksOnly: true,
+    reminderLeadTimeMinutes: 10,
+    eveningShutdownReminderEnabled: true,
+    eveningShutdownHour: 17,
+    eveningShutdownMinute: 30,
+    streakRemindersEnabled: true,
+    notificationSoundEnabled: true,
+    notificationVibrateEnabled: true,
+    chronotype: 'early_bird',
+    dailyFocusGoalMinutes: 120,
+    coachingStyle: 'balanced',
+    userMotto: '',
+    hapticsEnabled: true,
+    confettiCelebrationsEnabled: true,
   );
 
   AppSettings copyWith({
@@ -112,6 +195,22 @@ class AppSettings {
     int? morningBriefingMinute,
     bool? isGoogleCalendarConnected,
     String? googleAccountEmail,
+    bool? syncTasksToGoogleCalendar,
+    bool? taskRemindersEnabled,
+    bool? remindCrucialTasksOnly,
+    int? reminderLeadTimeMinutes,
+    bool? eveningShutdownReminderEnabled,
+    int? eveningShutdownHour,
+    int? eveningShutdownMinute,
+    bool? streakRemindersEnabled,
+    bool? notificationSoundEnabled,
+    bool? notificationVibrateEnabled,
+    String? chronotype,
+    int? dailyFocusGoalMinutes,
+    String? coachingStyle,
+    String? userMotto,
+    bool? hapticsEnabled,
+    bool? confettiCelebrationsEnabled,
   }) {
     return AppSettings(
       userName: userName ?? this.userName,
@@ -136,6 +235,32 @@ class AppSettings {
       isGoogleCalendarConnected:
           isGoogleCalendarConnected ?? this.isGoogleCalendarConnected,
       googleAccountEmail: googleAccountEmail ?? this.googleAccountEmail,
+      syncTasksToGoogleCalendar:
+          syncTasksToGoogleCalendar ?? this.syncTasksToGoogleCalendar,
+      taskRemindersEnabled: taskRemindersEnabled ?? this.taskRemindersEnabled,
+      remindCrucialTasksOnly:
+          remindCrucialTasksOnly ?? this.remindCrucialTasksOnly,
+      reminderLeadTimeMinutes:
+          reminderLeadTimeMinutes ?? this.reminderLeadTimeMinutes,
+      eveningShutdownReminderEnabled:
+          eveningShutdownReminderEnabled ?? this.eveningShutdownReminderEnabled,
+      eveningShutdownHour: eveningShutdownHour ?? this.eveningShutdownHour,
+      eveningShutdownMinute:
+          eveningShutdownMinute ?? this.eveningShutdownMinute,
+      streakRemindersEnabled:
+          streakRemindersEnabled ?? this.streakRemindersEnabled,
+      notificationSoundEnabled:
+          notificationSoundEnabled ?? this.notificationSoundEnabled,
+      notificationVibrateEnabled:
+          notificationVibrateEnabled ?? this.notificationVibrateEnabled,
+      chronotype: chronotype ?? this.chronotype,
+      dailyFocusGoalMinutes:
+          dailyFocusGoalMinutes ?? this.dailyFocusGoalMinutes,
+      coachingStyle: coachingStyle ?? this.coachingStyle,
+      userMotto: userMotto ?? this.userMotto,
+      hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
+      confettiCelebrationsEnabled:
+          confettiCelebrationsEnabled ?? this.confettiCelebrationsEnabled,
     );
   }
 
@@ -159,6 +284,26 @@ class AppSettings {
   static const String kMorningBriefingMinute = 'morningBriefingMinute';
   static const String kIsGoogleCalendarConnected = 'isGoogleCalendarConnected';
   static const String kGoogleAccountEmail = 'googleAccountEmail';
+  static const String kSyncTasksToGoogleCalendar = 'syncTasksToGoogleCalendar';
+
+  // ── New notification constants ──
+  static const String kTaskRemindersEnabled = 'taskRemindersEnabled';
+  static const String kRemindCrucialTasksOnly = 'remindCrucialTasksOnly';
+  static const String kReminderLeadTimeMinutes = 'reminderLeadTimeMinutes';
+  static const String kEveningShutdownReminderEnabled = 'eveningShutdownReminderEnabled';
+  static const String kEveningShutdownHour = 'eveningShutdownHour';
+  static const String kEveningShutdownMinute = 'eveningShutdownMinute';
+  static const String kStreakRemindersEnabled = 'streakRemindersEnabled';
+  static const String kNotificationSoundEnabled = 'notificationSoundEnabled';
+  static const String kNotificationVibrateEnabled = 'notificationVibrateEnabled';
+
+  // ── Productivity & sensory constants ──
+  static const String kChronotype = 'chronotype';
+  static const String kDailyFocusGoalMinutes = 'dailyFocusGoalMinutes';
+  static const String kCoachingStyle = 'coachingStyle';
+  static const String kUserMotto = 'userMotto';
+  static const String kHapticsEnabled = 'hapticsEnabled';
+  static const String kConfettiCelebrationsEnabled = 'confettiCelebrationsEnabled';
 
   // ── Serialization helpers ──────────────────────────────────────────
   static ThemeMode _parseThemeMode(String? v) => switch (v) {
@@ -199,6 +344,22 @@ class AppSettings {
     kMorningBriefingMinute: morningBriefingMinute,
     kIsGoogleCalendarConnected: isGoogleCalendarConnected,
     kGoogleAccountEmail: googleAccountEmail,
+    kSyncTasksToGoogleCalendar: syncTasksToGoogleCalendar,
+    kTaskRemindersEnabled: taskRemindersEnabled,
+    kRemindCrucialTasksOnly: remindCrucialTasksOnly,
+    kReminderLeadTimeMinutes: reminderLeadTimeMinutes,
+    kEveningShutdownReminderEnabled: eveningShutdownReminderEnabled,
+    kEveningShutdownHour: eveningShutdownHour,
+    kEveningShutdownMinute: eveningShutdownMinute,
+    kStreakRemindersEnabled: streakRemindersEnabled,
+    kNotificationSoundEnabled: notificationSoundEnabled,
+    kNotificationVibrateEnabled: notificationVibrateEnabled,
+    kChronotype: chronotype,
+    kDailyFocusGoalMinutes: dailyFocusGoalMinutes,
+    kCoachingStyle: coachingStyle,
+    kUserMotto: userMotto,
+    kHapticsEnabled: hapticsEnabled,
+    kConfettiCelebrationsEnabled: confettiCelebrationsEnabled,
   };
 
   factory AppSettings.fromMap(Map<dynamic, dynamic> map) => AppSettings(
@@ -221,6 +382,26 @@ class AppSettings {
     isGoogleCalendarConnected:
         (map[kIsGoogleCalendarConnected] as bool?) ?? false,
     googleAccountEmail: (map[kGoogleAccountEmail] as String?) ?? '',
+    syncTasksToGoogleCalendar:
+        (map[kSyncTasksToGoogleCalendar] as bool?) ?? true,
+    taskRemindersEnabled: (map[kTaskRemindersEnabled] as bool?) ?? true,
+    remindCrucialTasksOnly: (map[kRemindCrucialTasksOnly] as bool?) ?? true,
+    reminderLeadTimeMinutes: (map[kReminderLeadTimeMinutes] as int?) ?? 10,
+    eveningShutdownReminderEnabled:
+        (map[kEveningShutdownReminderEnabled] as bool?) ?? true,
+    eveningShutdownHour: (map[kEveningShutdownHour] as int?) ?? 17,
+    eveningShutdownMinute: (map[kEveningShutdownMinute] as int?) ?? 30,
+    streakRemindersEnabled: (map[kStreakRemindersEnabled] as bool?) ?? true,
+    notificationSoundEnabled: (map[kNotificationSoundEnabled] as bool?) ?? true,
+    notificationVibrateEnabled:
+        (map[kNotificationVibrateEnabled] as bool?) ?? true,
+    chronotype: (map[kChronotype] as String?) ?? 'early_bird',
+    dailyFocusGoalMinutes: (map[kDailyFocusGoalMinutes] as int?) ?? 120,
+    coachingStyle: (map[kCoachingStyle] as String?) ?? 'balanced',
+    userMotto: (map[kUserMotto] as String?) ?? '',
+    hapticsEnabled: (map[kHapticsEnabled] as bool?) ?? true,
+    confettiCelebrationsEnabled:
+        (map[kConfettiCelebrationsEnabled] as bool?) ?? true,
   );
 
   /// Convenience: human-friendly display name (falls back to 'You').

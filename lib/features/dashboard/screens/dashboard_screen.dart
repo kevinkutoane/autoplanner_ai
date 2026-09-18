@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -13,9 +14,15 @@ import '../../goals/controllers/goal_controller.dart';
 import '../../calendar/controllers/calendar_controller.dart';
 import '../../memory/controllers/memory_controller.dart';
 import '../../settings/screens/help_screen.dart';
-import '../../search/screens/search_screen.dart';
+import '../../commands/widgets/command_palette_modal.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../core/utils/streak_calculator.dart';
+import '../../focus/widgets/what_should_i_do_now_card.dart';
+import '../../focus/widgets/micro_wins_card.dart';
+import '../../../services/gamification_service.dart';
+import '../widgets/daily_ritual_card.dart';
+import '../widgets/level_up_dialog.dart';
+import '../../coach/widgets/achievements_sheet.dart';
 
 // ── Daily insight provider ───────────────────────────────────────────────────
 // keepAlive() ensures the insight is fetched exactly once per app session and
@@ -30,9 +37,42 @@ final dailyInsightProvider = FutureProvider.autoDispose<String?>((ref) async {
   return ai.generateDailyInsight(tasks, memories, goals: goals);
 });
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   final void Function(int tabIndex) onNavigateTo;
   const DashboardScreen({super.key, required this.onNavigateTo});
+
+  @override
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  StreamSubscription? _levelUpSub;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _levelUpSub = ref
+          .read(gamificationServiceProvider.notifier)
+          .levelUpStream
+          .listen((event) {
+        if (mounted) {
+          LevelUpDialog.show(
+            context,
+            newLevel: event.newLevel,
+            title: event.title,
+            totalXp: event.totalXp,
+          );
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _levelUpSub?.cancel();
+    super.dispose();
+  }
 
   String _getGreeting() {
     final h = DateTime.now().hour;
@@ -55,7 +95,7 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final tasks = ref.watch(taskControllerProvider);
     final goals = ref.watch(goalControllerProvider);
     final activeGoals = goals
@@ -64,6 +104,7 @@ class DashboardScreen extends ConsumerWidget {
     final events = ref.watch(calendarControllerProvider);
     final memories = ref.watch(memoryControllerProvider);
     final insightAsync = ref.watch(dailyInsightProvider);
+    final profile = ref.watch(gamificationServiceProvider);
     final now = DateTime.now();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -72,6 +113,11 @@ class DashboardScreen extends ConsumerWidget {
 
     // ── Streak: consecutive days with ≥1 completed task ─────────────────────
     final streak = calculateStreak(tasks);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(gamificationServiceProvider.notifier).syncStreak(streak);
+      }
+    });
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -102,21 +148,77 @@ class DashboardScreen extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  _getGreeting(),
-                                  style: const TextStyle(
-                                    color: Colors.white60,
-                                    fontSize: 15,
-                                  ),
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        _getGreeting(),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white60,
+                                          fontSize: 14.5,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    GestureDetector(
+                                      onTap: () =>
+                                          AchievementsSheet.show(context),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          gradient: kGradientNeonSunset,
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color:
+                                                  kSunsetRose.withAlpha(80),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.bolt_rounded,
+                                              size: 13,
+                                              color: Colors.white,
+                                            ),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              'LVL ${profile.currentLevel} · ${profile.totalXp} XP',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10.5,
+                                                fontWeight: FontWeight.w900,
+                                                letterSpacing: 0.2,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  DateFormat('EEEE, MMM d').format(now),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.5,
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    DateFormat('EEEE, MMM d').format(now),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 25,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: -0.5,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -130,8 +232,9 @@ class DashboardScreen extends ConsumerWidget {
                               ),
                             ),
                             child: Container(
-                              padding: const EdgeInsets.all(10),
-                              margin: const EdgeInsets.only(right: 8),
+                              width: 36,
+                              height: 36,
+                              margin: const EdgeInsets.only(right: 6),
                               decoration: BoxDecoration(
                                 color: Colors.white.withAlpha(22),
                                 borderRadius: BorderRadius.circular(12),
@@ -142,31 +245,30 @@ class DashboardScreen extends ConsumerWidget {
                               child: const Icon(
                                 Icons.help_outline_rounded,
                                 color: Colors.white,
-                                size: 22,
+                                size: 19,
                               ),
                             ),
                           ),
                           GestureDetector(
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const SearchScreen(),
-                              ),
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.all(10),
-                              margin: const EdgeInsets.only(right: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withAlpha(22),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.white.withAlpha(40),
+                            onTap: () => showCommandPalette(context),
+                            child: Tooltip(
+                              message: 'Search & Commands (⌘K)',
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                margin: const EdgeInsets.only(right: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withAlpha(22),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: Colors.white.withAlpha(40),
+                                  ),
                                 ),
-                              ),
-                              child: const Icon(
-                                Icons.search_rounded,
-                                color: Colors.white,
-                                size: 22,
+                                child: const Icon(
+                                  Icons.search_rounded,
+                                  color: Colors.white,
+                                  size: 19,
+                                ),
                               ),
                             ),
                           ),
@@ -284,6 +386,17 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
 
+              // ── Daily Ritual Card (Morning Kickoff / Evening Shutdown) ───────────
+              const SliverPadding(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+                sliver: SliverToBoxAdapter(
+                  child: Stagger(
+                    index: 1,
+                    child: DailyRitualCard(),
+                  ),
+                ),
+              ),
+
               // ── Streak motivator ───────────────────────────────
               if (streak > 0)
                 SliverPadding(
@@ -296,6 +409,28 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
 
+              // ── What Should I Do Now Hero Card ───────────────────
+              const SliverPadding(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+                sliver: SliverToBoxAdapter(
+                  child: Stagger(
+                    index: 1,
+                    child: WhatShouldIDoNowCard(),
+                  ),
+                ),
+              ),
+
+              // ── Context-Aware Micro-Wins Gap ──────────────────────
+              const SliverPadding(
+                padding: EdgeInsets.fromLTRB(16, 10, 16, 4),
+                sliver: SliverToBoxAdapter(
+                  child: Stagger(
+                    index: 1,
+                    child: MicroWinsCard(),
+                  ),
+                ),
+              ),
+
               // ── Today's tasks ────────────────────────────────────
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -307,7 +442,7 @@ class DashboardScreen extends ConsumerWidget {
                       trailing: todayTasks.isEmpty
                           ? '+ Add'
                           : '${(completedCount / todayTasks.length * 100).toInt()}% · See all',
-                      onTrailingTap: () => onNavigateTo(1),
+                      onTrailingTap: () => widget.onNavigateTo(1),
                     ),
                   ),
                 ),
@@ -338,7 +473,7 @@ class DashboardScreen extends ConsumerWidget {
                           child: Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: GestureDetector(
-                              onTap: () => onNavigateTo(1),
+                              onTap: () => widget.onNavigateTo(1),
                               child: GlassCard(
                                 padding: EdgeInsets.zero,
                                 child: IntrinsicHeight(
@@ -475,7 +610,7 @@ class DashboardScreen extends ConsumerWidget {
                       trailing: activeGoals.isEmpty ? null : 'See all',
                       onTrailingTap: activeGoals.isEmpty
                           ? null
-                          : () => onNavigateTo(2),
+                          : () => widget.onNavigateTo(5),
                     ),
                   ),
                 ),
@@ -507,7 +642,7 @@ class DashboardScreen extends ConsumerWidget {
                                 goal: g,
                                 tasks: tasks,
                                 isDark: isDark,
-                                onTap: () => onNavigateTo(2),
+                                onTap: () => widget.onNavigateTo(5),
                               ),
                             )
                             .toList(),
@@ -723,17 +858,18 @@ class _AIPulseIconState extends State<_AIPulseIcon>
           child: child,
         ),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
             gradient: widget.loading ? kGradientTeal : null,
             color: widget.loading ? null : Colors.white.withAlpha(22),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.white.withAlpha(40), width: 1),
           ),
           child: Icon(
             widget.loading ? Icons.sync_rounded : Icons.auto_awesome_rounded,
             color: Colors.white,
-            size: 24,
+            size: 19,
           ),
         ),
       ),

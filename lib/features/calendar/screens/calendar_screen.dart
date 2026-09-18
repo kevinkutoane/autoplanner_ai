@@ -78,11 +78,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
               // Header
               SliverToBoxAdapter(
                 child: GradientHeader(
-                  gradient: LinearGradient(
-                    colors: [kDark0, Color(0xFF0E1535)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  gradient: kGradientCalendar,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

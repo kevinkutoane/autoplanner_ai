@@ -4,6 +4,7 @@ import '../core/models/task_model.dart';
 import '../core/models/calendar_event_model.dart';
 import '../core/models/schedule_result.dart';
 import 'dependency_graph_service.dart';
+import 'duration_learning_service.dart';
 
 /// Intelligent, constraint-based deterministic day-scheduling engine.
 ///
@@ -11,6 +12,7 @@ import 'dependency_graph_service.dart';
 /// - Directed Acyclic Graph (DAG) task dependency resolution with cycle safety.
 /// - Task splitting: decomposes long splittable tasks across focus sessions with restorative breaks.
 /// - Multi-factor planning score: optimizes priority, deadlines, energy levels, preferred time of day, and context switching.
+/// - Adaptive Personal Intelligence: auto-calibrates durations based on learned execution history.
 /// - Immovable anchors: completed tasks and fixed tasks ([TaskItem.isFixed]) schedule around existing times.
 /// - Explainability: outputs [TaskPlacementRationale] per task explaining slot assignment.
 class SchedulerService {
@@ -20,10 +22,15 @@ class SchedulerService {
   static const _slotRoundingMinutes = 15;
 
   final DependencyGraphService _dependencyGraphService;
+  final DurationLearningService _durationLearningService;
 
-  SchedulerService({DependencyGraphService? dependencyGraphService})
-    : _dependencyGraphService =
-          dependencyGraphService ?? DependencyGraphService();
+  SchedulerService({
+    DependencyGraphService? dependencyGraphService,
+    DurationLearningService? durationLearningService,
+  })  : _dependencyGraphService =
+            dependencyGraphService ?? DependencyGraphService(),
+        _durationLearningService =
+            durationLearningService ?? DurationLearningService();
 
   /// Assigns start/end times to all *pending* tasks in [tasks].
   ///
@@ -34,6 +41,7 @@ class SchedulerService {
     required int workStartHour,
     required int workHoursPerDay,
     List<CalendarEvent> calendarBlocks = const [],
+    Map<String, CategoryCalibration>? calibrations,
   }) {
     return scheduleDayWithDetails(
       tasks: tasks,
@@ -41,6 +49,7 @@ class SchedulerService {
       workStartHour: workStartHour,
       workHoursPerDay: workHoursPerDay,
       calendarBlocks: calendarBlocks,
+      calibrations: calibrations,
     ).scheduledTasks;
   }
 
@@ -52,6 +61,7 @@ class SchedulerService {
     required int workStartHour,
     required int workHoursPerDay,
     List<CalendarEvent> calendarBlocks = const [],
+    Map<String, CategoryCalibration>? calibrations,
   }) {
     final workStart = DateTime(day.year, day.month, day.day, workStartHour);
     var workEnd = workStart.add(Duration(hours: workHoursPerDay));
@@ -77,7 +87,7 @@ class SchedulerService {
     // 2. Task Splitting
     final expandedPending = <TaskItem>[];
     for (final task in unfixedPending) {
-      final dur = _duration(task);
+      final dur = _duration(task, calibrations);
       final preferredChunk =
           task.preferredBlockMinutes ?? _defaultDurationMinutes;
 
@@ -154,7 +164,7 @@ class SchedulerService {
 
     // 5. Intelligent Multi-Factor Constraint-Based Placement
     for (final task in depResult.sortedTasks) {
-      final dur = _duration(task);
+      final dur = _duration(task, calibrations);
 
       // Prerequisite constraint
       final prereqTime = _dependencyGraphService.getPrerequisiteConstraintTime(
@@ -207,6 +217,7 @@ class SchedulerService {
           workEnd: workEnd,
           lastScheduled: lastScheduled,
           prereqTime: prereqTime,
+          calibrations: calibrations,
         );
 
         if (bestCandidate == null || eval.score > bestCandidate.score) {
@@ -314,6 +325,7 @@ class SchedulerService {
     required DateTime workEnd,
     required TaskItem? lastScheduled,
     required DateTime? prereqTime,
+    Map<String, CategoryCalibration>? calibrations,
   }) {
     var score = 0.0;
     final factors = <String>[];
@@ -403,6 +415,19 @@ class SchedulerService {
       factors.add('Scheduled after prerequisite completion ($prereqTime)');
     }
 
+    // 7. Personal Duration Calibration
+    if (calibrations != null && calibrations.isNotEmpty) {
+      for (final tag in task.tags) {
+        final cal = calibrations[tag.trim().toLowerCase()];
+        if (cal != null &&
+            cal.sampleCount >= DurationLearningService.minSamplesForConfidence) {
+          final delta = cal.deltaDisplay;
+          factors.add('Duration auto-calibrated ($delta based on #$tag history)');
+          break;
+        }
+      }
+    }
+
     return _CandidateEvaluation(slot: slot, score: score, factors: factors);
   }
 
@@ -447,7 +472,17 @@ class SchedulerService {
     return workStart;
   }
 
-  Duration _duration(TaskItem task) {
+  Duration _duration(
+    TaskItem task, [
+    Map<String, CategoryCalibration>? calibrations,
+  ]) {
+    if (calibrations != null && calibrations.isNotEmpty) {
+      final calibrated = _durationLearningService.getCalibratedDuration(
+        task,
+        calibrations,
+      );
+      return Duration(minutes: calibrated);
+    }
     if (task.endTime != null) {
       final d = task.endTime!.difference(task.startTime);
       if (d.inMinutes >= _minValidDurationMinutes) return d;

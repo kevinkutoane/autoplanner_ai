@@ -106,6 +106,18 @@ class TaskItem extends HiveObject {
   @HiveField(22)
   String? parentTaskId;
 
+  /// Actual duration in minutes spent completing the task (tracked via Focus Mode or manual input).
+  @HiveField(23)
+  int? actualDurationMinutes;
+
+  /// Timestamp when this task was marked completed.
+  @HiveField(24)
+  DateTime? completedAt;
+
+  /// Number of focused execution sessions spent on this task.
+  @HiveField(25)
+  int focusSessionsCount;
+
   TaskItem({
     required this.id,
     required this.title,
@@ -130,6 +142,9 @@ class TaskItem extends HiveObject {
     this.dependsOnTaskIds = const [],
     this.linkedProjectId,
     this.parentTaskId,
+    this.actualDurationMinutes,
+    this.completedAt,
+    this.focusSessionsCount = 0,
   });
 
   TaskItem copyWith({
@@ -156,6 +171,9 @@ class TaskItem extends HiveObject {
     List<String>? dependsOnTaskIds,
     Object? linkedProjectId = _sentinel,
     Object? parentTaskId = _sentinel,
+    Object? actualDurationMinutes = _sentinel,
+    Object? completedAt = _sentinel,
+    int? focusSessionsCount,
   }) {
     return TaskItem(
       id: id ?? this.id,
@@ -200,8 +218,29 @@ class TaskItem extends HiveObject {
       parentTaskId: parentTaskId == _sentinel
           ? this.parentTaskId
           : parentTaskId as String?,
+      actualDurationMinutes: actualDurationMinutes == _sentinel
+          ? this.actualDurationMinutes
+          : actualDurationMinutes as int?,
+      completedAt: completedAt == _sentinel
+          ? this.completedAt
+          : completedAt as DateTime?,
+      focusSessionsCount: focusSessionsCount ?? this.focusSessionsCount,
     );
   }
+
+  /// Scheduled duration of the task in minutes (defaults to 30 if endTime is null).
+  int get durationMinutes => endTime != null
+      ? (endTime!.difference(startTime).inMinutes > 0
+          ? endTime!.difference(startTime).inMinutes
+          : 30)
+      : 30;
+
+  /// Effective duration in minutes: uses [actualDurationMinutes] if recorded,
+  /// otherwise falls back to [durationMinutes].
+  int get effectiveDurationMinutes =>
+      (actualDurationMinutes != null && actualDurationMinutes! > 0)
+          ? actualDurationMinutes!
+          : durationMinutes;
 
   /// Human-readable label for [priority].
   ///

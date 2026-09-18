@@ -100,22 +100,23 @@ class _MemoryScreenState extends ConsumerState<MemoryScreen> {
               // Header
               SliverToBoxAdapter(
                 child: GradientHeader(
-                  gradient: LinearGradient(
-                    colors: [kDark0, const Color(0xFF0A1A2E)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  gradient: kGradientMemory,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          ShaderMask(
-                            shaderCallback: (b) =>
-                                kGradientTeal.createShader(b),
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withAlpha(30),
+                              border: Border.all(color: Colors.white.withAlpha(60)),
+                            ),
                             child: const Icon(
                               Icons.psychology_rounded,
-                              size: 28,
+                              size: 24,
                               color: Colors.white,
                             ),
                           ),
@@ -125,7 +126,7 @@ class _MemoryScreenState extends ConsumerState<MemoryScreen> {
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 26,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w900,
                               letterSpacing: -0.5,
                             ),
                           ),

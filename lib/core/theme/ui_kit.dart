@@ -9,10 +9,21 @@ const kIndigo = Color(0xFF6C63FF);
 const kCyan = Color(0xFF00D4AA);
 const kCoral = Color(0xFFFF6B6B);
 const kAmber = Color(0xFFFFD93D);
+const kEmerald = Color(0xFF2ECC71);
+const kRose = Color(0xFFFF4D6D);
 const kDark0 = Color(0xFF0A0A1A);
 const kDark1 = Color(0xFF12122A);
 const kLight0 = Color(0xFFF0F0FF);
 const kLight1 = Color(0xFFE8F4FD);
+
+// ── Next-Gen High-Vibrancy Palettes ──────────────────────────────────────────
+const kNeonViolet = Color(0xFF8A2387);
+const kNeonCyan = Color(0xFF00F2FE);
+const kElectricAmber = Color(0xFFFF9900);
+const kSunsetRose = Color(0xFFFF416C);
+const kUltraEmerald = Color(0xFF00E676);
+const kDeepPurple = Color(0xFF4A00E0);
+const kElectricBlue = Color(0xFF4FACFE);
 
 const kGradientMain = LinearGradient(
   colors: [kIndigo, kCyan],
@@ -31,6 +42,74 @@ const kGradientHero = LinearGradient(
 );
 const kGradientTeal = LinearGradient(
   colors: [kCyan, kIndigo],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+const kGradientNeonSunset = LinearGradient(
+  colors: [Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+const kGradientCyberCyan = LinearGradient(
+  colors: [kNeonCyan, Color(0xFF4FACFE)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+const kGradientMidnightGlow = LinearGradient(
+  colors: [Color(0xFF141028), Color(0xFF281C4E), Color(0xFF0D1B2A)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+const kGradientEmeraldBurst = LinearGradient(
+  colors: [kUltraEmerald, Color(0xFF00B4D8)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+const kGradientAurora = LinearGradient(
+  colors: [Color(0xFF7F00FF), Color(0xFFE100FF)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
+// ── Distinct Screen Themes & Signature Gradients ─────────────────────────────
+const kGradientPlanner = LinearGradient(
+  colors: [Color(0xFF0052D4), Color(0xFF4364F7), Color(0xFF00D4AA)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
+const kGradientCalendar = LinearGradient(
+  colors: [Color(0xFF7928CA), Color(0xFF4338CA), Color(0xFF2563EB)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
+const kGradientMemory = LinearGradient(
+  colors: [Color(0xFFF39C12), Color(0xFFE67E22), Color(0xFFFF5E62)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
+const kGradientNotes = LinearGradient(
+  colors: [Color(0xFF059669), Color(0xFF10B981), Color(0xFF06B6D4)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
+const kGradientProjects = LinearGradient(
+  colors: [Color(0xFF0984E3), Color(0xFF00CEC9), Color(0xFF6C5CE7)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
+const kGradientAnalytics = LinearGradient(
+  colors: [Color(0xFF8A2387), Color(0xFFE056A0), Color(0xFF6C5CE7)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
+const kGradientSettings = LinearGradient(
+  colors: [Color(0xFF2C3E50), Color(0xFF4B6584), Color(0xFF6C5CE7)],
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
 );
@@ -171,6 +250,7 @@ class GradientHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(gradient: gradient),
       padding: EdgeInsets.only(
         top: MediaQuery.of(context).padding.top + extraTop,
@@ -240,6 +320,350 @@ class GlassCard extends StatelessWidget {
           child: child,
         ),
       ),
+    );
+  }
+}
+
+// ── Vibrant glass card with rim glow & gradient border ───────────────────────
+class VibrantGlassCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsets padding;
+  final double radius;
+  final Color? glowColor;
+  final Gradient? gradientBorder;
+  final Gradient? backgroundGradient;
+  final VoidCallback? onTap;
+
+  const VibrantGlassCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(18),
+    this.radius = 22,
+    this.glowColor,
+    this.gradientBorder,
+    this.backgroundGradient,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final d = Theme.of(context).brightness == Brightness.dark;
+    final defaultGlow = glowColor ?? kIndigo;
+
+    Widget content = Container(
+      decoration: BoxDecoration(
+        gradient: backgroundGradient ??
+            LinearGradient(
+              colors: d
+                  ? [
+                      Colors.white.withAlpha(16),
+                      defaultGlow.withAlpha(14),
+                    ]
+                  : [
+                      Colors.white.withAlpha(220),
+                      defaultGlow.withAlpha(20),
+                    ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(
+          color: gradientBorder != null
+              ? Colors.transparent
+              : (d
+                  ? defaultGlow.withAlpha(50)
+                  : defaultGlow.withAlpha(60)),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: defaultGlow.withAlpha(d ? 22 : 16),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+            spreadRadius: -2,
+          ),
+        ],
+      ),
+      padding: padding,
+      child: child,
+    );
+
+    if (onTap != null) {
+      content = Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(radius),
+          onTap: onTap,
+          splashColor: defaultGlow.withAlpha(30),
+          highlightColor: defaultGlow.withAlpha(15),
+          child: content,
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: content,
+      ),
+    );
+  }
+}
+
+// ── Glow badge with status dot ───────────────────────────────────────────────
+class GlowBadge extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const GlowBadge({
+    super.key,
+    required this.label,
+    this.icon,
+    this.color = kCyan,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final d = Theme.of(context).brightness == Brightness.dark;
+    final badge = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withAlpha(d ? 32 : 24),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withAlpha(d ? 90 : 70),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withAlpha(30),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: color,
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          if (icon != null) ...[
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              color: d ? Colors.white : const Color(0xFF1E272E),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (onTap == null) return badge;
+    return GestureDetector(onTap: onTap, child: badge);
+  }
+}
+
+// ── Animated XP Bar ──────────────────────────────────────────────────────────
+class AnimatedXpBar extends StatelessWidget {
+  final double progress; // 0.0 to 1.0
+  final int currentXp;
+  final int maxXp;
+  final double height;
+  final Gradient gradient;
+
+  const AnimatedXpBar({
+    super.key,
+    required this.progress,
+    required this.currentXp,
+    required this.maxXp,
+    this.height = 8,
+    this.gradient = kGradientNeonSunset,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final clamped = progress.clamp(0.0, 1.0);
+    final d = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'XP PROGRESS',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.8,
+                color: d ? Colors.white54 : Colors.black45,
+              ),
+            ),
+            Text(
+              '$currentXp / $maxXp XP',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: d ? Colors.white70 : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Container(
+          height: height,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: d ? Colors.white.withAlpha(18) : Colors.black.withAlpha(12),
+            borderRadius: BorderRadius.circular(height),
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Stack(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.easeOutCubic,
+                    width: constraints.maxWidth * clamped,
+                    decoration: BoxDecoration(
+                      gradient: gradient,
+                      borderRadius: BorderRadius.circular(height),
+                      boxShadow: [
+                        BoxShadow(
+                          color: kElectricAmber.withAlpha(80),
+                          blurRadius: 6,
+                          spreadRadius: 0.5,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Pulsing Aura Avatar for AI Coach ────────────────────────────────────────
+class PulsingAuraAvatar extends StatefulWidget {
+  final double size;
+  final IconData icon;
+  final Gradient gradient;
+  final Color glowColor;
+
+  const PulsingAuraAvatar({
+    super.key,
+    this.size = 56,
+    this.icon = Icons.smart_toy_rounded,
+    this.gradient = kGradientAurora,
+    this.glowColor = kNeonViolet,
+  });
+
+  @override
+  State<PulsingAuraAvatar> createState() => _PulsingAuraAvatarState();
+}
+
+class _PulsingAuraAvatarState extends State<PulsingAuraAvatar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pulseCtrl,
+      builder: (context, child) {
+        final scale = 1.0 + (_pulseCtrl.value * 0.12);
+        final auraAlpha = (30 + (_pulseCtrl.value * 45)).toInt();
+
+        return SizedBox(
+          width: widget.size * 1.35,
+          height: widget.size * 1.35,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Outer pulsing halo
+              Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: widget.size * 1.25,
+                  height: widget.size * 1.25,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.glowColor.withAlpha(auraAlpha),
+                  ),
+                ),
+              ),
+              // Inner glowing core
+              Container(
+                width: widget.size,
+                height: widget.size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: widget.gradient,
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.glowColor.withAlpha(130),
+                      blurRadius: 16,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    widget.icon,
+                    size: widget.size * 0.52,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

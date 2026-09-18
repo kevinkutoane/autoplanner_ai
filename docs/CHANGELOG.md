@@ -4,17 +4,157 @@ All notable changes to AutoPlanner AI are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/).
 
+## [2.3.0] — 2026-09-18
+
+### Navigation Dock Overhaul, Signature Screen Themes, Voice Simulator & AI Coach Guardrails
+
+- **Ergonomic 5-Slot Navigation Dock (`_GlassNavBar`) & More Features Sheet**:
+  - Re-architected bottom navigation from a cramped tab row and overlapping floating action button into an ergonomic 5-slot balanced floating glass dock (`_GlassNavBar`).
+  - Elevated central action button (`_DockedBrainDumpButton`) with multi-color neon gradient glow (`kGradientNeonSunset`), prominent scale animation, and immediate Brain Dump 2.0 launch.
+  - Eliminated the floating action button (FAB) overlap/collision that obscured bottom navigation items.
+  - Redesigned "More Features" modal into an organized 4x2 responsive frosted-glass sheet (`_GlassMoreSheet`) housing Goals, Projects, Memory, Notes, Analytics, Settings, Omnibar, and Help with dedicated color-coded glowing badges.
+  - Resolved Dashboard header layout overflow on narrow screens with `Flexible` greeting wrappers, `FittedBox` date scaling, and compact 36x36 frosted glass action buttons.
+- **Distinct Signature Screen Palettes & Glowing Headers (`ui_kit.dart`)**:
+  - Defined curated high-vibrancy screen gradient tokens in `ui_kit.dart`:
+    - `kGradientPlanner` (Indigo & Violet)
+    - `kGradientCalendar` (Teal & Cyan)
+    - `kGradientMemory` (Amber & Rose)
+    - `kGradientNotes` (Emerald & Teal)
+    - `kGradientProjects` (Pink & Rose)
+    - `kGradientAnalytics` (Violet & Cyan)
+    - `kGradientSettings` (Slate & Indigo)
+    - `kGradientNeonSunset` (Rose & Amber)
+  - Upgraded headers across all major screens with signature gradient accents, glowing iconography badges, and cohesive visual hierarchy.
+- **AI Coach Persona, Strict Productivity Scope & Conversational UI (`AiCoachScreen`)**:
+  - Enforced strict productivity domain guardrails in `AIService.chatWithCoach`: bounded advice exclusively to time management, daily planning, circadian energy balance, focus habits, and motivation, politely redirecting non-productivity topics back to user workflow.
+  - Eliminated raw JSON response leakage in `MockAIProvider` with dedicated coach simulation returning structured, readable markdown advice.
+  - Added fallback response sanitizer (`_cleanMessageContent`) in `AiCoachScreen` to strip accidental raw task JSON and format structured tasks as clean conversational bullets.
+  - Added visual avatars: glowing bot avatar with a cyan aura for the AI Coach, and a distinct user profile badge.
+  - Added inline animated pulsing 3-dot wave typing indicator (`_TypingBubble`) rendering while the AI is generating responses.
+- **Microphone Permissions & Voice Dictation Simulator (`BrainDumpSheet`)**:
+  - Configured Android runtime permissions in `AndroidManifest.xml`: `RECORD_AUDIO`, `BLUETOOTH`, `BLUETOOTH_CONNECT`, and query declaration for `android.speech.RecognitionService`.
+  - Implemented runtime permission request flow with informative permission-denied dialog providing one-tap guidance to device settings.
+  - Integrated Emulator Voice Dictation Simulator: detects when hardware speech recognition is unavailable (e.g. in Android Emulator or desktop environments) and presents a simulation dialog with streaming audio wave inputs (`_simulateVoiceDictation`) that feeds realistic thoughts directly into the 32-bar visualizer and 4-pillar cognitive parser.
+- **Test Suite & Stability**:
+  - 100% test pass rate across all 503 automated unit, widget, and integration tests (`flutter test`).
+  - Zero errors or warnings in `flutter analyze`.
+
 ---
 
-## [Unreleased]
+## [2.2.0] — 2026-09-18
 
-### Phase 1.3: Personal Intelligence & Behavioral Learning (Planned)
-- Estimated vs. actual duration tracking and user feedback loop
-- Category-based estimation variance learning ($\Delta$ offset models)
-- Personal productivity profile (deep work focus windows)
-- Productivity health and planning debt metrics
+### Onboarding Capabilities & Help Screen Guide Modernization
+
+- **Flagship Onboarding Walkthrough (`OnboardingScreen`)**:
+  - Expanded from 4 static slides to 6 rich, vibrantly stylized capability pages showcasing modern flagship features:
+    1. *Brain Dump 2.0 Studio*: 32-band reactive audio waveform equalizer, 4-pillar extraction (Tasks, Goals, Notes, Memories), triage studio & one-tap calendar gap packing.
+    2. *Autonomous Scheduling*: Deterministic constraint solver, DAG prerequisite dependencies, split subtasks, buffer intervals, and proactive rescheduling.
+    3. *Daily Rituals & Routines*: Morning Kickoff with "The Big 3" priority commitments, Evening Shutdown with rollover triaging, and automated reminders.
+    4. *Circadian Focus & Micro-Wins*: Chronotype energy matching, radial countdown flow timer, ambient soundscapes, distraction scratchpad, and micro-break prompts.
+    5. *Mastery Ranks & Streaks*: 10 progression tiers (Novice to Grandmaster), streak multipliers, automated Streak Shield, and 20+ unlockable achievement badges.
+    6. *Living Memory & Privacy*: Cross-session memory auto-synthesis, 100% on-device AES-256 encrypted Hive storage, hardware Secure Enclave key protection.
+  - Dynamically tuned `_OnboardOrbPainter` with 7 ambient glowing gradient palettes transitioning smoothly between pages.
+- **Modernized In-App Help & Guide (`HelpScreen`)**:
+  - Re-architected "What is AutoPlanner AI?" to articulate the complete autonomous personal productivity architecture.
+  - Redesigned "How It Works" into a comprehensive 5-Stage Daily Productivity Lifecycle (Morning Kickoff → Brain Dump 2.0 → Autonomous Scheduling → Immersive Focus → Evening Shutdown & Memory).
+  - Expanded Feature Guide to 11 deep-dive expandable tiles covering Brain Dump 2.0, Autonomous Scheduling, Proactive Rescheduling, Daily Rituals, Focus & Circadian engine, Gamification & Streaks, Living Memory, Notifications & Streak Shield, Goals & Projects, Calendar Sync, and On-Device Privacy.
+  - Added essential FAQ accordions explaining Streak Shield protection, Circadian Chronotype energy matching, 4-pillar Brain Dump extraction, and DAG task dependencies.
+- **Verification & Test Suite**:
+  - Added automated widget tests for `HelpScreen` header, lifecycle sections, feature tiles, and interactive expansion toggles (`test/widget_test.dart`).
+  - Zero lint warnings in `flutter analyze`.
 
 ---
+
+## [2.1.0] — 2026-09-18
+
+### Flagship Notifications, Settings Hub & Profile Studio Upgrade
+
+- **Notification Engine & Smart Alerts**:
+  - Differentiated alert channels: Urgent Alerts (`autoplanner_urgent`, `Importance.max`) for Priority 3 critical tasks and urgent notes; Timed Task Reminders (`autoplanner_tasks`, `Importance.high`) for scheduled work; Daily Rituals (`autoplanner_rituals`).
+  - Configurable reminder lead times: Quick-selection chips for `5m`, `10m`, `15m`, and `30m` before task start.
+  - Smart task reminder filter: User toggle to alert on "Crucial Tasks Only (High/Urgent)" vs all scheduled tasks, preventing notification fatigue.
+  - Evening Shutdown ritual reminders (`scheduleEveningShutdown`) at customizable time (default 17:30).
+  - Streak Shield alert (`scheduleStreakShield`) firing at 20:00 to protect active streaks from breaking.
+  - Independent toggles for notification sound and vibration.
+- **Modern Settings Hub (`SettingsScreen`)**:
+  - `_NotificationCenterCard`: Unified control room for task reminders, crucial filter, lead-time chips, morning kickoff & evening shutdown time pickers, and streak shield.
+  - `_ProductivityPersonaCard`: Chronotype selector (`🌅 Early Bird`, `⚖️ Balanced`, `🌙 Night Owl`), Daily Deep Work Target (`1h`, `1.5h`, `2h`, `3h`), and AI Coach Persona selector (`⚡ Direct & Sharp`, `🎯 Strategic & Balanced`, `🌱 Empathetic & Supportive`).
+  - `_SensoryPreferencesCard`: Global toggles for subtle haptic feedback and achievement confetti celebrations.
+- **Flagship Profile Studio (`ProfileScreen`)**:
+  - `_GamificationMasteryHero`: Dynamic Level & Rank title, live animated XP progress bar with remaining XP to next tier, and streak pill with live XP multiplier badge (e.g. `🔥 5d • 1.5x`).
+  - `_ProductivityPersonaCard`: Circadian chronotype badge, daily focus goal target ring, and personal mantra/motto banner with custom quotation styling.
+  - `ProfileEditDialog`: Expanded avatar presets (16 curated emojis including `🦁`, `🧘`, `🏆`, `💎`), and personal motto/mantra editor with immediate live preview.
+- **Test & Analysis Validation**:
+  - 100% test pass rate across 501 unit and widget tests (`test/notification_settings_test.dart` added).
+  - `flutter analyze` passing with 0 warnings/errors.
+
+---
+
+## [2.0.0-preview] — 2026-09-18
+
+### Next-Gen Operating System & Brain Dump 2.0 Flagship Upgrade
+
+- **Flagship Brain Dump 2.0 Experience**:
+  - `AudioWaveformVisualizer`: 9-bar reactive frequency equalizer reacting live to microphone sound levels with harmonic sine wave rendering.
+  - Deep Cognitive 4-Pillar Extraction: Parses Tasks, Notes, Goals, and Memories in a single unified pass.
+  - Smart Gap-Aware Auto-Scheduling: Intelligently packs extracted tasks into upcoming open calendar windows without collisions or past-time placement.
+  - Interactive Triage Studio: `BrainDumpTaskTile` with inline duration chips (`15m`, `30m`, `45m`, `60m`), priority cycling, and conversion to Notes. `BrainDumpNoteTile` with tags preview.
+  - Cognitive Clarity Score banner and atomic +50 XP declutter bonus.
+  - High-vibrancy glowing `_BrainDumpFab` in bottom navigation.
+- **Multi-Agent Routines & Automated Rituals**:
+  - `RoutineService`: Morning Kickoff ("The Big 3" priority selection and focus hour calculation) and Evening Shutdown (velocity metrics, task triaging, and memory reflections).
+  - `DailyRitualCard`: Context-aware banner on Dashboard alternating morning/evening rituals.
+- **Context-Aware Smart Engine & Dynamic Recommendations**:
+  - `ContextAwareService`: Circadian energy phases (Deep Work, Operational, Cooldown).
+  - Real-time calendar gap detector and `MicroWinsCard` for single-tap quick flow.
+- **Gamification, Streaks & Flow State Rewards Engine**:
+  - `GamificationService` with local-first AES-encrypted `gamificationBox`.
+  - 10 progression tiers (Novice Planner to Grandmaster of Time).
+  - Scaling streak multipliers ($1.0\times$ up to $2.0\times$).
+  - Live milestone badges catalog, `LevelUpDialog` celebration, and `AchievementsSheet` trophy showcase.
+- **UI Vibrancy Design System Overhaul**:
+  - High-vibrancy design tokens (`kNeonViolet`, `kNeonCyan`, `kElectricAmber`, `kSunsetRose`, `kUltraEmerald`).
+  - Glassmorphic components (`VibrantGlassCard`, `GlowBadge`, `AnimatedXpBar`, `PulsingAuraAvatar`).
+
+---
+
+## [1.4.0] — 2026-09-18
+
+### Phase 1.4: AI Command Omnibar & Immersive Focus Experience
+
+- **AI Command Omnibar (Cmd+K / Spotlight)**:
+  - Global spotlight modal with keyboard shortcut support (`Cmd+K` on macOS, `Ctrl+K` on Windows/Linux) and Dashboard header trigger.
+  - Natural language scheduling actions: `shift` (push/pull tasks after a time threshold), `clearWindow` (evacuate conflicting tasks), `quickAdd` (rapid task creation with duration/priority), `findFit` (find tasks under X minutes), and `startFocus` (instant focus session).
+  - Safety boundary: `CommandPreview` generates an actionable preview card showing old vs new timestamps with confirm/cancel before applying schedule mutations.
+  - Instant heuristic parser for offline execution + LLM structured JSON completion for complex instructions.
+- **Immersive Focus Mode Engine**:
+  - Fullscreen distraction-free focus screen (`FocusModeScreen`) with animated radial countdown timer.
+  - Pause/resume controls, on-the-fly flow extensions (+5m, +15m), and distraction scratchpad sheet.
+  - 60fps custom canvas confetti celebration emitter with tactile haptic feedback.
+  - Dynamic actual time spent tracking automatically saved into `TaskItem.actualDurationMinutes`.
+- **"What Should I Do Now?" Smart Action Hero Card**:
+  - Evaluates active focus session, current time, upcoming task window, user energy levels, and priority.
+  - Embedded prominently on Dashboard with instant "Start Focus" CTA.
+- **Tactile Sensory Feedback**:
+  - Coordinated haptic impact on task completion, duration chips, and command execution.
+
+---
+
+## [1.3.0] — 2026-09-18
+
+### Phase 1.3: Personal Intelligence & Duration Learning
+
+- **Duration Variance Learning Engine**:
+  - Created `DurationLearningService` tracking historical ratio $\text{actualDuration} / \text{estimatedDuration}$ clamped to $[0.5, 2.5]$.
+  - Aggregates rolling average multipliers per category/tag to counteract human planning fallacies.
+- **Dynamic Scheduler Duration Calibration**:
+  - Injected learned multipliers into `SchedulerService.scheduleDayWithDetails()` to dynamically expand/compress task durations before slot placement.
+  - Added explainability factor (`Duration calibrated from Xm to Ym (+Z% history)`) in placement rationales.
+- **Productivity Health & Planning Debt UI**:
+  - Built `ProductivityHealthCard` embedded in Analytics and Dashboard.
+  - Displays Schedule Accuracy Index (SAI) percentage, Planning Debt minutes, and over/under estimation trends.
+- **Domain & Schema Backward Compatibility**:
+  - Expanded `TaskItem` Hive adapter with fields 23–25 (`actualDurationMinutes`, `completedAt`, `focusSessionsCount`) with default fallbacks for older boxes.
 
 ## [1.2.0] — 2026-09-17
 

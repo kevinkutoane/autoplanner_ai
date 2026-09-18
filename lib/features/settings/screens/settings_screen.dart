@@ -33,22 +33,53 @@ class SettingsScreen extends ConsumerWidget {
             // ── Header ──────────────────────────────────────────────────
             SliverToBoxAdapter(
               child: GradientHeader(
-                gradient: const LinearGradient(
-                  colors: [kDark0, Color(0xFF14122A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                gradient: kGradientSettings,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Settings',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          margin: const EdgeInsets.only(right: 12),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withAlpha(30),
+                            border: Border.all(color: Colors.white.withAlpha(60)),
+                          ),
+                          child: const Icon(
+                            Icons.settings_rounded,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Settings & Preferences',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Personalize your AutoPlanner experience',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 20),
                     // profile banner
@@ -444,19 +475,61 @@ class SettingsScreen extends ConsumerWidget {
 
                   const SizedBox(height: 16),
 
-                  // ── Notifications ─────────────────────────────────────
+                  // ── Notifications & Rituals ───────────────────────────
                   Stagger(
                     index: 8,
                     child: SectionLabel(
-                      icon: Icons.notifications_outlined,
-                      label: 'Notifications',
+                      icon: Icons.notifications_active_rounded,
+                      label: 'Notifications & Rituals',
                       color: kCoral,
                     ),
                   ),
                   Stagger(
                     index: 9,
                     child: GlassCard(
-                      child: _MorningBriefingTile(
+                      child: _NotificationCenterCard(
+                        settings: settings,
+                        ctrl: ctrl,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ── Productivity & Chronotype ─────────────────────────
+                  Stagger(
+                    index: 10,
+                    child: SectionLabel(
+                      icon: Icons.psychology_alt_rounded,
+                      label: 'Productivity & Chronotype',
+                      color: kIndigo,
+                    ),
+                  ),
+                  Stagger(
+                    index: 11,
+                    child: GlassCard(
+                      child: _ProductivityPersonaCard(
+                        settings: settings,
+                        ctrl: ctrl,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ── Sensory & Haptics ──────────────────────────────────
+                  Stagger(
+                    index: 12,
+                    child: SectionLabel(
+                      icon: Icons.auto_awesome_rounded,
+                      label: 'Sensory & Celebrations',
+                      color: kAmber,
+                    ),
+                  ),
+                  Stagger(
+                    index: 13,
+                    child: GlassCard(
+                      child: _SensoryPreferencesCard(
                         settings: settings,
                         ctrl: ctrl,
                       ),
@@ -467,7 +540,7 @@ class SettingsScreen extends ConsumerWidget {
 
                   // ── Integrations ──────────────────────────────────────
                   Stagger(
-                    index: 10,
+                    index: 14,
                     child: SectionLabel(
                       icon: Icons.sync_alt_rounded,
                       label: 'Integrations',
@@ -475,7 +548,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ),
                   Stagger(
-                    index: 11,
+                    index: 15,
                     child: GlassCard(
                       child: Column(
                         children: [
@@ -1002,6 +1075,8 @@ class _SliderTile extends StatelessWidget {
 }
 
 class _GlassDivider extends StatelessWidget {
+  const _GlassDivider();
+
   @override
   Widget build(BuildContext context) => Divider(
     height: 1,
@@ -1166,50 +1241,53 @@ class _SecurityTileState extends ConsumerState<_SecurityTile> {
 }
 // ── Morning Briefing tile ──────────────────────────────────────────
 
-class _MorningBriefingTile extends ConsumerStatefulWidget {
+// ── Flagship Notification Center Card ──────────────────────────────────────
+
+class _NotificationCenterCard extends ConsumerStatefulWidget {
   final AppSettings settings;
   final SettingsController ctrl;
 
-  const _MorningBriefingTile({required this.settings, required this.ctrl});
+  const _NotificationCenterCard({required this.settings, required this.ctrl});
 
   @override
-  ConsumerState<_MorningBriefingTile> createState() =>
-      _MorningBriefingTileState();
+  ConsumerState<_NotificationCenterCard> createState() =>
+      _NotificationCenterCardState();
 }
 
-class _MorningBriefingTileState extends ConsumerState<_MorningBriefingTile> {
-  Future<void> _toggle(bool value) async {
+class _NotificationCenterCardState
+    extends ConsumerState<_NotificationCenterCard> {
+  Future<bool> _ensurePermission() async {
     final notifService = ref.read(notificationServiceProvider);
-    if (value) {
-      final granted = await notifService.requestPermission();
-      if (!granted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Notification permission is required for the morning brief.',
-              ),
-            ),
-          );
-        }
-        return;
-      }
-    }
-
-    await widget.ctrl.updateMorningBriefingEnabled(value);
-    if (value) {
-      await notifService.scheduleMorningBriefing(
-        hour: widget.settings.morningBriefingHour,
-        minute: widget.settings.morningBriefingMinute,
-        body:
-            'Good morning! Your AI planner is ready to help you plan the day.',
+    final granted = await notifService.requestPermission();
+    if (!granted && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Notification permission is required to deliver reminders.',
+          ),
+        ),
       );
-    } else {
-      await notifService.cancelMorningBriefing();
     }
+    return granted;
   }
 
-  Future<void> _pickHour() async {
+  Future<void> _toggleMorningBriefing(bool value) async {
+    if (value) {
+      final granted = await _ensurePermission();
+      if (!granted) return;
+    }
+    await widget.ctrl.updateMorningBriefingEnabled(value);
+  }
+
+  Future<void> _toggleEveningShutdown(bool value) async {
+    if (value) {
+      final granted = await _ensurePermission();
+      if (!granted) return;
+    }
+    await widget.ctrl.updateEveningShutdownReminderEnabled(value);
+  }
+
+  Future<void> _pickMorningHour() async {
     final now = TimeOfDay(
       hour: widget.settings.morningBriefingHour,
       minute: widget.settings.morningBriefingMinute,
@@ -1217,61 +1295,538 @@ class _MorningBriefingTileState extends ConsumerState<_MorningBriefingTile> {
     final picked = await showTimePicker(
       context: context,
       initialTime: now,
-      helpText: 'Choose briefing time',
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-        child: child!,
-      ),
+      helpText: 'Morning Kickoff Time',
     );
     if (picked == null) return;
     await widget.ctrl.updateMorningBriefingHour(picked.hour);
     await widget.ctrl.updateMorningBriefingMinute(picked.minute);
-    if (widget.settings.morningBriefingEnabled) {
-      await ref
-          .read(notificationServiceProvider)
-          .scheduleMorningBriefing(
-            hour: picked.hour,
-            minute: picked.minute,
-            body: 'Good morning! Your AI planner is ready to help you plan the day.',
-          );
-    }
+  }
+
+  Future<void> _pickEveningHour() async {
+    final now = TimeOfDay(
+      hour: widget.settings.eveningShutdownHour,
+      minute: widget.settings.eveningShutdownMinute,
+    );
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: now,
+      helpText: 'Evening Shutdown Time',
+    );
+    if (picked == null) return;
+    await widget.ctrl.updateEveningShutdownHour(picked.hour);
+    await widget.ctrl.updateEveningShutdownMinute(picked.minute);
   }
 
   @override
   Widget build(BuildContext context) {
-    final enabled = widget.settings.morningBriefingEnabled;
-    final hour = widget.settings.morningBriefingHour;
-    final minute = widget.settings.morningBriefingMinute;
-    final timeLabel = TimeOfDay(hour: hour, minute: minute).format(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final s = widget.settings;
+    final ctrl = widget.ctrl;
+
+    final morningTimeLabel = TimeOfDay(
+      hour: s.morningBriefingHour,
+      minute: s.morningBriefingMinute,
+    ).format(context);
+
+    final eveningTimeLabel = TimeOfDay(
+      hour: s.eveningShutdownHour,
+      minute: s.eveningShutdownMinute,
+    ).format(context);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SwitchListTile(
-          secondary: Icon(Icons.wb_sunny_outlined, color: kAmber, size: 22),
-          title: const Text('Morning Briefing'),
-          subtitle: const Text('Daily AI summary at your chosen time'),
-          value: enabled,
-          onChanged: _toggle,
-          activeThumbColor: kAmber,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
+        // 1. Master Task Reminders
+        _SwitchTile(
+          icon: Icons.notifications_active_rounded,
+          title: 'Task reminders',
+          subtitle: 'Timed alerts before scheduled events start',
+          value: s.taskRemindersEnabled,
+          onChanged: (v) async {
+            if (v) {
+              final ok = await _ensurePermission();
+              if (!ok) return;
+            }
+            ctrl.updateTaskRemindersEnabled(v);
+          },
         ),
-        if (enabled)
-          ListTile(
-            leading: const Icon(Icons.schedule_outlined, size: 22),
-            title: const Text('Briefing time'),
-            trailing: TextButton(
-              onPressed: _pickHour,
-              child: Text(
-                timeLabel,
-                style: const TextStyle(fontWeight: FontWeight.w600),
+
+        if (s.taskRemindersEnabled) ...[
+          _GlassDivider(),
+          _SwitchTile(
+            icon: Icons.priority_high_rounded,
+            title: 'Crucial tasks only',
+            subtitle: 'Only alert on High & Urgent priorities',
+            value: s.remindCrucialTasksOnly,
+            onChanged: (v) => ctrl.updateRemindCrucialTasksOnly(v),
+          ),
+          _GlassDivider(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.timer_outlined,
+                      size: 20,
+                      color: isDark ? Colors.white54 : Colors.black45,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Reminder lead time',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : kDark0,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${s.reminderLeadTimeMinutes}m before',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: kCyan,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [5, 10, 15, 30].map((mins) {
+                    final selected = s.reminderLeadTimeMinutes == mins;
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: GestureDetector(
+                          onTap: () => ctrl.updateReminderLeadTimeMinutes(mins),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              gradient: selected ? kGradientMain : null,
+                              color: selected
+                                  ? null
+                                  : (isDark
+                                      ? Colors.white.withAlpha(12)
+                                      : Colors.black.withAlpha(6)),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: selected
+                                    ? Colors.transparent
+                                    : (isDark ? Colors.white12 : Colors.black12),
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '${mins}m',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: selected
+                                    ? Colors.white
+                                    : (isDark ? Colors.white70 : Colors.black87),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        _GlassDivider(),
+
+        // 2. Morning Briefing Ritual
+        _SwitchTile(
+          icon: Icons.wb_sunny_rounded,
+          title: 'Morning kickoff',
+          subtitle: 'Daily morning briefing at $morningTimeLabel',
+          value: s.morningBriefingEnabled,
+          onChanged: _toggleMorningBriefing,
+        ),
+        if (s.morningBriefingEnabled)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(52, 0, 16, 10),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _pickMorningHour,
+                icon: const Icon(Icons.edit_calendar_rounded, size: 16),
+                label: Text('Change Kickoff Time ($morningTimeLabel)'),
+                style: TextButton.styleFrom(
+                  foregroundColor: kAmber,
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+          ),
+
+        _GlassDivider(),
+
+        // 3. Evening Shutdown Ritual
+        _SwitchTile(
+          icon: Icons.bedtime_rounded,
+          title: 'Evening shutdown',
+          subtitle: 'Wrap-up and reflection alarm at $eveningTimeLabel',
+          value: s.eveningShutdownReminderEnabled,
+          onChanged: _toggleEveningShutdown,
+        ),
+        if (s.eveningShutdownReminderEnabled)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(52, 0, 16, 10),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _pickEveningHour,
+                icon: const Icon(Icons.edit_calendar_rounded, size: 16),
+                label: Text('Change Shutdown Time ($eveningTimeLabel)'),
+                style: TextButton.styleFrom(
+                  foregroundColor: kIndigo,
+                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
             ),
           ),
+
+        _GlassDivider(),
+
+        // 4. Streak Shield Reminder
+        _SwitchTile(
+          icon: Icons.shield_rounded,
+          title: 'Streak shield alert',
+          subtitle: 'Warn at 20:00 if streak is at risk of expiring',
+          value: s.streakRemindersEnabled,
+          onChanged: (v) => ctrl.updateStreakRemindersEnabled(v),
+        ),
+
+        _GlassDivider(),
+
+        // 5. Sound and Haptic alert preferences
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(
+                      s.notificationSoundEnabled
+                          ? Icons.volume_up_rounded
+                          : Icons.volume_off_rounded,
+                      size: 20,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Sound',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : kDark0,
+                      ),
+                    ),
+                    const Spacer(),
+                    Switch.adaptive(
+                      value: s.notificationSoundEnabled,
+                      activeThumbColor: kCyan,
+                      onChanged: (v) => ctrl.updateNotificationSoundEnabled(v),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.vibration_rounded,
+                      size: 20,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Vibrate',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : kDark0,
+                      ),
+                    ),
+                    const Spacer(),
+                    Switch.adaptive(
+                      value: s.notificationVibrateEnabled,
+                      activeThumbColor: kCyan,
+                      onChanged: (v) => ctrl.updateNotificationVibrateEnabled(v),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Productivity & Circadian Persona Card ──────────────────────────────────
+
+class _ProductivityPersonaCard extends StatelessWidget {
+  final AppSettings settings;
+  final SettingsController ctrl;
+
+  const _ProductivityPersonaCard({required this.settings, required this.ctrl});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final chronotypes = [
+      {'id': 'early_bird', 'label': 'Early Bird', 'icon': Icons.wb_sunny_rounded, 'desc': 'Peak energy 6AM-12PM'},
+      {'id': 'balanced', 'label': 'Balanced', 'icon': Icons.balance_rounded, 'desc': 'Steady energy 9AM-5PM'},
+      {'id': 'night_owl', 'label': 'Night Owl', 'icon': Icons.nightlight_round, 'desc': 'Peak flow 4PM-11PM'},
+    ];
+
+    final coachingStyles = [
+      {'id': 'direct', 'label': 'Direct & Sharp', 'icon': Icons.bolt_rounded},
+      {'id': 'balanced', 'label': 'Strategic', 'icon': Icons.track_changes_rounded},
+      {'id': 'empathetic', 'label': 'Empathetic', 'icon': Icons.favorite_rounded},
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Chronotype Selector
+          Text(
+            'Circadian Chronotype',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: isDark ? Colors.white : kDark0,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: chronotypes.map((c) {
+              final isSel = settings.chronotype == c['id'];
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: GestureDetector(
+                    onTap: () => ctrl.updateChronotype(c['id'] as String),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                      decoration: BoxDecoration(
+                        gradient: isSel ? kGradientHero : null,
+                        color: isSel
+                            ? null
+                            : (isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(6)),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSel ? Colors.transparent : (isDark ? Colors.white12 : Colors.black12),
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            c['icon'] as IconData,
+                            size: 20,
+                            color: isSel ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            c['label'] as String,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: isSel ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 16),
+          const _GlassDivider(),
+          const SizedBox(height: 12),
+
+          // 2. Daily Deep Work Focus Target
+          Row(
+            children: [
+              Icon(Icons.center_focus_strong_rounded, size: 20, color: isDark ? Colors.white54 : Colors.black45),
+              const SizedBox(width: 10),
+              Text(
+                'Daily focus goal',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : kDark0,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${settings.dailyFocusGoalMinutes ~/ 60}h ${settings.dailyFocusGoalMinutes % 60 > 0 ? "${settings.dailyFocusGoalMinutes % 60}m" : ""}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: kIndigo,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [60, 90, 120, 180].map((mins) {
+              final isSel = settings.dailyFocusGoalMinutes == mins;
+              final label = mins >= 60 ? (mins % 60 == 0 ? '${mins ~/ 60}h' : '${mins / 60}h') : '${mins}m';
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: GestureDetector(
+                    onTap: () => ctrl.updateDailyFocusGoalMinutes(mins),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        gradient: isSel ? kGradientMain : null,
+                        color: isSel
+                            ? null
+                            : (isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(6)),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSel ? Colors.transparent : (isDark ? Colors.white12 : Colors.black12),
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isSel ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 16),
+          const _GlassDivider(),
+          const SizedBox(height: 12),
+
+          // 3. AI Coach Tone / Persona
+          Text(
+            'AI Coach Personality',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: isDark ? Colors.white : kDark0,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: coachingStyles.map((style) {
+              final isSel = settings.coachingStyle == style['id'];
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: GestureDetector(
+                    onTap: () => ctrl.updateCoachingStyle(style['id'] as String),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                      decoration: BoxDecoration(
+                        gradient: isSel ? kGradientTeal : null,
+                        color: isSel
+                            ? null
+                            : (isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(6)),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSel ? Colors.transparent : (isDark ? Colors.white12 : Colors.black12),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            style['icon'] as IconData,
+                            size: 16,
+                            color: isSel ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              style['label'] as String,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: isSel ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Sensory & Haptics Card ──────────────────────────────────────────────────
+
+class _SensoryPreferencesCard extends StatelessWidget {
+  final AppSettings settings;
+  final SettingsController ctrl;
+
+  const _SensoryPreferencesCard({required this.settings, required this.ctrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _SwitchTile(
+          icon: Icons.vibration_rounded,
+          title: 'Haptic feedback',
+          subtitle: 'Subtle micro-vibrations on taps, level-ups & task completions',
+          value: settings.hapticsEnabled,
+          onChanged: (v) => ctrl.updateHapticsEnabled(v),
+        ),
+        const _GlassDivider(),
+        _SwitchTile(
+          icon: Icons.celebration_rounded,
+          title: 'Achievement confetti',
+          subtitle: 'Visual celebration fireworks when hitting streak and level milestones',
+          value: settings.confettiCelebrationsEnabled,
+          onChanged: (v) => ctrl.updateConfettiCelebrationsEnabled(v),
+        ),
       ],
     );
   }
@@ -1348,62 +1903,97 @@ class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
 
     return Material(
       type: MaterialType.transparency,
-      child: ListTile(
-        leading: _loading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Icon(
-                Icons.calendar_month_rounded,
-                size: 20,
-                color: connected
-                    ? kCyan
-                    : (isDark ? Colors.white60 : Colors.black54),
+      child: Column(
+        children: [
+          ListTile(
+            leading: _loading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(
+                    Icons.calendar_month_rounded,
+                    size: 20,
+                    color: connected
+                        ? kCyan
+                        : (isDark ? Colors.white60 : Colors.black54),
+                  ),
+            title: Text(
+              'Google Calendar',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : kDark0,
               ),
-        title: Text(
-          'Google Calendar',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : kDark0,
-          ),
-        ),
-        subtitle: Text(
-          connected ? email : 'Sync events with Google Calendar',
-          style: TextStyle(
-            fontSize: 12,
-            color: connected ? kCyan : (isDark ? Colors.white38 : Colors.black38),
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: _loading
-            ? null
-            : connected
-            ? TextButton(
-                onPressed: _disconnect,
-                child: const Text(
-                  'Disconnect',
-                  style: TextStyle(color: kCoral, fontSize: 12),
-                ),
-              )
-            : TextButton(
-                onPressed: _connect,
-                child: ShaderMask(
-                  shaderCallback: (b) => kGradientMain.createShader(b),
-                  child: const Text(
-                    'Connect',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+            ),
+            subtitle: Text(
+              connected ? email : 'Sync events with Google Calendar',
+              style: TextStyle(
+                fontSize: 12,
+                color: connected ? kCyan : (isDark ? Colors.white38 : Colors.black38),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            trailing: _loading
+                ? null
+                : connected
+                ? TextButton(
+                    onPressed: _disconnect,
+                    child: const Text(
+                      'Disconnect',
+                      style: TextStyle(color: kCoral, fontSize: 12),
+                    ),
+                  )
+                : TextButton(
+                    onPressed: _connect,
+                    child: ShaderMask(
+                      shaderCallback: (b) => kGradientMain.createShader(b),
+                      child: const Text(
+                        'Connect',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          if (connected) ...[
+            _GlassDivider(),
+            SwitchListTile(
+              secondary: Icon(
+                Icons.task_alt_rounded,
+                size: 20,
+                color: isDark ? Colors.white60 : Colors.black54,
+              ),
+              title: Text(
+                'Sync Tasks as Events',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : kDark0,
                 ),
               ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              subtitle: Text(
+                'Automatically push scheduled tasks to Google Calendar',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                ),
+              ),
+              value: widget.settings.syncTasksToGoogleCalendar,
+              onChanged: (v) => widget.ctrl.updateSyncTasksToGoogleCalendar(v),
+              activeThumbColor: kCyan,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

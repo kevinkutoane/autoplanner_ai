@@ -95,9 +95,9 @@ class HelpScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'AutoPlanner AI is a personal productivity app that uses '
-                            'artificial intelligence to turn your messy to-do list into a '
-                            'structured, conflict-free daily schedule — automatically.',
+                            'AutoPlanner AI is an autonomous personal productivity and '
+                            'planning system that turns unstructured thoughts and to-do lists '
+                            'into an optimized, conflict-free daily schedule — automatically.',
                             style: TextStyle(
                               fontSize: 14.5,
                               height: 1.6,
@@ -108,10 +108,11 @@ class HelpScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Instead of manually deciding what to do and when, you just '
-                            'describe your tasks in plain English. The app parses them, '
-                            'assigns priorities and durations, and packs them into your work '
-                            'window — leaving you with a ready-to-follow schedule.',
+                            'Powered by Google Gemini and a deterministic constraint solver, '
+                            'AutoPlanner handles the cognitive burden of organizing your day: '
+                            'extracting tasks, goals, notes, and memories from voice or text, '
+                            'ordering tasks with prerequisite DAG dependencies, and matching '
+                            'demanding deep work to your biological circadian energy peaks.',
                             style: TextStyle(
                               fontSize: 14.5,
                               height: 1.6,
@@ -125,8 +126,9 @@ class HelpScreen extends StatelessWidget {
                             icon: Icons.lightbulb_outline_rounded,
                             color: kAmber,
                             text:
-                                'Think of it as a smart planner that knows your schedule, learns '
-                                'your habits over time, and automatically reschedules anything you miss.',
+                                'Everything runs locally on your device with hardware-backed encryption. '
+                                'AutoPlanner learns your patterns across sessions without your data ever '
+                                'touching external application servers.',
                             isDark: isDark,
                           ),
                         ],
@@ -139,7 +141,7 @@ class HelpScreen extends StatelessWidget {
                   // ── How It Works ─────────────────────────────────────
                   _SectionLabel(
                     icon: Icons.route_rounded,
-                    label: 'How It Works',
+                    label: 'The Daily Lifecycle',
                     color: kCyan,
                   ),
                   GlassCard(
@@ -149,48 +151,56 @@ class HelpScreen extends StatelessWidget {
                         children: [
                           _FlowStep(
                             step: '1',
-                            icon: Icons.record_voice_over_rounded,
-                            color: kIndigo,
-                            title: 'Brain Dump',
+                            icon: Icons.wb_sunny_rounded,
+                            color: kAmber,
+                            title: 'Morning Kickoff & Big 3',
                             body:
-                                'Type or speak anything on your mind — tasks, ideas, reminders. '
-                                'No formatting needed. The AI parses it into structured tasks and notes.',
+                                'Start with an intentional morning triage. Review calendar commitments, '
+                                'align tasks with your circadian energy peaks, and lock in your "Big 3" focus items.',
                             isDark: isDark,
                           ),
                           _FlowArrow(),
                           _FlowStep(
                             step: '2',
-                            icon: Icons.psychology_rounded,
-                            color: kCyan,
-                            title: 'AI Enrichment',
+                            icon: Icons.record_voice_over_rounded,
+                            color: kIndigo,
+                            title: 'Brain Dump 2.0 Studio',
                             body:
-                                'Tap "Plan My Day" and the AI scores each task by priority, '
-                                'estimates realistic durations, and re-orders your list before '
-                                'the scheduler runs.',
+                                'Speak or type stream-of-consciousness thoughts with reactive audio waveforms. '
+                                'AI extracts Tasks, Goals, Notes, and Memories with one-tap calendar gap auto-packing.',
                             isDark: isDark,
                           ),
                           _FlowArrow(),
                           _FlowStep(
                             step: '3',
                             icon: Icons.calendar_today_rounded,
-                            color: kCoral,
-                            title: 'Automatic Scheduling',
+                            color: kCyan,
+                            title: 'Autonomous Scheduling',
                             body:
-                                'A deterministic scheduler packs your tasks into free slots '
-                                'within your work window, avoiding conflicts with calendar events '
-                                'and leaving 10-minute buffers between tasks.',
+                                'A deterministic constraint solver packs tasks into free slots in your work window, '
+                                'strictly honoring prerequisite DAG dependencies, buffer times, and calendar events.',
                             isDark: isDark,
                           ),
                           _FlowArrow(),
                           _FlowStep(
                             step: '4',
-                            icon: Icons.auto_fix_high_rounded,
-                            color: kAmber,
-                            title: 'Proactive Rescheduling',
+                            icon: Icons.timer_rounded,
+                            color: kCoral,
+                            title: 'Immersive Focus & Micro-Wins',
                             body:
-                                'If you miss a task, the app detects it when you open the planner '
-                                'and suggests the next available slot — powered by AI that considers '
-                                'your habits and current calendar.',
+                                'Execute deep work in flow state with radial focus timers, ambient soundscapes, '
+                                'a distraction scratchpad, and micro-break reminders while earning XP multipliers.',
+                            isDark: isDark,
+                          ),
+                          _FlowArrow(),
+                          _FlowStep(
+                            step: '5',
+                            icon: Icons.nightlight_round,
+                            color: const Color(0xFF7C4DFF),
+                            title: 'Evening Shutdown & Memory',
+                            body:
+                                'Conclude your workday mindfully. Celebrate completed micro-wins, reschedule rollover '
+                                'tasks, and commit synthesized reflections into your encrypted Living Memory.',
                             isDark: isDark,
                           ),
                         ],
@@ -342,111 +352,142 @@ class HelpScreen extends StatelessWidget {
                         _FeatureTile(
                           icon: Icons.record_voice_over_rounded,
                           color: kIndigo,
-                          title: 'Brain Dump',
-                          summary: 'Freeform text or voice → AI-structured tasks, goals & memories',
+                          title: 'Brain Dump 2.0 Studio',
+                          summary: 'Voice wave recording & 4-pillar extraction into Tasks, Goals, Notes & Memories',
                           detail:
-                              'Open Brain Dump from the floating "+" button on any screen. '
-                              'Type or dictate anything — a list, a paragraph, random thoughts. '
-                              'The AI streams the response in real time, classifying each item '
-                              'as a task (with time + priority), a goal, or a long-term memory. '
-                              'Tasks are auto-linked to their matching goals.',
+                              'Tap the floating "+" button from anywhere. Speak naturally while a 32-band reactive '
+                              'audio waveform tracks your voice, or type freeform thought streams. Google Gemini parses '
+                              'your thoughts into 4 distinct pillars: actionable Tasks (with duration, priority, and time), '
+                              'high-level Goals, reference Notes, and lasting Memories. In the Triage Studio, review and '
+                              'fine-tune items before one-tap auto-packing them directly into today\'s calendar gaps.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),
                         _FeatureTile(
-                          icon: Icons.today_rounded,
+                          icon: Icons.calendar_today_rounded,
                           color: kCyan,
-                          title: 'Plan My Day',
-                          summary: 'One tap to AI-enrich and schedule your entire day',
+                          title: 'Autonomous Scheduling & DAG Solver',
+                          summary: 'Deterministic constraint solver respecting task prerequisites & buffers',
                           detail:
-                              'Tap the "Plan My Day" button at the top of the Planner. '
-                              'The AI re-scores every pending task\'s priority and estimates '
-                              'realistic durations based on the task title and your past '
-                              'patterns. Then the scheduling engine arranges them into '
-                              'your work window with no overlaps. Completed tasks are never '
-                              'moved.',
+                              'AutoPlanner\'s scheduling engine packs tasks inside your configured work window without '
+                              'double-booking. It honors task prerequisites (DAG dependencies) so preparatory steps '
+                              'are always scheduled before dependent ones. It automatically reserves 10-minute buffers, '
+                              'handles splittable subtasks, and locks around external Google Calendar meetings.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),
                         _FeatureTile(
                           icon: Icons.auto_fix_high_rounded,
                           color: kCoral,
-                          title: 'Proactive Rescheduling',
-                          summary: 'Missed a task? The app finds a new slot automatically',
+                          title: 'Proactive Rescheduling & Overflow',
+                          summary: 'Detects missed tasks automatically and suggests intelligent slots',
                           detail:
-                              'Every time you open the planner (or bring the app to the '
-                              'foreground), it checks for overdue uncompleted tasks. If it '
-                              'finds one, it computes free slots in your remaining work window, '
-                              'asks Gemini to pick the best one, and shows you an amber banner. '
-                              'Tap Accept to move the task, or Dismiss to skip it for this session.',
+                              'Whenever you open the planner or bring the app to the foreground, the engine scans '
+                              'for overdue uncompleted tasks. If detected, it calculates free gaps in your remaining '
+                              'work window, consults Gemini for the optimal slot, and presents an actionable amber banner. '
+                              'Tap Accept to move the task, or Dismiss to defer it.',
+                          isDark: isDark,
+                        ),
+                        _FeatureDivider(isDark: isDark),
+                        _FeatureTile(
+                          icon: Icons.wb_sunny_rounded,
+                          color: kAmber,
+                          title: 'Daily Rituals: Morning Kickoff & Shutdown',
+                          summary: 'Structured daily bookends for intentional focus & clear closure',
+                          detail:
+                              'Launch Morning Kickoff to review today\'s commitments, select your "The Big 3" priority '
+                              'focus items, and align your schedule with your energy curve. At the end of the day, '
+                              'run Evening Shutdown to triage unfinished work, celebrate completed micro-wins, '
+                              'and store synthesized reflections into Living Memory.',
+                          isDark: isDark,
+                        ),
+                        _FeatureDivider(isDark: isDark),
+                        _FeatureTile(
+                          icon: Icons.timer_rounded,
+                          color: const Color(0xFF00E5FF),
+                          title: 'Focus Mode & Circadian Chronotypes',
+                          summary: 'Chronotype energy alignment, radial timer, soundscapes & scratchpad',
+                          detail:
+                              'Match demanding cognitive tasks to your natural peak energy windows (Deep Work, '
+                              'Collaborative, Light Admin, Creative Flow, Recharge). Enter Focus Mode with a distraction-free '
+                              'radial timer, ambient soundscapes (Binaural Beats, Rain, White Noise, Cafe), a distraction '
+                              'scratchpad to offload random thoughts without breaking flow, and micro-break alerts.',
+                          isDark: isDark,
+                        ),
+                        _FeatureDivider(isDark: isDark),
+                        _FeatureTile(
+                          icon: Icons.military_tech_rounded,
+                          color: const Color(0xFFFFB300),
+                          title: 'Gamification, Streaks & Mastery Tiers',
+                          summary: '10 progression ranks, streak multipliers & 20+ achievement badges',
+                          detail:
+                              'Turn consistency into an engaging progression. Earn XP for completed tasks, on-time '
+                              'finishes, and focused work sessions. Climb 10 mastery tiers from Novice to Grandmaster '
+                              'Architect. Keep your daily streak alive to earn XP multipliers, and rest easy knowing '
+                              'Streak Shield alerts you before your streak is at risk.',
+                          isDark: isDark,
+                        ),
+                        _FeatureDivider(isDark: isDark),
+                        _FeatureTile(
+                          icon: Icons.psychology_alt_rounded,
+                          color: const Color(0xFF7C4DFF),
+                          title: 'Living Memory & AI Coach',
+                          summary: 'Cross-session personal intelligence & conversational coaching',
+                          detail:
+                              'As you plan, complete tasks, and reflect, AutoPlanner synthesizes personal memory facts '
+                              '(work habits, peak energy windows, recurring commitments). When you talk to the AI Coach '
+                              'or trigger planning features, this context is woven in to deliver deeply tailored advice '
+                              'and schedule optimization.',
+                          isDark: isDark,
+                        ),
+                        _FeatureDivider(isDark: isDark),
+                        _FeatureTile(
+                          icon: Icons.notifications_active_rounded,
+                          color: const Color(0xFFFF6D00),
+                          title: 'Smart Notification Hub & Streak Shield',
+                          summary: 'Multi-tier channels, lead times, quiet hours & streak protection',
+                          detail:
+                              'Configure notification preferences in Settings. Urgent tasks alert on a dedicated '
+                              'high-priority channel that can pierce quiet hours. Standard tasks support customizable '
+                              'lead times (5m, 15m, 30m, 1h). You also receive timely reminders for Morning Kickoff, '
+                              'Evening Shutdown, and afternoon Streak Shield warnings.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),
                         _FeatureTile(
                           icon: Icons.flag_rounded,
                           color: kCoral,
-                          title: 'Goals & Projects',
-                          summary: 'Set goals, link tasks, and track progress',
+                          title: 'Goals & Projects Hierarchy',
+                          summary: 'High-level milestones, linked tasks, progress rings & AI decomposition',
                           detail:
-                              'Create goals in the Goals tab — each goal can have a description, '
-                              'deadline, and emoji. Link tasks to goals from the Planner to track '
-                              'progress with completion rings. Brain Dump auto-extracts goals from '
-                              'your thoughts and links related tasks automatically. Projects let '
-                              'you group work under a parent goal.',
-                          isDark: isDark,
-                        ),
-                        _FeatureDivider(isDark: isDark),
-                        _FeatureTile(
-                          icon: Icons.psychology_alt_rounded,
-                          color: kIndigo,
-                          title: 'Memory',
-                          summary: 'The AI remembers things about you across sessions',
-                          detail:
-                              'Every time you brain-dump, plan your day, or summarise a note, '
-                              'the AI extracts notable facts, patterns, and preferences and '
-                              'stores them as memory entries. On future AI calls, the most '
-                              'relevant memories are included in the prompt as context — so '
-                              'the AI knows your work style, recurring commitments, and habits.',
-                          isDark: isDark,
-                        ),
-                        _FeatureDivider(isDark: isDark),
-                        _FeatureTile(
-                          icon: Icons.calendar_month_rounded,
-                          color: kCyan,
-                          title: 'Calendar Sync',
-                          summary: 'Two-way sync with Google Calendar',
-                          detail:
-                              'Connect your Google account in Settings → Integrations. '
-                              'The app syncs your calendar events and uses them as blocks '
-                              'when scheduling tasks — so you\'re never double-booked. '
-                              'Changes you make in the app push back to Google Calendar.',
-                          isDark: isDark,
-                        ),
-                        _FeatureDivider(isDark: isDark),
-                        _FeatureTile(
-                          icon: Icons.insights_rounded,
-                          color: kCoral,
-                          title: 'Analytics',
-                          summary: 'Charts, trends, and a weekly AI productivity review',
-                          detail:
-                              'The Insights tab shows an overview of completed vs. planned '
-                              'tasks, tag breakdowns, and completion trends over time. '
-                              'Tap "Weekly Review" to get a Gemini-generated markdown report '
-                              'summarising your week — what you accomplished, what patterns '
-                              'emerged, and suggestions for improvement.',
+                              'Create high-level quarterly or annual goals with deadline dates and custom icons. Link '
+                              'tasks directly to goals from the planner. As you complete linked tasks, goal progress rings '
+                              'fill automatically. Tap "Decompose" to let Gemini break a complex goal into milestone action items.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),
                         _FeatureTile(
                           icon: Icons.widgets_rounded,
-                          color: kAmber,
-                          title: 'Home Screen Widget',
-                          summary: 'Your top 3 tasks + stats without opening the app',
+                          color: kCyan,
+                          title: 'Google Calendar Sync & Home Widget',
+                          summary: 'Two-way calendar sync and glanceable home screen widgets',
                           detail:
-                              'Add the AutoPlanner widget to your Android or iOS home screen. '
-                              'It shows your next 3 upcoming tasks and a quick completion '
-                              'count for today. The widget updates automatically after each '
-                              'Plan My Day or whenever you complete a task.',
+                              'Connect Google Calendar in Settings to automatically import meetings as blocked calendar time. '
+                              'Your home screen widget displays your top 3 upcoming tasks and daily completion progress '
+                              'without needing to open the app.',
+                          isDark: isDark,
+                        ),
+                        _FeatureDivider(isDark: isDark),
+                        _FeatureTile(
+                          icon: Icons.shield_rounded,
+                          color: const Color(0xFF1DE9B6),
+                          title: '100% On-Device Privacy & AES-256',
+                          summary: 'Encrypted Hive database, Secure Enclave keys & zero cloud lock-in',
+                          detail:
+                              'All your tasks, memories, notes, and habits are stored locally on your device in an '
+                              'AES-256 encrypted Hive database. Your Gemini API key is stored in hardware-backed '
+                              'Secure Enclave / Keystore. Only AI prompt requests leave your device, and you can export '
+                              'full encrypted JSON backups anytime.',
                           isDark: isDark,
                         ),
                       ],
@@ -473,6 +514,44 @@ class HelpScreen extends StatelessWidget {
                                 'locally on your device in an AES-256 encrypted Hive database. '
                                 'The only data that leaves your device are the prompts you send '
                                 'to the Gemini API (with your API key). Nothing is stored on our servers.',
+                            isDark: isDark,
+                          ),
+                          _Divider(isDark: isDark),
+                          _FaqItem(
+                            q: 'How does the Streak Shield prevent streak loss?',
+                            a:
+                                'The Streak Shield tracks your daily task completion. If you haven\'t completed '
+                                'at least one task or daily ritual by late afternoon, the app sends a reminder '
+                                'giving you ample time to check off a micro-win and preserve your streak.',
+                            isDark: isDark,
+                          ),
+                          _Divider(isDark: isDark),
+                          _FaqItem(
+                            q: 'How does Circadian Chronotype energy matching work?',
+                            a:
+                                'In Settings → Persona, you can select your chronotype (Early Bird, Night Owl, '
+                                'Balanced, or Focused Afternoon). The planner matches high-cognitive demanding tasks '
+                                'to your biological peak hours, and schedules administrative or recharge tasks during '
+                                'your natural slumps.',
+                            isDark: isDark,
+                          ),
+                          _Divider(isDark: isDark),
+                          _FaqItem(
+                            q: 'What is the difference between Tasks, Goals, Notes, and Memories in Brain Dump?',
+                            a:
+                                'Tasks are actionable to-dos with time and priority. Goals are broader multi-step '
+                                'objectives that group tasks. Notes are reference snippets and ideas you want to keep handy. '
+                                'Memories are personal preferences, habits, or facts that AutoPlanner stores to personalize '
+                                'future AI planning.',
+                            isDark: isDark,
+                          ),
+                          _Divider(isDark: isDark),
+                          _FaqItem(
+                            q: 'How do task dependencies work?',
+                            a:
+                                'You can mark any task as dependent on one or more other tasks. The scheduling engine '
+                                'constructs a Directed Acyclic Graph (DAG) ensuring that prerequisite tasks are scheduled '
+                                'and completed before dependent tasks can begin.',
                             isDark: isDark,
                           ),
                           _Divider(isDark: isDark),

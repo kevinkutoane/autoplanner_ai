@@ -234,23 +234,34 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
         child: Column(
           children: [
             GradientHeader(
-              gradient: const LinearGradient(
-                colors: [kIndigo, Color(0xFF8B5CF6)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: kGradientProjects,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        margin: const EdgeInsets.only(right: 12),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withAlpha(30),
+                          border: Border.all(color: Colors.white.withAlpha(60)),
+                        ),
+                        child: const Icon(
+                          Icons.folder_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
                       const Expanded(
                         child: Text(
                           'Projects',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 28,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
                           ),
                         ),

@@ -21,14 +21,31 @@ import '../../services/conflict_detector.dart';
 import '../../services/app_monitor_service.dart';
 import '../../services/reschedule_service.dart';
 import '../../services/offline_ai_queue.dart';
+import '../../services/duration_learning_service.dart';
+import '../../features/commands/services/command_executor_service.dart';
 import '../../features/settings/models/app_settings_model.dart';
 import '../models/memory_entry_model.dart';
 import '../../features/memory/controllers/memory_controller.dart';
 import '../../features/settings/controllers/settings_controller.dart';
 import '../../features/planner/controllers/task_controller.dart';
+import 'package:clock/clock.dart';
+
 // Re-export note controller provider so screens can import from providers.dart
 export '../../features/notes/controllers/note_controller.dart'
     show noteControllerProvider, notesControllerProvider;
+
+// Re-export focus & deep work providers
+export '../../features/focus/controllers/focus_controller.dart';
+export '../../features/focus/models/focus_state.dart';
+export '../../features/focus/models/focus_recommendation.dart';
+export '../../features/focus/providers/focus_recommendation_provider.dart';
+
+// Re-export duration learning & personal intelligence
+export '../../services/duration_learning_service.dart';
+
+// Re-export AI commands & omnibar
+export '../../features/commands/models/schedule_command.dart';
+export '../../features/commands/services/command_executor_service.dart';
 
 // ── Settings & Profile ────────────────────────────────────────────
 /// Declared first so other providers can watch it without forward-reference
@@ -69,11 +86,56 @@ final aiServiceProvider = Provider<AIService>((ref) {
 /// Overridden in main() with an already-initialized MemoryService instance.
 final memoryServiceProvider = Provider<MemoryService>((_) => MemoryService());
 
-/// Singleton deterministic scheduler. Stateless — safe to create inline,
-/// but shared here to avoid repeated allocations across the widget tree.
-final schedulerServiceProvider = Provider<SchedulerService>(
-  (_) => SchedulerService(),
+/// Personal duration learning service for tracking estimation errors.
+final durationLearningServiceProvider = Provider<DurationLearningService>(
+  (_) => DurationLearningService(),
 );
+
+/// Singleton deterministic scheduler with duration calibration support.
+final schedulerServiceProvider = Provider<SchedulerService>((ref) {
+  return SchedulerService(
+    durationLearningService: ref.watch(durationLearningServiceProvider),
+  );
+});
+
+/// Category-level duration calibration multipliers based on completed task history.
+final categoryCalibrationsProvider =
+    Provider<Map<String, CategoryCalibration>>((ref) {
+  final tasks = ref.watch(taskControllerProvider);
+  final completed = tasks.where((t) => t.isCompleted).toList();
+  return ref
+      .watch(durationLearningServiceProvider)
+      .analyzeCategories(completed);
+});
+
+/// Schedule Accuracy Index: percentage of completed tasks finished within +/- 25% of estimate.
+final scheduleAccuracyProvider = Provider<double>((ref) {
+  final tasks = ref.watch(taskControllerProvider);
+  return ref.watch(durationLearningServiceProvider).computeAccuracyIndex(tasks);
+});
+
+
+
+class PlannerSelectedDateNotifier extends Notifier<DateTime> {
+  @override
+  DateTime build() {
+    final now = clock.now();
+    return DateTime(now.year, now.month, now.day);
+  }
+  void set(DateTime date) => state = date;
+}
+
+/// Used by PlannerScreen to control the selected date in the 7-day view.
+final plannerSelectedDateProvider =
+    NotifierProvider<PlannerSelectedDateNotifier, DateTime>(
+      PlannerSelectedDateNotifier.new,
+    );
+final planningDebtProvider = Provider<int>((ref) {
+  final tasks = ref.watch(taskControllerProvider);
+  return ref
+      .watch(durationLearningServiceProvider)
+      .computePlanningDebt(tasks, clock.now());
+});
 
 /// Wrapper around `local_auth` for fingerprint / Face ID / device-PIN checks.
 final biometricServiceProvider = Provider<BiometricService>(
@@ -242,3 +304,9 @@ final scheduleRationaleProvider =
         Map<String, TaskPlacementRationale>>(
       ScheduleRationaleNotifier.new,
     );
+
+/// Provides the singleton [CommandExecutorService] for AI Omnibar commands.
+final commandExecutorServiceProvider = Provider<CommandExecutorService>((ref) {
+  return CommandExecutorService();
+});
+

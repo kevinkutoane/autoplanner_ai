@@ -122,27 +122,89 @@ class CalendarController extends Notifier<List<CalendarEvent>> {
   /// Insert or update a single task's calendar mirror — O(1) Hive writes.
   void upsertTaskEvent(TaskItem task) {
     if (_box == null) return;
-    _box!.put('task_${task.id}', _taskToEvent(task));
+
+    // Check if we already have this event so we can preserve its externalId if it has one
+    final existingId = 'task_${task.id}';
+    final existingEvent = _box!.get(existingId);
+
+    final newEvent = _taskToEvent(task);
+    if (existingEvent != null) {
+      newEvent.externalId = existingEvent.externalId;
+      newEvent.etag = existingEvent.etag;
+      newEvent.syncStatus = existingEvent.syncStatus;
+    }
+
+    final settings = ref.read(settingsProvider);
+    final shouldSync =
+        settings.isGoogleCalendarConnected &&
+        settings.syncTasksToGoogleCalendar;
+
+    if (shouldSync) {
+      newEvent.syncStatus = 'pending_push';
+    }
+
+    _box!.put(existingId, newEvent);
     _refreshState();
+
+    if (shouldSync) {
+      _syncService.pushEvent(newEvent).then((success) {
+        if (!success) {
+          // Re-fetch since object might be stale
+          final latest = _box?.get(existingId);
+          if (latest != null) {
+            latest.syncStatus = 'sync_error';
+            latest.save();
+            _refreshState();
+          }
+        }
+      });
+    }
   }
 
   /// Remove a single task's calendar mirror — O(1) Hive writes.
   void removeTaskEvent(String taskId) {
     if (_box == null) return;
-    _box!.delete('task_$taskId');
-    _refreshState();
+    final existingId = 'task_$taskId';
+    final existingEvent = _box!.get(existingId);
+
+    if (existingEvent != null) {
+      final settings = ref.read(settingsProvider);
+      final shouldSync =
+          settings.isGoogleCalendarConnected &&
+          settings.syncTasksToGoogleCalendar;
+
+      if (shouldSync && existingEvent.externalId != null) {
+        _syncService.deleteEvent(existingEvent.externalId!);
+      }
+
+      _box!.delete(existingId);
+      _refreshState();
+    }
   }
 
-  CalendarEvent _taskToEvent(TaskItem task) => CalendarEvent(
-    id: 'task_${task.id}',
-    title: task.isCompleted ? '✓ ${task.title}' : task.title,
-    description: task.note,
-    startTime: task.startTime,
-    endTime: task.endTime ?? task.startTime.add(const Duration(hours: 1)),
-    source: 'local',
-    linkedTaskId: task.id,
-    colorValue: task.isCompleted ? 0xFF9E9E9E : _priorityToColor(task.priority),
-  );
+  CalendarEvent _taskToEvent(TaskItem task) {
+    final endTime = task.isCompleted && task.actualDurationMinutes != null
+        ? task.startTime.add(Duration(minutes: task.actualDurationMinutes!))
+        : (task.endTime ??
+              task.startTime.add(
+                Duration(
+                  minutes: task.durationMinutes > 0 ? task.durationMinutes : 60,
+                ),
+              ));
+
+    return CalendarEvent(
+      id: 'task_${task.id}',
+      title: task.isCompleted ? '✓ ${task.title}' : task.title,
+      description: task.note,
+      startTime: task.startTime,
+      endTime: endTime,
+      source: 'local',
+      linkedTaskId: task.id,
+      colorValue: task.isCompleted
+          ? 0xFF9E9E9E
+          : _priorityToColor(task.priority),
+    );
+  }
 
   int _priorityToColor(int priority) {
     switch (priority) {

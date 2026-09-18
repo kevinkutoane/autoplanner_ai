@@ -32,25 +32,39 @@
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Phase 1.3 — Personal Intelligence & Behavioral Learning [NEXT UP]           │
+│ Phase 1.3 — Personal Intelligence & Duration Learning [COMPLETED]           │
 │ • Estimated vs. Actual Duration Tracking & Feedback Loop                    │
-│ • Productivity Health Metrics (Accuracy, Carry-over, Planning Debt)         │
-│ • Personal Productivity Model (Deep work windows, Underestimation offsets)  │
-│ • Learned Preferences vs. Episodic Memory Separation                        │
+│ • Productivity Health Metrics (Schedule Accuracy Index, Planning Debt)      │
+│ • Category Estimation Variance Multipliers injected into Scheduler          │
+│ • ProductivityHealthCard on Dashboard and Analytics                         │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Phase 1.4 — AI Assistant & Autonomous Interaction                           │
-│ • Natural-Language AI Command Bar ("Clear afternoon", "What to do next?")   │
-│ • "What Should I Do Now?" Smart Action Card                                 │
-│ • Intelligent Focus Mode (Timer, Distractions, Completion metrics)          │
-│ • AI Inbox & Autonomous Triage                                              │
+│ Phase 1.4 — AI Assistant & Autonomous Interaction [COMPLETED]               │
+│ • AI Command Omnibar with Global Shortcuts (Cmd+K / Ctrl+K)                 │
+│ • Natural Language Scheduling Actions (shift, clear window, quick add, fit) │
+│ • "What Should I Do Now?" Context-Aware Smart Action Hero Card              │
+│ • Fullscreen Immersive Focus Mode (Radial timer, Flow extenders, Confetti)   │
+│ • Tactile Sensory Haptic Feedback System                                    │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Phase 1.5 — Weekly Intelligence                                             │
+│ Phase 2.0–2.3 — Flagship OS, Dock & Sensory Themes [COMPLETED]              │
+│ • Brain Dump 2.0 Studio (32-bar visualizer, 4 pillars, gap packing)         │
+│ • Voice Dictation Permissions & Emulator Dictation Simulator                │
+│ • Multi-Tier Notifications, Crucial Task Filter & Streak Shield             │
+│ • Gamification Engine (10 ranks, streak multipliers, badge showcase)        │
+│ • 5-Slot Balanced Navigation Dock & Responsive 4x2 Feature Sheet            │
+│ • Signature Screen Gradient Palettes & Glowing Headers                      │
+│ • AI Coach Persona Guardrails, Avatars & Animated Typing Wave               │
+│ • 6-Slide Capability Onboarding & Comprehensive Help Guide                  │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Phase 2.4 — Weekly Intelligence & Capacity Planning [NEXT UP]               │
 │ • "Plan My Week" Multi-Day Capacity Allocation                              │
 │ • "Replan My Week" Mid-Week Recovery & Workload Balancing                   │
 │ • Planning Debt Burn-Down & Habit Adherence                                 │
@@ -58,7 +72,7 @@
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Phase 2.0 — Personal Operating System & AI Gateway                          │
+│ Phase 3.0 — Cloud AI Gateway & Cross-Device Sync [PLANNED]                  │
 │ • Authenticated Cloud AI Gateway (Model Agnostic: Gemini, Claude, Local)    │
 │ • Multi-Device Sync Engine (Relational Repository Abstraction)              │
 │ • Knowledge Graph Queries across Goals, Projects, Tasks, and Memories       │
@@ -99,35 +113,53 @@
 
 ---
 
-### Phase 1.3: Personal Intelligence & Behavioral Learning `[NEXT UP / PLANNED]`
+### Phase 1.3: Personal Intelligence & Duration Learning `[COMPLETED]`
 - **Goal**: Move from static user rules to an adaptive personal productivity model.
-- **Key Capabilities**:
-  1. **Feedback Loops**: Post-task prompt ("Was estimated 60m accurate?").
-  2. **Estimation Variance Learning**: Tracks $\Delta(\text{estimated}, \text{actual})$ by task category/tag. Automatically offsets AI duration estimates based on historical personal trends (e.g., +35% for development tasks).
-  3. **Personal Productivity Model**: Learned preferences (e.g. "User completes deep work best between 08:00–11:00") stored separately from episodic memory facts.
-  4. **Productivity Health & Planning Debt**: Metrics tracking carry-over rates, schedule stability, and recurring overdue tasks with remediation suggestions.
+- **Delivered**:
+  1. **Feedback Loops**: Actual duration logging in `TaskItem.actualDurationMinutes` linked to Focus Mode.
+  2. **Estimation Variance Learning (`DurationLearningService`)**: Tracks personal ratio $\text{actual} / \text{estimated}$ across categories and injects rolling multipliers into `SchedulerService`.
+  3. **Productivity Health Metrics**: Real-time Schedule Accuracy Index (SAI) and accumulated planning debt indicators displayed in Analytics and Dashboard.
+  4. **Dynamic Health Visualization**: `ProductivityHealthCard` summarizing estimation reliability.
 
 ---
 
-### Phase 1.4: AI Assistant & Autonomous Interaction `[PLANNED]`
-- **Goal**: Turn the planner into an interactive personal assistant.
-- **Key Capabilities**:
-  1. **AI Command Bar**: Omnipresent action prompt supporting natural language commands ("Clear my afternoon", "Move non-urgent tasks to tomorrow").
-  2. **"What Should I Do Now?"**: Smart context card on the home dashboard surfacing the optimal next task with rationale.
-  3. **Focus Mode**: Distraction-free execution timer tracking pauses, interruptions, and actual durations.
-  4. **AI Inbox**: Semi-automated triage area for unstructured thoughts, ideas, and tasks.
+### Phase 1.4: AI Assistant & Autonomous Interaction `[COMPLETED]`
+- **Goal**: Turn the planner into an interactive, natural-language personal assistant.
+- **Delivered**:
+  1. **AI Command Omnibar (`Cmd+K` / `Ctrl+K`)**: Global spotlight palette supporting natural language actions (`shift`, `clearWindow`, `quickAdd`, `findFit`, `startFocus`).
+  2. **Safety Boundaries (`CommandPreview`)**: Action preview modal displaying before/after timestamps with mandatory user confirmation before schedule mutation.
+  3. **"What Should I Do Now?" Hero Card**: Context-aware recommendation card evaluating active sessions, user energy, open gaps, and task priorities.
+  4. **Fullscreen Focus Mode (`FocusModeScreen`)**: Distraction-free radial timer, flow extenders (+5m, +15m), pause tracking, distraction scratchpad, and 60fps confetti emitter.
+  5. **Tactile Haptics**: Micro-vibrations on interactive triggers and completion milestones.
 
 ---
 
-### Phase 1.5: Weekly Intelligence `[PLANNED]`
-- **Goal**: Multi-day capacity planning and mid-week recovery.
+### Phase 2.0–2.3: Flagship OS, Dock & Sensory Themes `[COMPLETED]`
+- **Goal**: Deliver a flagship, sensory personal planning operating system with rich gamification, automated daily rituals, balanced navigation, and distinct screen aesthetics.
+- **Delivered**:
+  1. **Brain Dump 2.0 Studio**: 32-bar reactive frequency equalizer (`AudioWaveformVisualizer`), 4-pillar extraction (Tasks, Notes, Goals, Memories), gap-packing calendar placement, and interactive triage studio.
+  2. **Voice Dictation & Emulator Simulator**: Android `RECORD_AUDIO` and Bluetooth runtime permissions, permission recovery dialogs, and an offline voice streaming simulator (`_simulateVoiceDictation`) for emulator/desktop environments.
+  3. **Multi-Tier Notification Center (`NotificationService`)**: Differentiated channels (`autoplanner_urgent`, `autoplanner_tasks`, `autoplanner_rituals`), configurable lead times (5m, 10m, 15m, 30m), crucial tasks filter, and 20:00 Streak Shield alerts.
+  4. **Multi-Agent Routines & Automated Rituals (`RoutineService`)**: Morning Kickoff sheet with "The Big 3" priority commitments (+50 XP) and Evening Shutdown sheet with task triaging and 1-line memory reflection (+50 XP).
+  5. **Gamification & Mastery Ranks (`GamificationService`)**: 10 progression tiers (Novice to Grandmaster), scaling streak multipliers (1.0x to 2.0x), milestone badge catalog, and `LevelUpDialog` celebration.
+  6. **Ergonomic 5-Slot Navigation Dock (`_GlassNavBar`)**: Floating frosted glass dock, elevated center Brain Dump hero button (`_DockedBrainDumpButton`) with neon glow, removal of overlapping FAB, and responsive 4x2 More Features grid (`_GlassMoreSheet`).
+  7. **Signature Screen Themes & Glowing Headers (`ui_kit.dart`)**: Curated gradient header tokens across all screens (`kGradientPlanner`, `kGradientCalendar`, `kGradientMemory`, `kGradientNotes`, `kGradientProjects`, `kGradientAnalytics`, `kGradientSettings`, `kGradientNeonSunset`).
+  8. **AI Coach Guardrails & Conversational UI (`AiCoachScreen`)**: Strict productivity scope enforcement, suppression of raw task JSON, glowing bot avatar, user badge, and inline animated 3-dot wave typing indicator (`_TypingBubble`).
+  9. **Onboarding Walkthrough & Comprehensive Help Guide**: 6-slide capability onboarding with dynamic glowing orbs, and 5-stage daily lifecycle Help guide with 11 expandable capability deep dives.
+  10. **Verification**: 503 passing unit, widget, and integration tests with zero analyzer errors.
+
+---
+
+### Phase 2.4: Weekly Intelligence & Capacity Planning `[NEXT UP]`
+- **Goal**: Multi-day capacity planning, mid-week recovery, and workload balancing.
 - **Key Capabilities**:
   1. **"Plan My Week"**: Balances workloads across 5–7 days, protecting goal-aligned deep work blocks against meeting overload.
   2. **"Replan My Week"**: Autonomous Thursday/Friday recovery pass moving low-priority tasks, splitting blockers, and protecting upcoming hard deadlines.
+  3. **Planning Debt Burn-Down**: Actionable recommendations to clear accumulated scheduling debt without burning out.
 
 ---
 
-### Phase 2.0: Personal Operating System & AI Gateway `[PLANNED]`
+### Phase 3.0: Cloud AI Gateway & Cross-Device Sync `[PLANNED]`
 - **Goal**: Production-grade multi-platform architecture and commercial backend.
 - **Key Capabilities**:
   1. **AI Gateway**: Authenticated cloud proxy for centralized rate limits, cost control, prompt versioning, and seamless provider switching (Gemini, Claude, GPT, local LLMs).

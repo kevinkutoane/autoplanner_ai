@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:intl/intl.dart';
@@ -15,6 +16,7 @@ import '../../../core/models/goal_model.dart';
 import '../../../services/reschedule_service.dart';
 import '../../../core/models/memory_entry_model.dart';
 import '../../memory/controllers/memory_controller.dart';
+import '../../focus/screens/focus_mode_screen.dart';
 
 class PlannerScreen extends ConsumerWidget {
   const PlannerScreen({super.key});
@@ -25,14 +27,15 @@ class PlannerScreen extends ConsumerWidget {
     final searchQuery = ref.watch(plannerSearchProvider).toLowerCase();
     final goalFilter = ref.watch(plannerGoalFilterProvider);
     final goals = ref.watch(goalControllerProvider);
-    final now = DateTime.now();
+    final selectedDate = ref.watch(plannerSelectedDateProvider);
+    final settings = ref.watch(settingsProvider);
     final tasks =
         allTasks
             .where(
               (t) =>
-                  t.startTime.year == now.year &&
-                  t.startTime.month == now.month &&
-                  t.startTime.day == now.day,
+                  t.startTime.year == selectedDate.year &&
+                  t.startTime.month == selectedDate.month &&
+                  t.startTime.day == selectedDate.day,
             )
             .where(
               (t) =>
@@ -82,32 +85,44 @@ class PlannerScreen extends ConsumerWidget {
             slivers: [
               SliverToBoxAdapter(
                 child: GradientHeader(
-                  gradient: LinearGradient(
-                    colors: [kDark0, const Color(0xFF1A1040)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  gradient: kGradientPlanner,
                   child: Row(
                     children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        margin: const EdgeInsets.only(right: 12),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withAlpha(30),
+                          border: Border.all(color: Colors.white.withAlpha(60)),
+                        ),
+                        child: const Icon(
+                          Icons.event_note_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'Day Planner',
+                              'Planner',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 26,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w900,
                                 letterSpacing: -0.5,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 3),
                             Text(
-                              DateFormat('EEEE, MMM d').format(DateTime.now()),
+                              DateFormat('EEEE, MMM d').format(selectedDate),
                               style: const TextStyle(
-                                color: Colors.white60,
-                                fontSize: 14,
+                                color: Colors.white70,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
@@ -119,8 +134,16 @@ class PlannerScreen extends ConsumerWidget {
                           vertical: 7,
                         ),
                         decoration: BoxDecoration(
-                          gradient: kGradientMain,
+                          color: Colors.white.withAlpha(28),
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white.withAlpha(50)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(20),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Text(
                           '${tasks.where((t) => t.isCompleted).length}/${tasks.length} done',
@@ -132,6 +155,94 @@ class PlannerScreen extends ConsumerWidget {
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ),
+
+              // ── 7-Day Horizon Strip ────────────────────────────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: SizedBox(
+                    height: 80,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: 14, // 7 days past, 7 days future
+                      itemBuilder: (context, index) {
+                        final date = DateTime.now().subtract(const Duration(days: 3)).add(Duration(days: index));
+                        final isSelected = date.year == selectedDate.year &&
+                            date.month == selectedDate.month &&
+                            date.day == selectedDate.day;
+                        final isToday = date.year == DateTime.now().year &&
+                            date.month == DateTime.now().month &&
+                            date.day == DateTime.now().day;
+                        
+                        // Calculate capacity for this day
+                        final dayTasks = allTasks.where((t) =>
+                            t.startTime.year == date.year &&
+                            t.startTime.month == date.month &&
+                            t.startTime.day == date.day);
+                        final totalMinutes = dayTasks.fold<int>(0, (sum, t) => sum + (t.durationMinutes > 0 ? t.durationMinutes : 60));
+                        final maxMinutes = settings.workHoursPerDay * 60;
+                        final capacityRatio = (totalMinutes / maxMinutes).clamp(0.0, 1.0);
+
+                        return GestureDetector(
+                          onTap: () {
+                            ref.read(plannerSelectedDateProvider.notifier).set(date);
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: const EdgeInsets.only(right: 12),
+                            width: 60,
+                            decoration: BoxDecoration(
+                              color: isSelected ? kIndigo : (Theme.of(context).brightness == Brightness.dark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5)),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isToday ? kCyan : Colors.transparent,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  DateFormat('E').format(date),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white54 : Colors.black54),
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${date.day}',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(2),
+                                    child: LinearProgressIndicator(
+                                      value: capacityRatio,
+                                      minHeight: 4,
+                                      backgroundColor: Colors.black12,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        capacityRatio > 0.9 ? kCoral : (capacityRatio > 0.5 ? kAmber : kCyan),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -636,6 +747,35 @@ class _TaskRow extends ConsumerWidget {
                             ),
                           ),
                         ),
+                      // Focus Mode entry button (for uncompleted tasks)
+                      if (!task.isCompleted)
+                        Semantics(
+                          button: true,
+                          label: 'Focus on ${task.title}',
+                          child: GestureDetector(
+                            onTap: () {
+                              ref
+                                  .read(focusControllerProvider.notifier)
+                                  .startSession(task);
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => FocusModeScreen(task: task),
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 10,
+                              ),
+                              child: Icon(
+                                Icons.center_focus_strong_rounded,
+                                size: 18,
+                                color: kIndigo.withAlpha(200),
+                              ),
+                            ),
+                          ),
+                        ),
                       // complete toggle
                       Semantics(
                         button: true,
@@ -643,9 +783,12 @@ class _TaskRow extends ConsumerWidget {
                             ? 'Mark ${task.title} as pending'
                             : 'Mark ${task.title} as complete',
                         child: GestureDetector(
-                          onTap: () => ref
-                              .read(taskControllerProvider.notifier)
-                              .toggleComplete(task.id),
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            ref
+                                .read(taskControllerProvider.notifier)
+                                .toggleComplete(task.id);
+                          },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 250),
                             width: 28,
@@ -1479,11 +1622,13 @@ class _PlanMyDaySheetState extends ConsumerState<_PlanMyDaySheet> {
       // Step 2: Intelligent constraint-based slot-packing — assigns real
       // start/end times, resolves DAG dependencies, evaluates multi-factor
       // score, and returns warnings + explainability rationale.
+      final calibrations = ref.read(categoryCalibrationsProvider);
       final scheduleResult = scheduler.scheduleDayWithDetails(
         tasks: enriched,
         day: now,
         workStartHour: settings.workStartHour,
         workHoursPerDay: settings.workHoursPerDay,
+        calibrations: calibrations,
       );
       final scheduled = scheduleResult.scheduledTasks;
 

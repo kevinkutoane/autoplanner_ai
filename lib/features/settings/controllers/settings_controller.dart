@@ -7,6 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/app_settings_model.dart';
 import '../../../services/secure_key_service.dart';
+import '../../../services/notification_service.dart';
 
 /// Manages all user-adjustable settings with Hive persistence.
 /// The box stores individual key-value pairs — no type adapter required.
@@ -122,16 +123,140 @@ class SettingsController extends Notifier<AppSettings> {
   Future<void> updateMorningBriefingEnabled(bool v) async {
     await _box.put(AppSettings.kMorningBriefingEnabled, v);
     state = state.copyWith(morningBriefingEnabled: v);
+    if (v) {
+      await NotificationService().scheduleMorningBriefing(
+        hour: state.morningBriefingHour,
+        minute: state.morningBriefingMinute,
+      );
+    } else {
+      await NotificationService().cancelMorningBriefing();
+    }
   }
 
   Future<void> updateMorningBriefingHour(int v) async {
     await _box.put(AppSettings.kMorningBriefingHour, v);
     state = state.copyWith(morningBriefingHour: v);
+    if (state.morningBriefingEnabled) {
+      await NotificationService().scheduleMorningBriefing(
+        hour: v,
+        minute: state.morningBriefingMinute,
+      );
+    }
   }
 
   Future<void> updateMorningBriefingMinute(int v) async {
     await _box.put(AppSettings.kMorningBriefingMinute, v);
     state = state.copyWith(morningBriefingMinute: v);
+    if (state.morningBriefingEnabled) {
+      await NotificationService().scheduleMorningBriefing(
+        hour: state.morningBriefingHour,
+        minute: v,
+      );
+    }
+  }
+
+  // ── Notification Enhancements ──────────────────────────────────
+
+  Future<void> updateTaskRemindersEnabled(bool v) async {
+    await _box.put(AppSettings.kTaskRemindersEnabled, v);
+    state = state.copyWith(taskRemindersEnabled: v);
+  }
+
+  Future<void> updateRemindCrucialTasksOnly(bool v) async {
+    await _box.put(AppSettings.kRemindCrucialTasksOnly, v);
+    state = state.copyWith(remindCrucialTasksOnly: v);
+  }
+
+  Future<void> updateReminderLeadTimeMinutes(int v) async {
+    await _box.put(AppSettings.kReminderLeadTimeMinutes, v);
+    state = state.copyWith(reminderLeadTimeMinutes: v);
+  }
+
+  Future<void> updateEveningShutdownReminderEnabled(bool v) async {
+    await _box.put(AppSettings.kEveningShutdownReminderEnabled, v);
+    state = state.copyWith(eveningShutdownReminderEnabled: v);
+    if (v) {
+      await NotificationService().scheduleEveningShutdown(
+        hour: state.eveningShutdownHour,
+        minute: state.eveningShutdownMinute,
+      );
+    } else {
+      await NotificationService().cancelEveningShutdown();
+    }
+  }
+
+  Future<void> updateEveningShutdownHour(int v) async {
+    await _box.put(AppSettings.kEveningShutdownHour, v);
+    state = state.copyWith(eveningShutdownHour: v);
+    if (state.eveningShutdownReminderEnabled) {
+      await NotificationService().scheduleEveningShutdown(
+        hour: v,
+        minute: state.eveningShutdownMinute,
+      );
+    }
+  }
+
+  Future<void> updateEveningShutdownMinute(int v) async {
+    await _box.put(AppSettings.kEveningShutdownMinute, v);
+    state = state.copyWith(eveningShutdownMinute: v);
+    if (state.eveningShutdownReminderEnabled) {
+      await NotificationService().scheduleEveningShutdown(
+        hour: state.eveningShutdownHour,
+        minute: v,
+      );
+    }
+  }
+
+  Future<void> updateStreakRemindersEnabled(bool v) async {
+    await _box.put(AppSettings.kStreakRemindersEnabled, v);
+    state = state.copyWith(streakRemindersEnabled: v);
+    if (!v) {
+      await NotificationService().cancelStreakShield();
+    }
+  }
+
+  Future<void> updateNotificationSoundEnabled(bool v) async {
+    await _box.put(AppSettings.kNotificationSoundEnabled, v);
+    state = state.copyWith(notificationSoundEnabled: v);
+  }
+
+  Future<void> updateNotificationVibrateEnabled(bool v) async {
+    await _box.put(AppSettings.kNotificationVibrateEnabled, v);
+    state = state.copyWith(notificationVibrateEnabled: v);
+  }
+
+  // ── Productivity & Circadian Persona ───────────────────────────
+
+  Future<void> updateChronotype(String v) async {
+    await _box.put(AppSettings.kChronotype, v);
+    state = state.copyWith(chronotype: v);
+  }
+
+  Future<void> updateDailyFocusGoalMinutes(int v) async {
+    await _box.put(AppSettings.kDailyFocusGoalMinutes, v);
+    state = state.copyWith(dailyFocusGoalMinutes: v);
+  }
+
+  Future<void> updateCoachingStyle(String v) async {
+    await _box.put(AppSettings.kCoachingStyle, v);
+    state = state.copyWith(coachingStyle: v);
+  }
+
+  Future<void> updateUserMotto(String v) async {
+    await _box.put(AppSettings.kUserMotto, v);
+    state = state.copyWith(userMotto: v);
+  }
+
+  // ── Sensory & Haptic Experience ────────────────────────────────
+
+  Future<void> updateHapticsEnabled(bool v) async {
+    await _box.put(AppSettings.kHapticsEnabled, v);
+    state = state.copyWith(hapticsEnabled: v);
+  }
+
+  Future<void> updateConfettiCelebrationsEnabled(bool v) async {
+    await _box.put(AppSettings.kConfettiCelebrationsEnabled, v);
+    state = state.copyWith(confettiCelebrationsEnabled: v);
   }
 
   Future<void> updateGeminiApiKey(String key) async {
@@ -151,18 +276,24 @@ class SettingsController extends Notifier<AppSettings> {
     required String email,
     required String jobTitle,
     required String avatarEmoji,
+    String? userMotto,
   }) async {
-    await _box.putAll({
+    final map = <String, dynamic>{
       AppSettings.kUserName: name,
       AppSettings.kUserEmail: email,
       AppSettings.kUserJobTitle: jobTitle,
       AppSettings.kAvatarEmoji: avatarEmoji,
-    });
+    };
+    if (userMotto != null) {
+      map[AppSettings.kUserMotto] = userMotto;
+    }
+    await _box.putAll(map);
     state = state.copyWith(
       userName: name,
       userEmail: email,
       userJobTitle: jobTitle,
       avatarEmoji: avatarEmoji,
+      userMotto: userMotto ?? state.userMotto,
     );
   }
 
@@ -185,6 +316,11 @@ class SettingsController extends Notifier<AppSettings> {
       isGoogleCalendarConnected: connected,
       googleAccountEmail: connected ? email : '',
     );
+  }
+
+  Future<void> updateSyncTasksToGoogleCalendar(bool v) async {
+    await _box.put(AppSettings.kSyncTasksToGoogleCalendar, v);
+    state = state.copyWith(syncTasksToGoogleCalendar: v);
   }
 
   // ── Reset ────────────────────────────────────────────────────────

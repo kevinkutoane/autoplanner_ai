@@ -133,6 +133,52 @@ void main() {
       final cleared = task.copyWith(deadline: null);
       expect(cleared.deadline, isNull);
     });
+
+    test('copyWith updates actualDurationMinutes, completedAt, and focusSessionsCount', () {
+      final completedTime = DateTime(2026, 3, 12, 10, 45);
+      final task = makeTask().copyWith(
+        actualDurationMinutes: 50,
+        completedAt: completedTime,
+        focusSessionsCount: 2,
+      );
+      expect(task.actualDurationMinutes, equals(50));
+      expect(task.completedAt, equals(completedTime));
+      expect(task.focusSessionsCount, equals(2));
+
+      // Can clear with null sentinel
+      final cleared = task.copyWith(actualDurationMinutes: null, completedAt: null);
+      expect(cleared.actualDurationMinutes, isNull);
+      expect(cleared.completedAt, isNull);
+    });
+  });
+
+  group('TaskItem duration & focus tracking defaults', () {
+    test('actualDurationMinutes and completedAt default to null, focusSessionsCount to 0', () {
+      final task = makeTask();
+      expect(task.actualDurationMinutes, isNull);
+      expect(task.completedAt, isNull);
+      expect(task.focusSessionsCount, equals(0));
+    });
+
+    test('durationMinutes returns scheduled difference or 30 fallback', () {
+      final taskWithoutEnd = makeTask();
+      expect(taskWithoutEnd.durationMinutes, equals(30));
+
+      final taskWithEnd = makeTask().copyWith(
+        endTime: baseTime.add(const Duration(minutes: 75)),
+      );
+      expect(taskWithEnd.durationMinutes, equals(75));
+    });
+
+    test('effectiveDurationMinutes prefers actualDurationMinutes if present', () {
+      final task = makeTask().copyWith(
+        endTime: baseTime.add(const Duration(minutes: 60)),
+      );
+      expect(task.effectiveDurationMinutes, equals(60));
+
+      final completedTask = task.copyWith(actualDurationMinutes: 45);
+      expect(completedTask.effectiveDurationMinutes, equals(45));
+    });
   });
 
   group('TaskItem.priorityLabel', () {

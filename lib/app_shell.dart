@@ -22,14 +22,20 @@ import 'features/planner/controllers/task_controller.dart';
 import 'features/goals/controllers/goal_controller.dart';
 import 'features/analytics/screens/analytics_screen.dart';
 import 'features/projects/screens/projects_screen.dart';
+import 'features/coach/screens/ai_coach_screen.dart';
+import 'features/focus/screens/focus_hub_screen.dart';
+import 'package:flutter/services.dart';
+import 'features/commands/widgets/command_palette_modal.dart';
 
 // ── Nav item descriptor ──────────────────────────────────────────────────────
 class _NavItem {
+  final int screenIndex;
   final IconData icon;
   final IconData activeIcon;
   final String label;
   final List<Color> gradient;
   const _NavItem({
+    required this.screenIndex,
     required this.icon,
     required this.activeIcon,
     required this.label,
@@ -37,67 +43,98 @@ class _NavItem {
   });
 }
 
-// Primary nav items shown in the glass bar (screen indices 0-3)
-const _primaryNavItems = [
+// Primary nav items shown on the left of the center Brain Dump button
+const _primaryNavLeft = [
   _NavItem(
+    screenIndex: 0,
     icon: Icons.dashboard_outlined,
     activeIcon: Icons.dashboard_rounded,
     label: 'Home',
     gradient: [kIndigo, Color(0xFF9D97FF)],
   ),
   _NavItem(
+    screenIndex: 1,
     icon: Icons.event_note_outlined,
     activeIcon: Icons.event_note_rounded,
     label: 'Plan',
     gradient: [kCyan, Color(0xFF00B894)],
   ),
+];
+
+// Primary nav items shown on the right of the center Brain Dump button
+const _primaryNavRight = [
   _NavItem(
+    screenIndex: 3,
+    icon: Icons.smart_toy_outlined,
+    activeIcon: Icons.smart_toy_rounded,
+    label: 'AI Coach',
+    gradient: [Color(0xFF9B59B6), kIndigo],
+  ),
+];
+
+// Overflow items revealed in the "More" glass sheet (organized in 4x2 grid)
+const _overflowNavItems = [
+  _NavItem(
+    screenIndex: 2,
+    icon: Icons.flash_on_outlined,
+    activeIcon: Icons.flash_on_rounded,
+    label: 'Focus',
+    gradient: [kCoral, Color(0xFFFF8E8E)],
+  ),
+  _NavItem(
+    screenIndex: 4,
+    icon: Icons.calendar_month_outlined,
+    activeIcon: Icons.calendar_month_rounded,
+    label: 'Calendar',
+    gradient: [Color(0xFF9B59B6), kIndigo],
+  ),
+  _NavItem(
+    screenIndex: 5,
     icon: Icons.flag_outlined,
     activeIcon: Icons.flag_rounded,
     label: 'Goals',
     gradient: [kCoral, Color(0xFFFF8E8E)],
   ),
   _NavItem(
-    icon: Icons.calendar_month_outlined,
-    activeIcon: Icons.calendar_month_rounded,
-    label: 'Calendar',
-    gradient: [Color(0xFF9B59B6), kIndigo],
-  ),
-];
-
-// Overflow items revealed in the "More" glass sheet (screen indices 4-8)
-const _overflowNavItems = [
-  _NavItem(
-    icon: Icons.psychology_outlined,
-    activeIcon: Icons.psychology_rounded,
-    label: 'Memory',
-    gradient: [kAmber, Color(0xFFFFB347)],
-  ),
-  _NavItem(
-    icon: Icons.sticky_note_2_outlined,
-    activeIcon: Icons.sticky_note_2_rounded,
-    label: 'Notes',
-    gradient: [Color(0xFF00B894), kCyan],
-  ),
-  _NavItem(
+    screenIndex: 8,
     icon: Icons.folder_outlined,
     activeIcon: Icons.folder_rounded,
     label: 'Projects',
     gradient: [kCyan, Color(0xFF0984E3)],
   ),
   _NavItem(
+    screenIndex: 6,
+    icon: Icons.psychology_outlined,
+    activeIcon: Icons.psychology_rounded,
+    label: 'Memory',
+    gradient: [kAmber, Color(0xFFFFB347)],
+  ),
+  _NavItem(
+    screenIndex: 7,
+    icon: Icons.sticky_note_2_outlined,
+    activeIcon: Icons.sticky_note_2_rounded,
+    label: 'Notes',
+    gradient: [Color(0xFF00B894), kCyan],
+  ),
+  _NavItem(
+    screenIndex: 9,
     icon: Icons.insights_outlined,
     activeIcon: Icons.insights_rounded,
     label: 'Insights',
     gradient: [Color(0xFF9B59B6), Color(0xFFE056A0)],
   ),
   _NavItem(
+    screenIndex: 10,
     icon: Icons.settings_outlined,
     activeIcon: Icons.settings_rounded,
     label: 'Settings',
     gradient: [Color(0xFF636E72), Color(0xFFB2BEC3)],
   ),
 ];
+
+class _CommandPaletteIntent extends Intent {
+  const _CommandPaletteIntent();
+}
 
 // ── Shell ────────────────────────────────────────────────────────────────────
 class AppShell extends ConsumerStatefulWidget {
@@ -224,9 +261,24 @@ class _AppShellState extends ConsumerState<AppShell>
     }
     // canPop:false absorbs Android back on every main tab so the app is never
     // accidentally closed via the system back gesture.
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
+    return Shortcuts(
+      shortcuts: <ShortcutActivator, Intent>{
+        LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyK):
+            const _CommandPaletteIntent(),
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyK):
+            const _CommandPaletteIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _CommandPaletteIntent: CallbackAction<_CommandPaletteIntent>(
+            onInvoke: (intent) => showCommandPalette(context),
+          ),
+        },
+        child: Focus(
+        autofocus: true,
+        child: PopScope(
+          canPop: false,
+          child: Scaffold(
         backgroundColor: Colors.transparent,
         body: Column(
           children: [
@@ -247,30 +299,38 @@ class _AppShellState extends ConsumerState<AppShell>
                   ),
                   TickerMode(
                     enabled: _currentIndex == 2,
-                    child: const GoalsScreen(),
+                    child: const FocusHubScreen(),
                   ),
                   TickerMode(
                     enabled: _currentIndex == 3,
-                    child: const CalendarScreen(),
+                    child: const AiCoachScreen(),
                   ),
                   TickerMode(
                     enabled: _currentIndex == 4,
-                    child: const MemoryScreen(),
+                    child: const CalendarScreen(),
                   ),
                   TickerMode(
                     enabled: _currentIndex == 5,
-                    child: const NotesScreen(),
+                    child: const GoalsScreen(),
                   ),
                   TickerMode(
                     enabled: _currentIndex == 6,
-                    child: const ProjectsScreen(),
+                    child: const MemoryScreen(),
                   ),
                   TickerMode(
                     enabled: _currentIndex == 7,
-                    child: const AnalyticsScreen(),
+                    child: const NotesScreen(),
                   ),
                   TickerMode(
                     enabled: _currentIndex == 8,
+                    child: const ProjectsScreen(),
+                  ),
+                  TickerMode(
+                    enabled: _currentIndex == 9,
+                    child: const AnalyticsScreen(),
+                  ),
+                  TickerMode(
+                    enabled: _currentIndex == 10,
                     child: const SettingsScreen(),
                   ),
                 ],
@@ -278,16 +338,16 @@ class _AppShellState extends ConsumerState<AppShell>
             ),
           ],
         ),
-        floatingActionButton: _BrainDumpFab(),
-        floatingActionButtonLocation:
-            FloatingActionButtonLocation.miniCenterFloat,
         bottomNavigationBar: _GlassNavBar(
           currentIndex: _currentIndex,
           onTap: (i) => setState(() => _currentIndex = i),
           onMoreTap: _showMoreSheet,
         ),
       ),
-    );
+    ),
+  ),
+),
+);
   }
 }
 
@@ -306,59 +366,84 @@ class _GlassNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    final isMoreActive = currentIndex >= _primaryNavItems.length;
+
+    _NavItem? activeOverflowItem;
+    for (final item in _overflowNavItems) {
+      if (item.screenIndex == currentIndex) {
+        activeOverflowItem = item;
+        break;
+      }
+    }
 
     return Padding(
       padding: EdgeInsets.fromLTRB(12, 0, 12, bottomPad + 10),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(33),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
           child: Container(
-            height: 68,
+            height: 66,
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withAlpha(18)
-                  : Colors.white.withAlpha(180),
-              borderRadius: BorderRadius.circular(32),
+                  ? Colors.white.withAlpha(20)
+                  : Colors.white.withAlpha(195),
+              borderRadius: BorderRadius.circular(33),
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withAlpha(30)
-                    : Colors.white.withAlpha(200),
+                    ? Colors.white.withAlpha(35)
+                    : Colors.white.withAlpha(220),
                 width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(isDark ? 80 : 30),
-                  blurRadius: 30,
+                  color: Colors.black.withAlpha(isDark ? 80 : 25),
+                  blurRadius: 28,
                   offset: const Offset(0, 10),
                 ),
                 BoxShadow(
                   color: kIndigo.withAlpha(isDark ? 30 : 15),
-                  blurRadius: 20,
+                  blurRadius: 18,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                ...List.generate(_primaryNavItems.length, (i) {
-                  return _NavButton(
-                    item: _primaryNavItems[i],
-                    isSelected: currentIndex == i,
-                    onTap: () => onTap(i),
+                Expanded(
+                  child: _NavButton(
+                    item: _primaryNavLeft[0],
+                    isSelected: currentIndex == _primaryNavLeft[0].screenIndex,
+                    onTap: () => onTap(_primaryNavLeft[0].screenIndex),
                     isDark: isDark,
-                  );
-                }),
-                _MoreNavButton(
-                  isSelected: isMoreActive,
-                  activeItem: isMoreActive
-                      ? _overflowNavItems[currentIndex -
-                            _primaryNavItems.length]
-                      : null,
-                  onTap: onMoreTap,
+                  ),
+                ),
+                Expanded(
+                  child: _NavButton(
+                    item: _primaryNavLeft[1],
+                    isSelected: currentIndex == _primaryNavLeft[1].screenIndex,
+                    onTap: () => onTap(_primaryNavLeft[1].screenIndex),
+                    isDark: isDark,
+                  ),
+                ),
+                _DockedBrainDumpButton(
                   isDark: isDark,
+                  onTap: () => showBrainDump(context),
+                ),
+                Expanded(
+                  child: _NavButton(
+                    item: _primaryNavRight[0],
+                    isSelected: currentIndex == _primaryNavRight[0].screenIndex,
+                    onTap: () => onTap(_primaryNavRight[0].screenIndex),
+                    isDark: isDark,
+                  ),
+                ),
+                Expanded(
+                  child: _MoreNavButton(
+                    isSelected: activeOverflowItem != null,
+                    activeItem: activeOverflowItem,
+                    onTap: onMoreTap,
+                    isDark: isDark,
+                  ),
                 ),
               ],
             ),
@@ -402,7 +487,7 @@ class _NavButtonState extends State<_NavButton>
     );
     _scaleAnim = Tween<double>(
       begin: 1.0,
-      end: 1.15,
+      end: 1.10,
     ).animate(CurvedAnimation(parent: _ac, curve: Curves.elasticOut));
     _glowAnim = Tween<double>(
       begin: 0.0,
@@ -440,12 +525,11 @@ class _NavButtonState extends State<_NavButton>
         builder: (_, child) {
           return Transform.scale(
             scale: _scaleAnim.value,
-            child: SizedBox(
-              width: 56,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // glow pill behind icon
                   Stack(
                     alignment: Alignment.center,
                     children: [
@@ -453,14 +537,14 @@ class _NavButtonState extends State<_NavButton>
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 250),
                           width: 40,
-                          height: 30,
+                          height: 28,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             gradient: LinearGradient(
                               colors: widget.item.gradient
                                   .map(
                                     (c) => c.withAlpha(
-                                      (50 * _glowAnim.value).round(),
+                                      (45 * _glowAnim.value).round(),
                                     ),
                                   )
                                   .toList(),
@@ -468,9 +552,9 @@ class _NavButtonState extends State<_NavButton>
                             boxShadow: [
                               BoxShadow(
                                 color: widget.item.gradient.first.withAlpha(
-                                  (80 * _glowAnim.value).round(),
+                                  (70 * _glowAnim.value).round(),
                                 ),
-                                blurRadius: 12,
+                                blurRadius: 10,
                                 spreadRadius: 1,
                               ),
                             ],
@@ -490,8 +574,8 @@ class _NavButtonState extends State<_NavButton>
                           : Icon(
                               widget.item.icon,
                               color: widget.isDark
-                                  ? Colors.white.withAlpha(120)
-                                  : Colors.black.withAlpha(90),
+                                  ? Colors.white.withAlpha(140)
+                                  : Colors.black.withAlpha(110),
                               size: 22,
                             ),
                     ],
@@ -500,17 +584,21 @@ class _NavButtonState extends State<_NavButton>
                   AnimatedDefaultTextStyle(
                     duration: const Duration(milliseconds: 200),
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 10.5,
                       fontWeight: widget.isSelected
                           ? FontWeight.w700
-                          : FontWeight.w400,
+                          : FontWeight.w500,
                       color: widget.isSelected
                           ? widget.item.gradient.first
                           : (widget.isDark
-                                ? Colors.white.withAlpha(100)
-                                : Colors.black.withAlpha(80)),
+                                ? Colors.white.withAlpha(120)
+                                : Colors.black.withAlpha(100)),
                     ),
-                    child: Text(widget.item.label),
+                    child: Text(
+                      widget.item.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -555,7 +643,7 @@ class _MoreNavButtonState extends State<_MoreNavButton>
     );
     _scaleAnim = Tween<double>(
       begin: 1.0,
-      end: 1.15,
+      end: 1.10,
     ).animate(CurvedAnimation(parent: _ac, curve: Curves.elasticOut));
     _glowAnim = Tween<double>(
       begin: 0.0,
@@ -596,8 +684,8 @@ class _MoreNavButtonState extends State<_MoreNavButton>
         builder: (_, child) {
           return Transform.scale(
             scale: _scaleAnim.value,
-            child: SizedBox(
-              width: 56,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -608,14 +696,14 @@ class _MoreNavButtonState extends State<_MoreNavButton>
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 250),
                           width: 40,
-                          height: 30,
+                          height: 28,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             gradient: LinearGradient(
                               colors: gradient
                                   .map(
                                     (c) => c.withAlpha(
-                                      (50 * _glowAnim.value).round(),
+                                      (45 * _glowAnim.value).round(),
                                     ),
                                   )
                                   .toList(),
@@ -623,9 +711,9 @@ class _MoreNavButtonState extends State<_MoreNavButton>
                             boxShadow: [
                               BoxShadow(
                                 color: gradient.first.withAlpha(
-                                  (80 * _glowAnim.value).round(),
+                                  (70 * _glowAnim.value).round(),
                                 ),
-                                blurRadius: 12,
+                                blurRadius: 10,
                                 spreadRadius: 1,
                               ),
                             ],
@@ -645,8 +733,8 @@ class _MoreNavButtonState extends State<_MoreNavButton>
                           : Icon(
                               inactiveIcon,
                               color: widget.isDark
-                                  ? Colors.white.withAlpha(120)
-                                  : Colors.black.withAlpha(90),
+                                  ? Colors.white.withAlpha(140)
+                                  : Colors.black.withAlpha(110),
                               size: 22,
                             ),
                     ],
@@ -655,17 +743,21 @@ class _MoreNavButtonState extends State<_MoreNavButton>
                   AnimatedDefaultTextStyle(
                     duration: const Duration(milliseconds: 200),
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 10.5,
                       fontWeight: widget.isSelected
                           ? FontWeight.w700
-                          : FontWeight.w400,
+                          : FontWeight.w500,
                       color: widget.isSelected
                           ? gradient.first
                           : (widget.isDark
-                                ? Colors.white.withAlpha(100)
-                                : Colors.black.withAlpha(80)),
+                                ? Colors.white.withAlpha(120)
+                                : Colors.black.withAlpha(100)),
                     ),
-                    child: Text(label),
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -677,15 +769,21 @@ class _MoreNavButtonState extends State<_MoreNavButton>
   }
 }
 
-// ── Brain Dump FAB ───────────────────────────────────────────────────────────
-class _BrainDumpFab extends StatefulWidget {
-  const _BrainDumpFab();
+// ── Docked Brain Dump Center Action Button ────────────────────────────────────
+class _DockedBrainDumpButton extends StatefulWidget {
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _DockedBrainDumpButton({
+    required this.isDark,
+    required this.onTap,
+  });
 
   @override
-  State<_BrainDumpFab> createState() => _BrainDumpFabState();
+  State<_DockedBrainDumpButton> createState() => _DockedBrainDumpButtonState();
 }
 
-class _BrainDumpFabState extends State<_BrainDumpFab>
+class _DockedBrainDumpButtonState extends State<_DockedBrainDumpButton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _glow;
   late final Animation<double> _glowAnim;
@@ -710,30 +808,41 @@ class _BrainDumpFabState extends State<_BrainDumpFab>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _glowAnim,
-      builder: (_, _) => GestureDetector(
-        onTap: () => showBrainDump(context),
-        child: Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const LinearGradient(
-              colors: [kIndigo, kCyan],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: kIndigo.withAlpha((80 + 80 * _glowAnim.value).round()),
-                blurRadius: 16 + 10 * _glowAnim.value,
-                spreadRadius: 1 + _glowAnim.value,
+      builder: (context, child) => GestureDetector(
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          widget.onTap();
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 5),
+          child: Tooltip(
+            message: 'Brain Dump 2.0 (Instant AI Capture)',
+            child: Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [kNeonViolet, kNeonCyan],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: kNeonViolet.withAlpha((100 + 80 * _glowAnim.value).round()),
+                    blurRadius: 14 + 6 * _glowAnim.value,
+                    spreadRadius: 0.8 + 0.8 * _glowAnim.value,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: const Icon(
-            Icons.electric_bolt_rounded,
-            color: Colors.white,
-            size: 24,
+              child: const Icon(
+                Icons.psychology_rounded,
+                color: Colors.white,
+                size: 26,
+              ),
+            ),
           ),
         ),
       ),
@@ -845,19 +954,19 @@ class _GlassMoreSheet extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withAlpha(20)
-                  : Colors.white.withAlpha(210),
+                  ? const Color(0xFF1B1D24).withAlpha(240)
+                  : Colors.white.withAlpha(240),
               borderRadius: BorderRadius.circular(28),
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withAlpha(30)
+                    ? Colors.white.withAlpha(35)
                     : Colors.white.withAlpha(220),
                 width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withAlpha(isDark ? 80 : 30),
-                  blurRadius: 30,
+                  color: Colors.black.withAlpha(isDark ? 90 : 35),
+                  blurRadius: 32,
                   offset: const Offset(0, -8),
                 ),
               ],
@@ -869,30 +978,84 @@ class _GlassMoreSheet extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 12, bottom: 4),
                   child: Container(
-                    width: 36,
-                    height: 4,
+                    width: 38,
+                    height: 4.5,
                     decoration: BoxDecoration(
                       color: isDark
-                          ? Colors.white.withAlpha(60)
-                          : Colors.black.withAlpha(30),
-                      borderRadius: BorderRadius.circular(2),
+                          ? Colors.white.withAlpha(70)
+                          : Colors.black.withAlpha(40),
+                      borderRadius: BorderRadius.circular(3),
                     ),
                   ),
                 ),
+                // Header
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
+                  padding: const EdgeInsets.fromLTRB(20, 10, 16, 8),
                   child: Row(
-                    children: List.generate(_overflowNavItems.length, (i) {
-                      final screenIndex = _primaryNavItems.length + i;
-                      return Expanded(
-                        child: _MoreSheetItem(
-                          item: _overflowNavItems[i],
-                          isSelected: currentIndex == screenIndex,
-                          isDark: isDark,
-                          onTap: () => onTap(screenIndex),
+                    children: [
+                      ShaderMask(
+                        shaderCallback: (b) => kGradientMain.createShader(b),
+                        child: const Icon(
+                          Icons.apps_rounded,
+                          color: Colors.white,
+                          size: 20,
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'More Features',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                          color: isDark ? Colors.white : kDark0,
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDark
+                                ? Colors.white.withAlpha(25)
+                                : Colors.black.withAlpha(18),
+                          ),
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 16,
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 4, 14, 18),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _overflowNavItems.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 4,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 0.92,
+                    ),
+                    itemBuilder: (ctx, i) {
+                      final item = _overflowNavItems[i];
+                      final isSelected = currentIndex == item.screenIndex;
+                      return _MoreSheetItem(
+                        item: item,
+                        isSelected: isSelected,
+                        isDark: isDark,
+                        onTap: () => onTap(item.screenIndex),
                       );
-                    }),
+                    },
                   ),
                 ),
               ],
@@ -920,63 +1083,81 @@ class _MoreSheetItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.all(6),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(16),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 18),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: isSelected
-                ? LinearGradient(
-                    colors: item.gradient
-                        .map((c) => c.withAlpha(isDark ? 55 : 38))
-                        .toList(),
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
-            border: isSelected
-                ? Border.all(
-                    color: item.gradient.first.withAlpha(80),
-                    width: 1.2,
-                  )
-                : null,
+            borderRadius: BorderRadius.circular(16),
+            color: isSelected
+                ? item.gradient.first.withAlpha(isDark ? 55 : 35)
+                : (isDark
+                    ? Colors.white.withAlpha(12)
+                    : Colors.black.withAlpha(8)),
+            border: Border.all(
+              color: isSelected
+                  ? item.gradient.first.withAlpha(140)
+                  : (isDark
+                      ? Colors.white.withAlpha(20)
+                      : Colors.black.withAlpha(15)),
+              width: isSelected ? 1.4 : 1,
+            ),
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              isSelected
-                  ? ShaderMask(
-                      shaderCallback: (b) =>
-                          LinearGradient(colors: item.gradient).createShader(b),
-                      child: Icon(
-                        item.activeIcon,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    )
-                  : Icon(
-                      item.icon,
-                      size: 28,
-                      color: isDark
-                          ? Colors.white.withAlpha(150)
-                          : Colors.black.withAlpha(120),
-                    ),
-              const SizedBox(height: 8),
-              Text(
-                item.label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected
-                      ? item.gradient.first
-                      : (isDark
-                            ? Colors.white.withAlpha(150)
-                            : Colors.black.withAlpha(120)),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: isSelected
+                        ? item.gradient
+                        : item.gradient
+                            .map((c) => c.withAlpha(isDark ? 160 : 130))
+                            .toList(),
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: item.gradient.first.withAlpha(90),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Icon(
+                  isSelected ? item.activeIcon : item.icon,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(height: 7),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                    color: isSelected
+                        ? (isDark ? Colors.white : item.gradient.first)
+                        : (isDark
+                            ? Colors.white.withAlpha(180)
+                            : Colors.black.withAlpha(180)),
+                  ),
                 ),
               ),
             ],

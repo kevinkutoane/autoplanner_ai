@@ -68,8 +68,24 @@ class NotesScreen extends ConsumerWidget {
             children: [
               // ΓöÇΓöÇ Header ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
               GradientHeader(
+                gradient: kGradientNotes,
                 child: Row(
                   children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withAlpha(30),
+                        border: Border.all(color: Colors.white.withAlpha(60)),
+                      ),
+                      child: const Icon(
+                        Icons.sticky_note_2_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,24 +94,33 @@ class NotesScreen extends ConsumerWidget {
                             'Notes',
                             style: TextStyle(
                               fontSize: 28,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.w900,
                               color: Colors.white,
+                              letterSpacing: -0.5,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           Text(
-                            '${allNotes.length} note${allNotes.length == 1 ? '' : 's'}',
+                            '${allNotes.length} note${allNotes.length == 1 ? '' : 's'} · Quick capture & ideas',
                             style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withAlpha(180),
+                              fontSize: 13,
+                              color: Colors.white.withAlpha(190),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.add_rounded, color: Colors.white),
-                      onPressed: () => _showAddNoteDialog(context, ref),
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withAlpha(25),
+                        border: Border.all(color: Colors.white.withAlpha(50)),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.add_rounded, color: Colors.white),
+                        tooltip: 'New Note',
+                        onPressed: () => _showAddNoteDialog(context, ref),
+                      ),
                     ),
                   ],
                 ),
