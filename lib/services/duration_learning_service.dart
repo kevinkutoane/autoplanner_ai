@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:autoplanner_ai/core/models/task_model.dart';
 
 /// Represents learning statistics for a specific category or tag.
@@ -55,7 +56,8 @@ class DurationLearningService {
 
   /// Calculates calibration profiles across all tags from [completedTasks].
   Map<String, CategoryCalibration> analyzeCategories(
-      List<TaskItem> completedTasks) {
+    List<TaskItem> completedTasks,
+  ) {
     final Map<String, List<double>> tagRatios = {};
     final Map<String, int> tagAccurateCounts = {};
 
@@ -130,10 +132,12 @@ class DurationLearningService {
   /// finished within +/- 25% of their planned estimate.
   double computeAccuracyIndex(List<TaskItem> tasks) {
     final withActuals = tasks
-        .where((t) =>
-            t.isCompleted &&
-            t.actualDurationMinutes != null &&
-            t.actualDurationMinutes! > 0)
+        .where(
+          (t) =>
+              t.isCompleted &&
+              t.actualDurationMinutes != null &&
+              t.actualDurationMinutes! > 0,
+        )
         .toList();
 
     if (withActuals.isEmpty) return 100.0;
@@ -155,7 +159,8 @@ class DurationLearningService {
     int debtMinutes = 0;
     for (final task in tasks) {
       if (task.isCompleted) continue;
-      final end = task.endTime ??
+      final end =
+          task.endTime ??
           task.startTime.add(Duration(minutes: task.durationMinutes));
 
       if (end.isBefore(now)) {

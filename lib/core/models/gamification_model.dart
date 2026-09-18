@@ -114,15 +114,35 @@ class GamificationProfile {
 
   static const List<LevelThreshold> levelThresholds = [
     LevelThreshold(level: 1, title: 'Novice Planner', minXp: 0, maxXp: 200),
-    LevelThreshold(level: 2, title: 'Apprentice Organizer', minXp: 200, maxXp: 500),
+    LevelThreshold(
+      level: 2,
+      title: 'Apprentice Organizer',
+      minXp: 200,
+      maxXp: 500,
+    ),
     LevelThreshold(level: 3, title: 'Flow Initiate', minXp: 500, maxXp: 1000),
     LevelThreshold(level: 4, title: 'Time Architect', minXp: 1000, maxXp: 1800),
     LevelThreshold(level: 5, title: 'Deep Diver', minXp: 1800, maxXp: 3000),
-    LevelThreshold(level: 6, title: 'Productivity Alchemist', minXp: 3000, maxXp: 4600),
+    LevelThreshold(
+      level: 6,
+      title: 'Productivity Alchemist',
+      minXp: 3000,
+      maxXp: 4600,
+    ),
     LevelThreshold(level: 7, title: 'Focus Maestro', minXp: 4600, maxXp: 6600),
     LevelThreshold(level: 8, title: 'Zen Strategist', minXp: 6600, maxXp: 9200),
-    LevelThreshold(level: 9, title: 'Grandmaster of Time', minXp: 9200, maxXp: 12500),
-    LevelThreshold(level: 10, title: 'Legendary Producer', minXp: 12500, maxXp: 20000),
+    LevelThreshold(
+      level: 9,
+      title: 'Grandmaster of Time',
+      minXp: 9200,
+      maxXp: 12500,
+    ),
+    LevelThreshold(
+      level: 10,
+      title: 'Legendary Producer',
+      minXp: 12500,
+      maxXp: 20000,
+    ),
   ];
 
   /// Resolves current level info from total XP.
@@ -196,7 +216,8 @@ class GamificationProfile {
       totalXp: (map['totalXp'] as num?)?.toInt() ?? 0,
       currentStreak: (map['currentStreak'] as num?)?.toInt() ?? 0,
       longestStreak: (map['longestStreak'] as num?)?.toInt() ?? 0,
-      unlockedBadgeIds: (map['unlockedBadgeIds'] as List<dynamic>?)
+      unlockedBadgeIds:
+          (map['unlockedBadgeIds'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           const [],

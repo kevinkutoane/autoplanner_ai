@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
@@ -64,7 +65,9 @@ class GamificationNotifier extends Notifier<GamificationProfile> {
         }
       }
     } catch (e) {
-      if (kDebugMode) debugPrint('GamificationNotifier: Failed to load profile — $e');
+      if (kDebugMode) {
+        debugPrint('GamificationNotifier: Failed to load profile — $e');
+      }
     }
   }
 
@@ -75,7 +78,9 @@ class GamificationNotifier extends Notifier<GamificationProfile> {
         await _box!.put(profileKey, profile.toJson());
       }
     } catch (e) {
-      if (kDebugMode) debugPrint('GamificationNotifier: Failed to persist profile — $e');
+      if (kDebugMode) {
+        debugPrint('GamificationNotifier: Failed to persist profile — $e');
+      }
     }
   }
 
@@ -133,7 +138,9 @@ class GamificationNotifier extends Notifier<GamificationProfile> {
 
     // Early finish bonus (completed at or under estimated duration)
     final estimated = task.durationMinutes > 0 ? task.durationMinutes : 30;
-    if (actualMinutes != null && actualMinutes > 0 && actualMinutes <= estimated) {
+    if (actualMinutes != null &&
+        actualMinutes > 0 &&
+        actualMinutes <= estimated) {
       xp += 20;
     }
 
@@ -221,5 +228,5 @@ class GamificationNotifier extends Notifier<GamificationProfile> {
 /// Global provider for gamification state and actions.
 final gamificationServiceProvider =
     NotifierProvider<GamificationNotifier, GamificationProfile>(
-  GamificationNotifier.new,
-);
+      GamificationNotifier.new,
+    );

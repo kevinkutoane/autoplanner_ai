@@ -68,7 +68,8 @@ class WhatShouldIDoNowCard extends ConsumerWidget {
     }
 
     final task = recommendation.task;
-    final isFocusingThis = focusState.task?.id == task.id && !focusState.isFinished;
+    final isFocusingThis =
+        focusState.task?.id == task.id && !focusState.isFinished;
 
     Color badgeColor;
     switch (recommendation.type) {
@@ -95,10 +96,7 @@ class WhatShouldIDoNowCard extends ConsumerWidget {
                   badgeColor.withAlpha(45),
                   const Color(0xFF1E1E2E).withAlpha(200),
                 ]
-              : [
-                  badgeColor.withAlpha(25),
-                  Colors.white,
-                ],
+              : [badgeColor.withAlpha(25), Colors.white],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -163,8 +161,8 @@ class WhatShouldIDoNowCard extends ConsumerWidget {
                       task.energyLevel == 'high'
                           ? '⚡ High Energy'
                           : task.energyLevel == 'medium'
-                              ? '🔋 Medium Energy'
-                              : '🌱 Low Energy',
+                          ? '🔋 Medium Energy'
+                          : '🌱 Low Energy',
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark ? Colors.white60 : Colors.black54,
@@ -207,10 +205,7 @@ class WhatShouldIDoNowCard extends ConsumerWidget {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(14),
                         gradient: LinearGradient(
-                          colors: [
-                            badgeColor,
-                            badgeColor.withAlpha(200),
-                          ],
+                          colors: [badgeColor, badgeColor.withAlpha(200)],
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -233,16 +228,16 @@ class WhatShouldIDoNowCard extends ConsumerWidget {
                         icon: Icon(
                           isFocusingThis
                               ? (focusState.isPaused
-                                  ? Icons.play_arrow_rounded
-                                  : Icons.timer_outlined)
+                                    ? Icons.play_arrow_rounded
+                                    : Icons.timer_outlined)
                               : Icons.center_focus_strong_rounded,
                           size: 20,
                         ),
                         label: Text(
                           isFocusingThis
                               ? (focusState.isPaused
-                                  ? 'Resume Focus'
-                                  : 'Open Focus Mode')
+                                    ? 'Resume Focus'
+                                    : 'Open Focus Mode')
                               : 'Start Focus (${task.durationMinutes}m)',
                           style: const TextStyle(
                             fontSize: 14,
@@ -271,8 +266,9 @@ class WhatShouldIDoNowCard extends ConsumerWidget {
                   IconButton.filledTonal(
                     tooltip: 'Mark Completed',
                     style: IconButton.styleFrom(
-                      backgroundColor:
-                          isDark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(10),
+                      backgroundColor: isDark
+                          ? Colors.white.withAlpha(20)
+                          : Colors.black.withAlpha(10),
                       padding: const EdgeInsets.all(12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),

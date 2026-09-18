@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../../services/gamification_service.dart';
 import '../../coach/widgets/achievements_sheet.dart';
@@ -69,9 +70,7 @@ class FocusHubScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: Colors.white.withAlpha(25),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withAlpha(50),
-                        ),
+                        border: Border.all(color: Colors.white.withAlpha(50)),
                       ),
                       child: Row(
                         children: [
@@ -273,8 +272,7 @@ class FocusHubScreen extends ConsumerWidget {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) =>
-                                          FocusModeScreen(task: t),
+                                      builder: (_) => FocusModeScreen(task: t),
                                     ),
                                   );
                                 },

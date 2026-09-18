@@ -192,10 +192,11 @@ void main() {
         isCompleted: false,
       );
 
-      final debt = service.computePlanningDebt(
-        [pastUncompleted, pastCompleted, futureTask],
-        now,
-      );
+      final debt = service.computePlanningDebt([
+        pastUncompleted,
+        pastCompleted,
+        futureTask,
+      ], now);
       expect(debt, equals(60));
     });
   });

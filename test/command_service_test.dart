@@ -12,10 +12,7 @@ void main() {
   final referenceTime = DateTime(2026, 3, 12, 11, 0);
 
   setUp(() {
-    aiService = AIService(
-      provider: MockAIProvider(),
-      tracker: TokenTracker(),
-    );
+    aiService = AIService(provider: MockAIProvider(), tracker: TokenTracker());
     executorService = CommandExecutorService();
   });
 
@@ -55,16 +52,19 @@ void main() {
       expect(command.minutes, equals(20));
     });
 
-    test('parses "focus on Architecture Review" via instant heuristic', () async {
-      final command = await aiService.parseScheduleCommand(
-        query: 'focus on Architecture Review',
-        currentTasks: [],
-        referenceTime: referenceTime,
-      );
+    test(
+      'parses "focus on Architecture Review" via instant heuristic',
+      () async {
+        final command = await aiService.parseScheduleCommand(
+          query: 'focus on Architecture Review',
+          currentTasks: [],
+          referenceTime: referenceTime,
+        );
 
-      expect(command.type, equals(ScheduleCommandType.startFocus));
-      expect(command.taskTitle, equals('Architecture Review'));
-    });
+        expect(command.type, equals(ScheduleCommandType.startFocus));
+        expect(command.taskTitle, equals('Architecture Review'));
+      },
+    );
 
     test('parses "clear afternoon" via instant heuristic', () async {
       final command = await aiService.parseScheduleCommand(
@@ -135,11 +135,11 @@ void main() {
         explanation: 'Shift afternoon tasks by 30 mins',
       );
 
-      final preview = executorService.generatePreview(
-        command,
-        [t1, t2, t3],
-        now: referenceTime,
-      );
+      final preview = executorService.generatePreview(command, [
+        t1,
+        t2,
+        t3,
+      ], now: referenceTime);
 
       // t1 is morning, so only t2 and t3 should be shifted
       expect(preview.shifts.length, equals(2));
@@ -152,42 +152,47 @@ void main() {
       expect(preview.shifts[1].newEnd, equals(DateTime(2026, 3, 12, 17, 0)));
     });
 
-    test('generatePreview for clearWindow moves overlapping tasks out of window', () {
-      final conflict = TaskItem(
-        id: 'c1',
-        title: 'Client Call',
-        startTime: DateTime(2026, 3, 12, 14, 0),
-        endTime: DateTime(2026, 3, 12, 15, 0),
-        isCompleted: false,
-      );
-      final outside = TaskItem(
-        id: 'o1',
-        title: 'Morning Yoga',
-        startTime: DateTime(2026, 3, 12, 7, 0),
-        endTime: DateTime(2026, 3, 12, 8, 0),
-        isCompleted: false,
-      );
+    test(
+      'generatePreview for clearWindow moves overlapping tasks out of window',
+      () {
+        final conflict = TaskItem(
+          id: 'c1',
+          title: 'Client Call',
+          startTime: DateTime(2026, 3, 12, 14, 0),
+          endTime: DateTime(2026, 3, 12, 15, 0),
+          isCompleted: false,
+        );
+        final outside = TaskItem(
+          id: 'o1',
+          title: 'Morning Yoga',
+          startTime: DateTime(2026, 3, 12, 7, 0),
+          endTime: DateTime(2026, 3, 12, 8, 0),
+          isCompleted: false,
+        );
 
-      final command = ScheduleCommand(
-        type: ScheduleCommandType.clearWindow,
-        fromTime: DateTime(2026, 3, 12, 13, 30),
-        toTime: DateTime(2026, 3, 12, 15, 30),
-        targetDate: referenceTime,
-        explanation: 'Clear 1:30 PM to 3:30 PM',
-      );
+        final command = ScheduleCommand(
+          type: ScheduleCommandType.clearWindow,
+          fromTime: DateTime(2026, 3, 12, 13, 30),
+          toTime: DateTime(2026, 3, 12, 15, 30),
+          targetDate: referenceTime,
+          explanation: 'Clear 1:30 PM to 3:30 PM',
+        );
 
-      final preview = executorService.generatePreview(
-        command,
-        [conflict, outside],
-        now: referenceTime,
-      );
+        final preview = executorService.generatePreview(command, [
+          conflict,
+          outside,
+        ], now: referenceTime);
 
-      expect(preview.shifts.length, equals(1));
-      expect(preview.shifts[0].task.id, equals('c1'));
-      // Moved to start at or after window end (15:30)
-      expect(preview.shifts[0].newStart, equals(DateTime(2026, 3, 12, 15, 30)));
-      expect(preview.shifts[0].newEnd, equals(DateTime(2026, 3, 12, 16, 30)));
-    });
+        expect(preview.shifts.length, equals(1));
+        expect(preview.shifts[0].task.id, equals('c1'));
+        // Moved to start at or after window end (15:30)
+        expect(
+          preview.shifts[0].newStart,
+          equals(DateTime(2026, 3, 12, 15, 30)),
+        );
+        expect(preview.shifts[0].newEnd, equals(DateTime(2026, 3, 12, 16, 30)));
+      },
+    );
 
     test('generatePreview for findFit returns tasks matching duration limit sorted by priority', () {
       final tShortLow = TaskItem(
@@ -221,11 +226,11 @@ void main() {
         explanation: 'Find tasks under 20m',
       );
 
-      final preview = executorService.generatePreview(
-        command,
-        [tShortLow, tShortHigh, tLong],
-        now: referenceTime,
-      );
+      final preview = executorService.generatePreview(command, [
+        tShortLow,
+        tShortHigh,
+        tLong,
+      ], now: referenceTime);
 
       expect(preview.fittingTasks.length, equals(2));
       // Urgent priority first

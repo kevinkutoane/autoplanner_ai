@@ -27,10 +27,10 @@ class SchedulerService {
   SchedulerService({
     DependencyGraphService? dependencyGraphService,
     DurationLearningService? durationLearningService,
-  })  : _dependencyGraphService =
-            dependencyGraphService ?? DependencyGraphService(),
-        _durationLearningService =
-            durationLearningService ?? DurationLearningService();
+  }) : _dependencyGraphService =
+           dependencyGraphService ?? DependencyGraphService(),
+       _durationLearningService =
+           durationLearningService ?? DurationLearningService();
 
   /// Assigns start/end times to all *pending* tasks in [tasks].
   ///
@@ -420,9 +420,12 @@ class SchedulerService {
       for (final tag in task.tags) {
         final cal = calibrations[tag.trim().toLowerCase()];
         if (cal != null &&
-            cal.sampleCount >= DurationLearningService.minSamplesForConfidence) {
+            cal.sampleCount >=
+                DurationLearningService.minSamplesForConfidence) {
           final delta = cal.deltaDisplay;
-          factors.add('Duration auto-calibrated ($delta based on #$tag history)');
+          factors.add(
+            'Duration auto-calibrated ($delta based on #$tag history)',
+          );
           break;
         }
       }

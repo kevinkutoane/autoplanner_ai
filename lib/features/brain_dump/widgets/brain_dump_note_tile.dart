@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../core/models/note_model.dart';
 import '../../../core/theme/ui_kit.dart';
 
@@ -34,7 +35,9 @@ class BrainDumpNoteTile extends StatelessWidget {
         border: Border.all(
           color: selected
               ? kElectricAmber.withAlpha(isDark ? 90 : 70)
-              : (isDark ? Colors.white.withAlpha(15) : Colors.black.withAlpha(10)),
+              : (isDark
+                    ? Colors.white.withAlpha(15)
+                    : Colors.black.withAlpha(10)),
           width: selected ? 1.5 : 1,
         ),
         boxShadow: selected

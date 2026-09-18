@@ -28,6 +28,7 @@ import '../models/memory_entry_model.dart';
 import '../../features/memory/controllers/memory_controller.dart';
 import '../../features/settings/controllers/settings_controller.dart';
 import '../../features/planner/controllers/task_controller.dart';
+
 import 'package:clock/clock.dart';
 
 // Re-export note controller provider so screens can import from providers.dart
@@ -99,14 +100,15 @@ final schedulerServiceProvider = Provider<SchedulerService>((ref) {
 });
 
 /// Category-level duration calibration multipliers based on completed task history.
-final categoryCalibrationsProvider =
-    Provider<Map<String, CategoryCalibration>>((ref) {
-  final tasks = ref.watch(taskControllerProvider);
-  final completed = tasks.where((t) => t.isCompleted).toList();
-  return ref
-      .watch(durationLearningServiceProvider)
-      .analyzeCategories(completed);
-});
+final categoryCalibrationsProvider = Provider<Map<String, CategoryCalibration>>(
+  (ref) {
+    final tasks = ref.watch(taskControllerProvider);
+    final completed = tasks.where((t) => t.isCompleted).toList();
+    return ref
+        .watch(durationLearningServiceProvider)
+        .analyzeCategories(completed);
+  },
+);
 
 /// Schedule Accuracy Index: percentage of completed tasks finished within +/- 25% of estimate.
 final scheduleAccuracyProvider = Provider<double>((ref) {
@@ -114,14 +116,13 @@ final scheduleAccuracyProvider = Provider<double>((ref) {
   return ref.watch(durationLearningServiceProvider).computeAccuracyIndex(tasks);
 });
 
-
-
 class PlannerSelectedDateNotifier extends Notifier<DateTime> {
   @override
   DateTime build() {
     final now = clock.now();
     return DateTime(now.year, now.month, now.day);
   }
+
   void set(DateTime date) => state = date;
 }
 
@@ -300,13 +301,12 @@ class ScheduleRationaleNotifier
 /// [SchedulerService.scheduleDayWithDetails] run. Consumed by [_TaskRow]
 /// to show the ℹ️ explainability button.
 final scheduleRationaleProvider =
-    NotifierProvider<ScheduleRationaleNotifier,
-        Map<String, TaskPlacementRationale>>(
-      ScheduleRationaleNotifier.new,
-    );
+    NotifierProvider<
+      ScheduleRationaleNotifier,
+      Map<String, TaskPlacementRationale>
+    >(ScheduleRationaleNotifier.new);
 
 /// Provides the singleton [CommandExecutorService] for AI Omnibar commands.
 final commandExecutorServiceProvider = Provider<CommandExecutorService>((ref) {
   return CommandExecutorService();
 });
-

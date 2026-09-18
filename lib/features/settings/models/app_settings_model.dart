@@ -290,12 +290,14 @@ class AppSettings {
   static const String kTaskRemindersEnabled = 'taskRemindersEnabled';
   static const String kRemindCrucialTasksOnly = 'remindCrucialTasksOnly';
   static const String kReminderLeadTimeMinutes = 'reminderLeadTimeMinutes';
-  static const String kEveningShutdownReminderEnabled = 'eveningShutdownReminderEnabled';
+  static const String kEveningShutdownReminderEnabled =
+      'eveningShutdownReminderEnabled';
   static const String kEveningShutdownHour = 'eveningShutdownHour';
   static const String kEveningShutdownMinute = 'eveningShutdownMinute';
   static const String kStreakRemindersEnabled = 'streakRemindersEnabled';
   static const String kNotificationSoundEnabled = 'notificationSoundEnabled';
-  static const String kNotificationVibrateEnabled = 'notificationVibrateEnabled';
+  static const String kNotificationVibrateEnabled =
+      'notificationVibrateEnabled';
 
   // ── Productivity & sensory constants ──
   static const String kChronotype = 'chronotype';
@@ -303,7 +305,8 @@ class AppSettings {
   static const String kCoachingStyle = 'coachingStyle';
   static const String kUserMotto = 'userMotto';
   static const String kHapticsEnabled = 'hapticsEnabled';
-  static const String kConfettiCelebrationsEnabled = 'confettiCelebrationsEnabled';
+  static const String kConfettiCelebrationsEnabled =
+      'confettiCelebrationsEnabled';
 
   // ── Serialization helpers ──────────────────────────────────────────
   static ThemeMode _parseThemeMode(String? v) => switch (v) {

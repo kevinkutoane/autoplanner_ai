@@ -34,8 +34,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       icon: Icons.record_voice_over_rounded,
       iconGradient: kGradientMain,
       title: 'Brain Dump 2.0 Studio',
-      subtitle:
-          'Speak freely with real-time reactive audio waveforms or type chaotic thought streams. AutoPlanner structures everything.',
+      subtitle: 'Speak freely with real-time reactive audio waveforms or type chaotic thought streams. AutoPlanner structures everything.',
       bullets: [
         '32-band reactive audio waveform visualizer',
         '4-pillar parsing: Tasks, Goals, Notes & Memories',
@@ -51,8 +50,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       icon: Icons.auto_awesome_rounded,
       iconGradient: kGradientTeal,
       title: 'Autonomous Scheduling',
-      subtitle:
-          'A deterministic constraint solver that packs your day with zero overlap, honoring buffer times and task prerequisites.',
+      subtitle: 'A deterministic constraint solver that packs your day with zero overlap, honoring buffer times and task prerequisites.',
       bullets: [
         'Dependency DAG ordering & split subtasks',
         'Smart buffer times & work window boundaries',
@@ -68,8 +66,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       icon: Icons.wb_sunny_rounded,
       iconGradient: kGradientWarm,
       title: 'Daily Rituals & Routines',
-      subtitle:
-          'Bookend your day with science-backed rituals. Lock in your Big 3 in the morning, and reflect & triage at evening shutdown.',
+      subtitle: 'Bookend your day with science-backed rituals. Lock in your Big 3 in the morning, and reflect & triage at evening shutdown.',
       bullets: [
         'Morning Kickoff with daily "The Big 3" focus commitments',
         'Evening Shutdown to triage rollovers & celebrate wins',
@@ -87,8 +84,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         colors: [Color(0xFF00E5FF), Color(0xFF00B0FF), Color(0xFF1DE9B6)],
       ),
       title: 'Circadian Focus & Micro-Wins',
-      subtitle:
-          'Align complex work to your peak chronotype energy windows. Stay locked in with immersive radial timers and soundscapes.',
+      subtitle: 'Align complex work to your peak chronotype energy windows. Stay locked in with immersive radial timers and soundscapes.',
       bullets: [
         'Circadian energy curve task recommendations',
         'Ambient soundscapes & distraction scratchpad',
@@ -106,8 +102,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         colors: [Color(0xFFFFB300), Color(0xFFFF6D00), Color(0xFFFFD54F)],
       ),
       title: 'Mastery Ranks & Streaks',
-      subtitle:
-          'Turn consistency into an engaging game. Level up across 10 mastery tiers, unlock badges, and protect your streak.',
+      subtitle: 'Turn consistency into an engaging game. Level up across 10 mastery tiers, unlock badges, and protect your streak.',
       bullets: [
         '10 progression tiers from Novice to Grandmaster',
         'Streak multipliers & automated Streak Shield alerts',
@@ -125,8 +120,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         colors: [Color(0xFF7C4DFF), Color(0xFF651FFF), Color(0xFF00E5FF)],
       ),
       title: 'Living Memory & Privacy',
-      subtitle:
-          'AutoPlanner remembers your evolving habits across sessions while keeping 100% of your data encrypted on your device.',
+      subtitle: 'AutoPlanner remembers your evolving habits across sessions while keeping 100% of your data encrypted on your device.',
       bullets: [
         'Cross-session contextual memory auto-synthesis',
         'AES-256 encrypted local storage with zero cloud leaks',
@@ -791,12 +785,12 @@ class _OnboardOrbPainter extends CustomPainter {
 
   static const _configs = [
     [kIndigo, Color(0xFF7C4DFF), kDark1], // Brain Dump 2.0 Studio
-    [kCyan, kIndigo, kDark0],             // Autonomous Scheduling
-    [kCoral, kAmber, kDark1],            // Daily Rituals & Routines
-    [Color(0xFF1DE9B6), kCyan, kDark0],   // Circadian Focus & Micro-Wins
-    [kAmber, Color(0xFFFF6D00), kDark1],  // Mastery Ranks & Streaks
-    [Color(0xFF7C4DFF), kCyan, kDark0],   // Living Memory & Privacy
-    [kIndigo, kCyan, kDark0],             // API Key Setup
+    [kCyan, kIndigo, kDark0], // Autonomous Scheduling
+    [kCoral, kAmber, kDark1], // Daily Rituals & Routines
+    [Color(0xFF1DE9B6), kCyan, kDark0], // Circadian Focus & Micro-Wins
+    [kAmber, Color(0xFFFF6D00), kDark1], // Mastery Ranks & Streaks
+    [Color(0xFF7C4DFF), kCyan, kDark0], // Living Memory & Privacy
+    [kIndigo, kCyan, kDark0], // API Key Setup
   ];
 
   @override

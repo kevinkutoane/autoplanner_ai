@@ -91,10 +91,7 @@ void main() {
       expect(find.text('THE DAILY LIFECYCLE'), findsOneWidget);
       expect(find.text('FEATURE GUIDE'), findsOneWidget);
       expect(find.text('Brain Dump 2.0 Studio'), findsNWidgets(2));
-      expect(
-        find.text('Autonomous Scheduling & DAG Solver'),
-        findsOneWidget,
-      );
+      expect(find.text('Autonomous Scheduling & DAG Solver'), findsOneWidget);
       expect(
         find.text('Daily Rituals: Morning Kickoff & Shutdown'),
         findsOneWidget,

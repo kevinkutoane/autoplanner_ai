@@ -112,7 +112,9 @@ class _MemoryScreenState extends ConsumerState<MemoryScreen> {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: Colors.white.withAlpha(30),
-                              border: Border.all(color: Colors.white.withAlpha(60)),
+                              border: Border.all(
+                                color: Colors.white.withAlpha(60),
+                              ),
                             ),
                             child: const Icon(
                               Icons.psychology_rounded,

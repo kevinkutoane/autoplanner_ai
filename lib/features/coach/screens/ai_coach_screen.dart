@@ -79,16 +79,24 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
       try {
         final list = jsonDecode(trimmed);
         if (list is List && list.isNotEmpty && list.first is Map) {
-          final buffer = StringBuffer('Here is the action plan suggested for your schedule:\n\n');
+          final buffer = StringBuffer(
+            'Here is the action plan suggested for your schedule:\n\n',
+          );
           for (final item in list) {
             if (item is Map) {
               final title = item['title'] ?? 'Task';
-              final time = item['startTime'] != null ? ' (${item['startTime']})' : '';
-              final est = item['estimatedMinutes'] != null ? ' · ${item['estimatedMinutes']}m' : '';
+              final time = item['startTime'] != null
+                  ? ' (${item['startTime']})'
+                  : '';
+              final est = item['estimatedMinutes'] != null
+                  ? ' · ${item['estimatedMinutes']}m'
+                  : '';
               buffer.writeln('• **$title**$time$est');
             }
           }
-          buffer.writeln('\nWould you like me to help you schedule these into AutoPlanner?');
+          buffer.writeln(
+            '\nWould you like me to help you schedule these into AutoPlanner?',
+          );
           return buffer.toString();
         }
       } catch (_) {}
@@ -109,7 +117,11 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
           children: [
             GradientHeader(
               gradient: const LinearGradient(
-                colors: [Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121)],
+                colors: [
+                  Color(0xFF8A2387),
+                  Color(0xFFE94057),
+                  Color(0xFFF27121),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -163,8 +175,7 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
                           _messages.clear();
                           _messages.add({
                             'role': 'assistant',
-                            'content':
-                                'Hi! I am your AI Coach. How can I help you plan your day, overcome procrastination, or reflect on your goals?',
+                            'content': 'Hi! I am your AI Coach. How can I help you plan your day, overcome procrastination, or reflect on your goals?',
                           });
                         });
                       },
@@ -175,7 +186,10 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
             Expanded(
               child: ListView.builder(
                 controller: _scrollCtrl,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 itemCount: _messages.length + (_isLoading ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index == _messages.length) {
@@ -184,7 +198,9 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
 
                   final msg = _messages[index];
                   final isUser = msg['role'] == 'user';
-                  final displayContent = _cleanMessageContent(msg['content'] ?? '');
+                  final displayContent = _cleanMessageContent(
+                    msg['content'] ?? '',
+                  );
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 14),
@@ -222,7 +238,8 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
                         Flexible(
                           child: Container(
                             constraints: BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width * 0.74,
+                              maxWidth:
+                                  MediaQuery.of(context).size.width * 0.74,
                             ),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -230,7 +247,9 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
                             ),
                             decoration: BoxDecoration(
                               gradient: isUser
-                                  ? const LinearGradient(colors: [kIndigo, kCyan])
+                                  ? const LinearGradient(
+                                      colors: [kIndigo, kCyan],
+                                    )
                                   : LinearGradient(
                                       colors: isDark
                                           ? [
@@ -313,15 +332,17 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
             if (_messages.length <= 2)
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
                 child: Row(
                   children: [
                     _PromptChip(
                       label: '🗓️ Plan my day',
                       isDark: isDark,
                       onTap: () {
-                        _ctrl.text =
-                            'Can you help me structure my day for maximum productivity?';
+                        _ctrl.text = 'Can you help me structure my day for maximum productivity?';
                         _sendMessage();
                       },
                     ),
@@ -329,8 +350,7 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
                       label: '⚡ Beat procrastination',
                       isDark: isDark,
                       onTap: () {
-                        _ctrl.text =
-                            'I feel stuck on a difficult task. How do I get momentum?';
+                        _ctrl.text = 'I feel stuck on a difficult task. How do I get momentum?';
                         _sendMessage();
                       },
                     ),
@@ -338,8 +358,7 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
                       label: '🎯 Lock in Big 3',
                       isDark: isDark,
                       onTap: () {
-                        _ctrl.text =
-                            'Help me pick my Big 3 must-complete tasks for today.';
+                        _ctrl.text = 'Help me pick my Big 3 must-complete tasks for today.';
                         _sendMessage();
                       },
                     ),
@@ -347,8 +366,7 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
                       label: '🧘 Flow state tips',
                       isDark: isDark,
                       onTap: () {
-                        _ctrl.text =
-                            'What is the best way to maintain deep focus without burnout?';
+                        _ctrl.text = 'What is the best way to maintain deep focus without burnout?';
                         _sendMessage();
                       },
                     ),
@@ -509,9 +527,7 @@ class _TypingBubbleState extends State<_TypingBubble>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: widget.isDark
-                  ? Colors.white.withAlpha(16)
-                  : Colors.white,
+              color: widget.isDark ? Colors.white.withAlpha(16) : Colors.white,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(4),
                 topRight: Radius.circular(18),
@@ -570,7 +586,8 @@ class _TypingBubbleState extends State<_TypingBubble>
             height: 6.5,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFE94057).withAlpha((130 + 125 * bounce).round()),
+              color: const Color(0xFFE94057)
+                  .withAlpha((130 + 125 * bounce).round()),
             ),
           ),
         );

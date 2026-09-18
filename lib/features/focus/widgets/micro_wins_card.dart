@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../../services/context_aware_service.dart';
 import '../screens/focus_mode_screen.dart';
@@ -87,7 +88,9 @@ class MicroWinsCard extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5),
+                color: isDark
+                    ? Colors.white.withAlpha(10)
+                    : Colors.black.withAlpha(5),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: isDark ? Colors.white12 : Colors.black12,
@@ -133,8 +136,14 @@ class MicroWinsCard extends ConsumerWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: kCyan,
                       foregroundColor: const Color(0xFF0F0C20),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      textStyle: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

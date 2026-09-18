@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:autoplanner_ai/core/models/gamification_model.dart';
@@ -122,18 +123,21 @@ void main() {
       expect(state.unlockedBadgeIds.contains('deep_diver'), isTrue);
     });
 
-    test('syncStreak updates streak and unlocks streak_hero at 3 days', () async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
+    test(
+      'syncStreak updates streak and unlocks streak_hero at 3 days',
+      () async {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
 
-      final notifier = container.read(gamificationServiceProvider.notifier);
+        final notifier = container.read(gamificationServiceProvider.notifier);
 
-      await notifier.syncStreak(3);
+        await notifier.syncStreak(3);
 
-      final state = container.read(gamificationServiceProvider);
-      expect(state.currentStreak, 3);
-      expect(state.longestStreak, 3);
-      expect(state.unlockedBadgeIds.contains('streak_hero'), isTrue);
-    });
+        final state = container.read(gamificationServiceProvider);
+        expect(state.currentStreak, 3);
+        expect(state.longestStreak, 3);
+        expect(state.unlockedBadgeIds.contains('streak_hero'), isTrue);
+      },
+    );
   });
 }

@@ -1,7 +1,9 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../../services/routine_service.dart';
 
@@ -65,7 +67,9 @@ class _EveningShutdownSheetState extends ConsumerState<EveningShutdownSheet> {
       }
     });
 
-    await ref.read(routineServiceProvider).executeEveningShutdown(
+    await ref
+        .read(routineServiceProvider)
+        .executeEveningShutdown(
           rolloverTaskIds: rollovers,
           backlogTaskIds: backlogs,
           discardTaskIds: discards,
@@ -185,8 +189,7 @@ class _EveningShutdownSheetState extends ConsumerState<EveningShutdownSheet> {
                     children: [
                       _ScoreCard(
                         title: 'Completion',
-                        value:
-                            '${(_review.completionRate * 100).toInt()}%',
+                        value: '${(_review.completionRate * 100).toInt()}%',
                         color: kUltraEmerald,
                       ),
                       const SizedBox(width: 10),
@@ -285,8 +288,8 @@ class _EveningShutdownSheetState extends ConsumerState<EveningShutdownSheet> {
                                   _TriageChip(
                                     label: 'Tomorrow',
                                     icon: Icons.arrow_forward_rounded,
-                                    selected: currentAction ==
-                                        _TriageAction.rollover,
+                                    selected:
+                                        currentAction == _TriageAction.rollover,
                                     color: kUltraEmerald,
                                     onTap: () {
                                       setState(() {
@@ -299,8 +302,8 @@ class _EveningShutdownSheetState extends ConsumerState<EveningShutdownSheet> {
                                   _TriageChip(
                                     label: 'Backlog',
                                     icon: Icons.inventory_2_outlined,
-                                    selected: currentAction ==
-                                        _TriageAction.backlog,
+                                    selected:
+                                        currentAction == _TriageAction.backlog,
                                     color: kElectricAmber,
                                     onTap: () {
                                       setState(() {
@@ -313,8 +316,8 @@ class _EveningShutdownSheetState extends ConsumerState<EveningShutdownSheet> {
                                   _TriageChip(
                                     label: 'Discard',
                                     icon: Icons.delete_outline_rounded,
-                                    selected: currentAction ==
-                                        _TriageAction.discard,
+                                    selected:
+                                        currentAction == _TriageAction.discard,
                                     color: kCoral,
                                     onTap: () {
                                       setState(() {
@@ -465,11 +468,7 @@ class _TriageChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 13,
-              color: selected ? color : Colors.grey,
-            ),
+            Icon(icon, size: 13, color: selected ? color : Colors.grey),
             const SizedBox(width: 4),
             Text(
               label,

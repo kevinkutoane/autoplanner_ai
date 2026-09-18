@@ -32,8 +32,11 @@ class MockAIProvider implements AIProvider {
     "User prefers focused work blocks in the afternoon."
   ]
 }''';
-    } else if (lower.contains('schedule assistant') || lower.contains('user command:')) {
-      if (lower.contains('push') || lower.contains('delay') || lower.contains('shift')) {
+    } else if (lower.contains('schedule assistant') ||
+        lower.contains('user command:')) {
+      if (lower.contains('push') ||
+          lower.contains('delay') ||
+          lower.contains('shift')) {
         text = '{"action":"shift","minutes":30,"explanation":"Shift upcoming tasks by 30 minutes."}';
       } else if (lower.contains('clear') || lower.contains('free')) {
         text = '{"action":"clear_window","fromTime":"14:00","toTime":"16:00","explanation":"Clear afternoon window from 2:00 PM to 4:00 PM."}';
@@ -48,8 +51,11 @@ class MockAIProvider implements AIProvider {
       text = 'User prefers morning schedules and blocks deep work before noon.';
     } else if (lower.contains('insight') || lower.contains('daily')) {
       text = 'You tend to be most productive in the morning. Try scheduling your hardest task before 10am.';
-    } else if (lower.contains('coach') || lower.contains('autoplanner ai coach')) {
-      if (lower.contains('structure') || lower.contains('plan my day') || lower.contains('plan')) {
+    } else if (lower.contains('coach') ||
+        lower.contains('autoplanner ai coach')) {
+      if (lower.contains('structure') ||
+          lower.contains('plan my day') ||
+          lower.contains('plan')) {
         text = '''Here is a high-impact structure to maximize your productivity today:
 
 🌅 **Morning Anchor (8:00 - 9:30 AM)**
@@ -70,7 +76,9 @@ class MockAIProvider implements AIProvider {
 • Review completed tasks and brain dump tomorrow's attack plan!
 
 Would you like me to help you schedule specific tasks or time blocks right now?''';
-      } else if (lower.contains('procrastinat') || lower.contains('stuck') || lower.contains('resist')) {
+      } else if (lower.contains('procrastinat') ||
+          lower.contains('stuck') ||
+          lower.contains('resist')) {
         text = '''Overcoming friction starts with shrinking the ask:
 
 1. **The 5-Minute Rule**: Commit to working on the task for just 5 minutes. You are free to stop afterwards, but 85% of people keep going once inertia breaks.
@@ -78,7 +86,11 @@ Would you like me to help you schedule specific tasks or time blocks right now?'
 3. **Trigger Focus Mode**: Tap the Focus tab and start a 25-minute Pomodoro session with gentle ambient sound.
 
 Which task is causing the most resistance right now? Let's break it down together!''';
-      } else if (lower.contains('cake') || lower.contains('recipe') || lower.contains('weather') || lower.contains('movie') || lower.contains('president')) {
+      } else if (lower.contains('cake') ||
+          lower.contains('recipe') ||
+          lower.contains('weather') ||
+          lower.contains('movie') ||
+          lower.contains('president')) {
         text = '''I am your **AutoPlanner AI Coach**! 🎯
 
 My expertise is focused strictly on leveling up your productivity, designing daily schedules, defeating procrastination, and mastering your goals.

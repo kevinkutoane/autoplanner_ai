@@ -1,4 +1,5 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,10 +26,7 @@ Future<void> showCommandPalette(BuildContext context) {
           begin: const Offset(0, -0.06),
           end: Offset.zero,
         ).animate(curved),
-        child: FadeTransition(
-          opacity: curved,
-          child: child,
-        ),
+        child: FadeTransition(opacity: curved, child: child),
       );
     },
   );
@@ -295,7 +293,8 @@ class _CommandPaletteModalState extends ConsumerState<CommandPaletteModal>
                 color: isDark ? Colors.white : Colors.black87,
               ),
               decoration: InputDecoration(
-                hintText: 'Type a command (e.g. "Push afternoon by 30 mins")...',
+                hintText:
+                    'Type a command (e.g. "Push afternoon by 30 mins")...',
                 hintStyle: TextStyle(
                   color: isDark ? Colors.white38 : Colors.black38,
                   fontSize: 15,
@@ -379,8 +378,10 @@ class _CommandPaletteModalState extends ConsumerState<CommandPaletteModal>
               borderRadius: BorderRadius.circular(12),
               onTap: () => _onSuggestionTap(s),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
                 decoration: BoxDecoration(
                   color: isDark
                       ? Colors.white.withAlpha(14)
@@ -414,8 +415,11 @@ class _CommandPaletteModalState extends ConsumerState<CommandPaletteModal>
           ),
           child: Row(
             children: [
-              const Icon(Icons.tips_and_updates_rounded,
-                  color: kIndigo, size: 18),
+              const Icon(
+                Icons.tips_and_updates_rounded,
+                color: kIndigo,
+                size: 18,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -597,8 +601,10 @@ class _CommandPaletteModalState extends ConsumerState<CommandPaletteModal>
               children: preview.fittingTasks.take(4).map((task) {
                 return ListTile(
                   dense: true,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 0,
+                  ),
                   title: Text(
                     task.title,
                     style: TextStyle(
@@ -628,15 +634,19 @@ class _CommandPaletteModalState extends ConsumerState<CommandPaletteModal>
                       backgroundColor: kIndigo,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: const Text('Start Focus',
-                        style: TextStyle(fontSize: 11)),
+                    child: const Text(
+                      'Start Focus',
+                      style: TextStyle(fontSize: 11),
+                    ),
                   ),
                 );
               }).toList(),
@@ -668,7 +678,9 @@ class _CommandPaletteModalState extends ConsumerState<CommandPaletteModal>
                   backgroundColor: kIndigo,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -726,8 +738,11 @@ class _CommandPaletteModalState extends ConsumerState<CommandPaletteModal>
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded,
-              color: Colors.redAccent, size: 20),
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Colors.redAccent,
+            size: 20,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

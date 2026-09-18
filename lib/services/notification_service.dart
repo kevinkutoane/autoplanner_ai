@@ -123,14 +123,18 @@ class NotificationService {
   /// - If [settings.remindCrucialTasksOnly] is true, only priority ≥ 2 (High or Urgent) fires.
   /// - Uses [settings.reminderLeadTimeMinutes] (default 10) as the lead time.
   /// - Uses Urgent channel for Priority 3 (Urgent) tasks.
-  Future<void> scheduleTaskReminder(TaskItem task, [AppSettings? settings]) async {
+  Future<void> scheduleTaskReminder(
+    TaskItem task, [
+    AppSettings? settings,
+  ]) async {
     if (!_ready) return;
     if (settings != null && !settings.taskRemindersEnabled) return;
 
     final crucialOnly = settings?.remindCrucialTasksOnly ?? true;
     if (crucialOnly && task.priority < 2) return;
 
-    final leadMinutes = settings?.reminderLeadTimeMinutes ?? _reminderMinutesBefore;
+    final leadMinutes =
+        settings?.reminderLeadTimeMinutes ?? _reminderMinutesBefore;
     final reminderTime = task.startTime.subtract(
       Duration(minutes: leadMinutes),
     );
@@ -150,7 +154,8 @@ class NotificationService {
       await _plugin.zonedSchedule(
         id: id,
         title: isUrgent ? '🚨  ${task.title}' : '⏰  ${task.title}',
-        body: 'Starting in $leadMinutes minutes${isUrgent ? " • High Priority" : ""}',
+        body:
+            'Starting in $leadMinutes minutes${isUrgent ? " • High Priority" : ""}',
         scheduledDate: tzTime,
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
@@ -464,7 +469,8 @@ class NotificationService {
       await _plugin.zonedSchedule(
         id: _streakNotificationId,
         title: '🛡️  Streak Shield: Keep your streak alive!',
-        body: 'You have a $currentStreak-day streak! Complete a task or log your evening reflection.',
+        body:
+            'You have a $currentStreak-day streak! Complete a task or log your evening reflection.',
         scheduledDate: scheduled,
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(

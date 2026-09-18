@@ -345,25 +345,31 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
     // 1. Calendar events today
     for (final e in events) {
       if (isSameDay(e.startTime, now) && e.endTime.isAfter(now)) {
-        busyWindows.add(_BusyInterval(
-          start: e.startTime.isBefore(now) ? now : e.startTime,
-          end: e.endTime,
-          label: e.title,
-        ));
+        busyWindows.add(
+          _BusyInterval(
+            start: e.startTime.isBefore(now) ? now : e.startTime,
+            end: e.endTime,
+            label: e.title,
+          ),
+        );
       }
     }
 
     // 2. Existing tasks scheduled today after now
     for (final t in existingTasks) {
-      final tEnd = t.endTime ?? t.startTime.add(Duration(minutes: t.durationMinutes > 0 ? t.durationMinutes : 30));
-      if (!t.isCompleted &&
-          isSameDay(t.startTime, now) &&
-          tEnd.isAfter(now)) {
-        busyWindows.add(_BusyInterval(
-          start: t.startTime.isBefore(now) ? now : t.startTime,
-          end: tEnd,
-          label: t.title,
-        ));
+      final tEnd =
+          t.endTime ??
+          t.startTime.add(
+            Duration(minutes: t.durationMinutes > 0 ? t.durationMinutes : 30),
+          );
+      if (!t.isCompleted && isSameDay(t.startTime, now) && tEnd.isAfter(now)) {
+        busyWindows.add(
+          _BusyInterval(
+            start: t.startTime.isBefore(now) ? now : t.startTime,
+            end: tEnd,
+            label: t.title,
+          ),
+        );
       }
     }
 
@@ -423,22 +429,18 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
       }
 
       // Add this scheduled task to busyWindows so subsequent tasks won't overlap
-      busyWindows.add(_BusyInterval(
-        start: taskStart,
-        end: taskEnd,
-        label: task.title,
-      ));
+      busyWindows.add(
+        _BusyInterval(start: taskStart, end: taskEnd, label: task.title),
+      );
       busyWindows.sort((a, b) => a.start.compareTo(b.start));
 
       cursor = taskEnd.add(const Duration(minutes: 5));
 
-      _scheduleMessages[i] = fitLabel ?? '✓ Scheduled for ${_formatTime(taskStart)}';
+      _scheduleMessages[i] =
+          fitLabel ?? '✓ Scheduled for ${_formatTime(taskStart)}';
       _scheduleClashes[i] = isClash;
 
-      updatedTasks.add(task.copyWith(
-        startTime: taskStart,
-        endTime: taskEnd,
-      ));
+      updatedTasks.add(task.copyWith(startTime: taskStart, endTime: taskEnd));
     }
 
     _tasks = updatedTasks;
@@ -524,9 +526,7 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
     setState(() {
       final task = _tasks[index];
       final newEnd = task.startTime.add(Duration(minutes: minutes));
-      _tasks[index] = task.copyWith(
-        endTime: newEnd,
-      );
+      _tasks[index] = task.copyWith(endTime: newEnd);
       _scheduleExtractedTasks();
     });
   }
@@ -543,14 +543,16 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
       _taskSel.removeAt(index);
 
       final now = DateTime.now();
-      _notes.add(NoteItem(
-        id: _uuid.v4(),
-        title: task.title,
-        content: task.title,
-        tags: [...task.tags, 'braindump'],
-        createdAt: now,
-        updatedAt: now,
-      ));
+      _notes.add(
+        NoteItem(
+          id: _uuid.v4(),
+          title: task.title,
+          content: task.title,
+          tags: [...task.tags, 'braindump'],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
       _noteSel.add(true);
 
       _scheduleExtractedTasks();
@@ -563,14 +565,16 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
       _noteSel.removeAt(index);
 
       final now = DateTime.now();
-      _tasks.add(TaskItem(
-        id: _uuid.v4(),
-        title: note.title,
-        startTime: now,
-        endTime: now.add(const Duration(minutes: 30)),
-        priority: 1,
-        tags: note.tags.where((t) => t != 'braindump').toList(),
-      ));
+      _tasks.add(
+        TaskItem(
+          id: _uuid.v4(),
+          title: note.title,
+          startTime: now,
+          endTime: now.add(const Duration(minutes: 30)),
+          priority: 1,
+          tags: note.tags.where((t) => t != 'braindump').toList(),
+        ),
+      );
       _taskSel.add(true);
 
       _scheduleExtractedTasks();
@@ -668,7 +672,11 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final viewInsets = MediaQuery.of(context).viewInsets;
     final screenH = MediaQuery.of(context).size.height;
-    final hasResults = _tasks.isNotEmpty || _notes.isNotEmpty || _goals.isNotEmpty || _memories.isNotEmpty;
+    final hasResults =
+        _tasks.isNotEmpty ||
+        _notes.isNotEmpty ||
+        _goals.isNotEmpty ||
+        _memories.isNotEmpty;
 
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets.bottom),
@@ -684,7 +692,9 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
             end: Alignment.bottomCenter,
           ),
           border: Border.all(
-            color: isDark ? Colors.white.withAlpha(25) : kNeonViolet.withAlpha(40),
+            color: isDark
+                ? Colors.white.withAlpha(25)
+                : kNeonViolet.withAlpha(40),
           ),
           boxShadow: [
             BoxShadow(
@@ -739,7 +749,9 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: isDark ? Colors.white.withAlpha(15) : Colors.black.withAlpha(10),
+            color: isDark
+                ? Colors.white.withAlpha(15)
+                : Colors.black.withAlpha(10),
           ),
         ),
       ),
@@ -752,7 +764,9 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
               height: 4,
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withAlpha(50) : Colors.black.withAlpha(25),
+                color: isDark
+                    ? Colors.white.withAlpha(50)
+                    : Colors.black.withAlpha(25),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -802,7 +816,10 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
                             gradient: const LinearGradient(
@@ -867,12 +884,16 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
         Container(
           margin: const EdgeInsets.only(top: 16),
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5),
+            color: isDark
+                ? Colors.white.withAlpha(10)
+                : Colors.black.withAlpha(5),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: _listening
                   ? kNeonCyan
-                  : (isDark ? Colors.white.withAlpha(20) : kNeonViolet.withAlpha(40)),
+                  : (isDark
+                        ? Colors.white.withAlpha(20)
+                        : kNeonViolet.withAlpha(40)),
               width: _listening ? 1.5 : 1,
             ),
           ),
@@ -888,8 +909,7 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
               color: isDark ? Colors.white : Colors.black87,
             ),
             decoration: InputDecoration(
-              hintText:
-                  'Dump everything on your mind…\n\nTasks to do, fleeting ideas, meeting notes, project deadlines — let it all out.',
+              hintText: 'Dump everything on your mind…\n\nTasks to do, fleeting ideas, meeting notes, project deadlines — let it all out.',
               hintStyle: TextStyle(
                 color: isDark ? Colors.white30 : Colors.black26,
                 fontSize: 14,
@@ -920,7 +940,11 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
       children: [
         Row(
           children: [
-            const Icon(Icons.lightbulb_rounded, size: 14, color: kElectricAmber),
+            const Icon(
+              Icons.lightbulb_rounded,
+              size: 14,
+              color: kElectricAmber,
+            ),
             const SizedBox(width: 6),
             Text(
               'THOUGHT STARTERS',
@@ -946,7 +970,10 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
                 );
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: kNeonViolet.withAlpha(isDark ? 30 : 15),
                   borderRadius: BorderRadius.circular(14),
@@ -964,7 +991,9 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      example.length > 34 ? '${example.substring(0, 34)}…' : example,
+                      example.length > 34
+                          ? '${example.substring(0, 34)}…'
+                          : example,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -1107,7 +1136,8 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
   // ── Results View ──────────────────────────────────────────────────────────
 
   Widget _buildResultsView(bool isDark) {
-    final totalExtracted = _tasks.length + _notes.length + _goals.length + _memories.length;
+    final totalExtracted =
+        _tasks.length + _notes.length + _goals.length + _memories.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1125,13 +1155,15 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
                 kNeonCyan.withAlpha(isDark ? 40 : 25),
               ],
             ),
-            border: Border.all(
-              color: kNeonCyan.withAlpha(isDark ? 90 : 60),
-            ),
+            border: Border.all(color: kNeonCyan.withAlpha(isDark ? 90 : 60)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.auto_awesome_rounded, color: kNeonCyan, size: 20),
+              const Icon(
+                Icons.auto_awesome_rounded,
+                color: kNeonCyan,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -1198,7 +1230,11 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
               if (_goals.isNotEmpty)
                 _buildFilterChip('goals', 'Goals (${_goals.length})', isDark),
               if (_memories.isNotEmpty)
-                _buildFilterChip('memories', 'Memories (${_memories.length})', isDark),
+                _buildFilterChip(
+                  'memories',
+                  'Memories (${_memories.length})',
+                  isDark,
+                ),
             ],
           ),
         ),
@@ -1206,7 +1242,8 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
         const SizedBox(height: 16),
 
         // 1. Tasks section
-        if ((_filterTab == 'all' || _filterTab == 'tasks') && _tasks.isNotEmpty) ...[
+        if ((_filterTab == 'all' || _filterTab == 'tasks') &&
+            _tasks.isNotEmpty) ...[
           _buildCategoryHeader(
             icon: Icons.task_alt_rounded,
             title: 'Actionable Tasks',
@@ -1231,7 +1268,8 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
         ],
 
         // 2. Notes section
-        if ((_filterTab == 'all' || _filterTab == 'notes') && _notes.isNotEmpty) ...[
+        if ((_filterTab == 'all' || _filterTab == 'notes') &&
+            _notes.isNotEmpty) ...[
           _buildCategoryHeader(
             icon: Icons.note_alt_rounded,
             title: 'Fleeting Thoughts & Ideas',
@@ -1252,7 +1290,8 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
         ],
 
         // 3. Goals section
-        if ((_filterTab == 'all' || _filterTab == 'goals') && _goals.isNotEmpty) ...[
+        if ((_filterTab == 'all' || _filterTab == 'goals') &&
+            _goals.isNotEmpty) ...[
           _buildCategoryHeader(
             icon: Icons.flag_rounded,
             title: 'Aspirational Goals',
@@ -1277,7 +1316,8 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
         ],
 
         // 4. Memories section
-        if ((_filterTab == 'all' || _filterTab == 'memories') && _memories.isNotEmpty) ...[
+        if ((_filterTab == 'all' || _filterTab == 'memories') &&
+            _memories.isNotEmpty) ...[
           _buildCategoryHeader(
             icon: Icons.psychology_rounded,
             title: 'Behavioral Preferences & Rules',
@@ -1312,11 +1352,15 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
           borderRadius: BorderRadius.circular(12),
           color: isActive
               ? kNeonCyan
-              : (isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(6)),
+              : (isDark
+                    ? Colors.white.withAlpha(12)
+                    : Colors.black.withAlpha(6)),
           border: Border.all(
             color: isActive
                 ? kNeonCyan
-                : (isDark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(12)),
+                : (isDark
+                      ? Colors.white.withAlpha(20)
+                      : Colors.black.withAlpha(12)),
           ),
         ),
         child: Text(
@@ -1399,11 +1443,15 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
           borderRadius: BorderRadius.circular(14),
           color: selected
               ? color.withAlpha(isDark ? 30 : 15)
-              : (isDark ? Colors.white.withAlpha(6) : Colors.black.withAlpha(4)),
+              : (isDark
+                    ? Colors.white.withAlpha(6)
+                    : Colors.black.withAlpha(4)),
           border: Border.all(
             color: selected
                 ? color.withAlpha(isDark ? 80 : 60)
-                : (isDark ? Colors.white.withAlpha(15) : Colors.black.withAlpha(10)),
+                : (isDark
+                      ? Colors.white.withAlpha(15)
+                      : Colors.black.withAlpha(10)),
           ),
         ),
         child: Row(
@@ -1471,7 +1519,8 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
   // ── Save button ───────────────────────────────────────────────────────────
 
   Widget _buildSaveButton(bool isDark) {
-    final selCount = (_taskSel.where((b) => b).length) +
+    final selCount =
+        (_taskSel.where((b) => b).length) +
         (_noteSel.where((b) => b).length) +
         (_goalSel.where((b) => b).length) +
         (_memorySel.where((b) => b).length);
@@ -1588,5 +1637,9 @@ class _BusyInterval {
   final DateTime start;
   final DateTime end;
   final String label;
-  const _BusyInterval({required this.start, required this.end, required this.label});
+  const _BusyInterval({
+    required this.start,
+    required this.end,
+    required this.label,
+  });
 }

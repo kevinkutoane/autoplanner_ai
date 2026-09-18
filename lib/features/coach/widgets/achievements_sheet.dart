@@ -1,6 +1,8 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/models/gamification_model.dart';
 import '../../../core/theme/ui_kit.dart';
 import '../../../services/gamification_service.dart';
@@ -163,13 +165,15 @@ class AchievementsSheet extends ConsumerWidget {
                             ),
                             _MiniStat(
                               label: 'Multiplier',
-                              value: '${profile.streakMultiplier.toStringAsFixed(1)}x XP',
+                              value:
+                                  '${profile.streakMultiplier.toStringAsFixed(1)}x XP',
                               icon: Icons.bolt_rounded,
                               color: kElectricAmber,
                             ),
                             _MiniStat(
                               label: 'Unlocked',
-                              value: '${profile.unlockedBadgeIds.length}/${allBadges.length}',
+                              value:
+                                  '${profile.unlockedBadgeIds.length}/${allBadges.length}',
                               icon: Icons.military_tech_rounded,
                               color: kUltraEmerald,
                             ),
@@ -190,8 +194,9 @@ class AchievementsSheet extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   ...allBadges.map((badge) {
-                    final isUnlocked =
-                        profile.unlockedBadgeIds.contains(badge.id);
+                    final isUnlocked = profile.unlockedBadgeIds.contains(
+                      badge.id,
+                    );
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
@@ -200,18 +205,18 @@ class AchievementsSheet extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: isUnlocked
                               ? (isDark
-                                  ? Colors.white.withAlpha(15)
-                                  : Colors.white)
+                                    ? Colors.white.withAlpha(15)
+                                    : Colors.white)
                               : (isDark
-                                  ? Colors.white.withAlpha(6)
-                                  : Colors.black.withAlpha(4)),
+                                    ? Colors.white.withAlpha(6)
+                                    : Colors.black.withAlpha(4)),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isUnlocked
                                 ? kElectricAmber.withAlpha(100)
                                 : (isDark
-                                    ? Colors.white.withAlpha(16)
-                                    : Colors.black12),
+                                      ? Colors.white.withAlpha(16)
+                                      : Colors.black12),
                             width: isUnlocked ? 1.2 : 1,
                           ),
                         ),
@@ -228,16 +233,16 @@ class AchievementsSheet extends ConsumerWidget {
                                 color: isUnlocked
                                     ? null
                                     : (isDark
-                                        ? Colors.white12
-                                        : Colors.black12),
+                                          ? Colors.white12
+                                          : Colors.black12),
                               ),
                               child: Icon(
                                 _resolveIcon(badge.iconName),
                                 color: isUnlocked
                                     ? Colors.white
                                     : (isDark
-                                        ? Colors.white38
-                                        : Colors.black38),
+                                          ? Colors.white38
+                                          : Colors.black38),
                                 size: 22,
                               ),
                             ),
@@ -254,12 +259,10 @@ class AchievementsSheet extends ConsumerWidget {
                                           fontWeight: FontWeight.w700,
                                           fontSize: 15,
                                           color: isUnlocked
-                                              ? (isDark
-                                                  ? Colors.white
-                                                  : kDark0)
+                                              ? (isDark ? Colors.white : kDark0)
                                               : (isDark
-                                                  ? Colors.white54
-                                                  : Colors.black45),
+                                                    ? Colors.white54
+                                                    : Colors.black45),
                                         ),
                                       ),
                                       const Spacer(),
@@ -271,8 +274,9 @@ class AchievementsSheet extends ConsumerWidget {
                                           ),
                                           decoration: BoxDecoration(
                                             color: kUltraEmerald.withAlpha(30),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                           ),
                                           child: const Text(
                                             'UNLOCKED',

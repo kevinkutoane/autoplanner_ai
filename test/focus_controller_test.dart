@@ -79,18 +79,21 @@ void main() {
       expect(state.targetSeconds, equals((45 + 15) * 60));
     });
 
-    test('logDistraction records distraction notes without interrupting session', () {
-      final ctrl = container.read(focusControllerProvider.notifier);
-      ctrl.startSession(testTask);
+    test(
+      'logDistraction records distraction notes without interrupting session',
+      () {
+        final ctrl = container.read(focusControllerProvider.notifier);
+        ctrl.startSession(testTask);
 
-      ctrl.logDistraction('Check server metrics');
-      ctrl.logDistraction('Reply to email');
+        ctrl.logDistraction('Check server metrics');
+        ctrl.logDistraction('Reply to email');
 
-      final state = container.read(focusControllerProvider);
-      expect(state.distractionNotes.length, equals(2));
-      expect(state.distractionNotes[0], equals('Check server metrics'));
-      expect(state.distractionNotes[1], equals('Reply to email'));
-    });
+        final state = container.read(focusControllerProvider);
+        expect(state.distractionNotes.length, equals(2));
+        expect(state.distractionNotes[0], equals('Check server metrics'));
+        expect(state.distractionNotes[1], equals('Reply to email'));
+      },
+    );
 
     test('completeSession marks task completed, records actual duration & focus count', () {
       final ctrl = container.read(focusControllerProvider.notifier);

@@ -65,7 +65,8 @@ class BrainDumpResult {
       tasks.isEmpty && goals.isEmpty && notes.isEmpty && memories.isEmpty;
 
   /// Total count of all extracted structured entities.
-  int get totalCount => tasks.length + goals.length + notes.length + memories.length;
+  int get totalCount =>
+      tasks.length + goals.length + notes.length + memories.length;
 }
 
 /// Unified AI service layer.
@@ -214,12 +215,20 @@ User input: "${_sanitize(input)}"
   }
 
   /// Interactive AI Coach chat
-  Future<String> chatWithCoach(String message, List<Map<String, String>> history) async {
+  Future<String> chatWithCoach(
+    String message,
+    List<Map<String, String>> history,
+  ) async {
     final safeInput = _guard.validateInput(message, context: 'chat');
-    
-    var conversation = history.map((m) => "${m['role'] == 'user' ? 'User' : 'Coach'}: ${m['content']}").join("\n");
-    
-    final prompt = '''
+
+    var conversation = history
+        .map(
+          (m) => "${m['role'] == 'user' ? 'User' : 'Coach'}: ${m['content']}",
+        )
+        .join("\n");
+
+    final prompt =
+        '''
 You are AutoPlanner AI Coach & Productivity Tutor, a world-class personal performance mentor embedded inside the AutoPlanner app.
 Your mission is to help the user master their time, plan their days, overcome procrastination, achieve goals, build routines, and utilize AutoPlanner's features (Brain Dump, Focus Hub, Goals, Calendar, Notes, Analytics).
 
@@ -527,8 +536,12 @@ ${_sanitize(context)}
     // highest-risk user input path (free-form, long-form text).
     final input = _guard.validateInput(rawInput, context: 'brainDump');
     final now = DateTime.now();
-    final baseHour = now.hour < 8 ? 9 : (now.minute > 40 ? now.hour + 1 : now.hour);
-    final baseMinute = now.hour < 8 ? 0 : (((now.minute / 15).ceil() * 15) % 60);
+    final baseHour = now.hour < 8
+        ? 9
+        : (now.minute > 40 ? now.hour + 1 : now.hour);
+    final baseMinute = now.hour < 8
+        ? 0
+        : (((now.minute / 15).ceil() * 15) % 60);
     final suggestedStartTime =
         '${baseHour.toString().padLeft(2, '0')}:${baseMinute.toString().padLeft(2, '0')}';
 
@@ -845,7 +858,8 @@ Respond with ONLY the review text.
             if (n is! Map<String, dynamic>) return null;
             final title = (n['title'] as String?)?.trim() ?? 'Note';
             final content = (n['content'] as String?)?.trim() ?? '';
-            final tags = (n['tags'] as List<dynamic>?)
+            final tags =
+                (n['tags'] as List<dynamic>?)
                     ?.map((e) => e.toString())
                     .toList() ??
                 ['braindump'];
@@ -1054,7 +1068,8 @@ Respond with ONLY the review text.
     }
 
     // 2. Fall back to LLM structured output
-    final prompt = '''
+    final prompt =
+        '''
 You are an expert schedule assistant for AutoPlanner AI.
 Analyze the user's natural language command and output a single JSON object.
 
@@ -1081,12 +1096,20 @@ Output ONLY valid JSON.
 
     try {
       final response = await _withRetry(() => _provider.complete(prompt));
-      final json = AIValidator.extractObject(response.text, context: 'parseScheduleCommand');
+      final json = AIValidator.extractObject(
+        response.text,
+        context: 'parseScheduleCommand',
+      );
       return ScheduleCommand.fromJson(json, referenceTime: now);
     } catch (e) {
-      if (kDebugMode) debugPrint('parseScheduleCommand AI failed: $e, falling back to unknown');
+      if (kDebugMode) {
+        debugPrint(
+          'parseScheduleCommand AI failed: $e, falling back to unknown',
+        );
+      }
       return ScheduleCommand.unknown(
-        explanation: 'Could not process "$cleanQuery". Try "push afternoon by 30 mins" or "find tasks in 20m".',
+        explanation:
+            'Could not process "$cleanQuery". Try "push afternoon by 30 mins" or "find tasks in 20m".',
       );
     }
   }
@@ -1095,7 +1118,10 @@ Output ONLY valid JSON.
     final lower = query.toLowerCase();
 
     // Pattern: "what can i do in 20 mins" / "what fits in 15m" / "fit in 30 mins"
-    final fitMatch = RegExp(r'(?:what can i do in|what fits in|fit(?:ting)? in|under)\s+(\d+)\s*(?:m|min|mins|minutes)?', caseSensitive: false).firstMatch(lower);
+    final fitMatch = RegExp(
+      r'(?:what can i do in|what fits in|fit(?:ting)? in|under)\s+(\d+)\s*(?:m|min|mins|minutes)?',
+      caseSensitive: false,
+    ).firstMatch(lower);
     if (fitMatch != null) {
       final mins = int.tryParse(fitMatch.group(1) ?? '30') ?? 30;
       return ScheduleCommand(
@@ -1109,16 +1135,23 @@ Output ONLY valid JSON.
     if (lower.startsWith('focus on ') || lower.startsWith('start focus')) {
       final title = lower.startsWith('focus on ')
           ? query.substring(9).trim()
-          : (lower.startsWith('start focus on ') ? query.substring(15).trim() : null);
+          : (lower.startsWith('start focus on ')
+                ? query.substring(15).trim()
+                : null);
       return ScheduleCommand(
         type: ScheduleCommandType.startFocus,
         taskTitle: title != null && title.isNotEmpty ? title : null,
-        explanation: title != null ? 'Start focus session on "$title".' : 'Start focus on next scheduled task.',
+        explanation: title != null
+            ? 'Start focus session on "$title".'
+            : 'Start focus on next scheduled task.',
       );
     }
 
     // Pattern: "push afternoon by 30m" / "delay afternoon by 1 hour"
-    final pushMatch = RegExp(r'(?:push|delay|bump|shift)\s+(afternoon|morning|all|tasks)?\s*(?:by\s+)?(\d+)\s*(m|min|mins|minutes|h|hr|hour|hours)?', caseSensitive: false).firstMatch(lower);
+    final pushMatch = RegExp(
+      r'(?:push|delay|bump|shift)\s+(afternoon|morning|all|tasks)?\s*(?:by\s+)?(\d+)\s*(m|min|mins|minutes|h|hr|hour|hours)?',
+      caseSensitive: false,
+    ).firstMatch(lower);
     if (pushMatch != null) {
       final window = pushMatch.group(1);
       final val = int.tryParse(pushMatch.group(2) ?? '30') ?? 30;
@@ -1139,12 +1172,14 @@ Output ONLY valid JSON.
         minutes: minutes,
         afterTime: after,
         targetDate: now,
-        explanation: 'Shift tasks${window != null ? ' in the $window' : ''} by $minutes minutes.',
+        explanation:
+            'Shift tasks${window != null ? ' in the $window' : ''} by $minutes minutes.',
       );
     }
 
     // Pattern: "clear afternoon" / "clear 2pm to 4pm" / "free up 14:00 to 16:00"
-    if (lower.contains('clear afternoon') || lower.contains('free up afternoon')) {
+    if (lower.contains('clear afternoon') ||
+        lower.contains('free up afternoon')) {
       return ScheduleCommand(
         type: ScheduleCommandType.clearWindow,
         fromTime: DateTime(now.year, now.month, now.day, 12, 0),
@@ -1153,7 +1188,10 @@ Output ONLY valid JSON.
         explanation: 'Clear afternoon from 12:00 PM to 5:00 PM.',
       );
     }
-    final clearWindowMatch = RegExp(r'(?:clear|free up)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:to|-)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?', caseSensitive: false).firstMatch(lower);
+    final clearWindowMatch = RegExp(
+      r'(?:clear|free up)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:to|-)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?',
+      caseSensitive: false,
+    ).firstMatch(lower);
     if (clearWindowMatch != null) {
       int h1 = int.tryParse(clearWindowMatch.group(1) ?? '0') ?? 0;
       final m1 = int.tryParse(clearWindowMatch.group(2) ?? '0') ?? 0;
@@ -1172,7 +1210,8 @@ Output ONLY valid JSON.
         fromTime: DateTime(now.year, now.month, now.day, h1, m1),
         toTime: DateTime(now.year, now.month, now.day, h2, m2),
         targetDate: now,
-        explanation: 'Clear window between $h1:${m1.toString().padLeft(2, '0')} and $h2:${m2.toString().padLeft(2, '0')}.',
+        explanation:
+            'Clear window between $h1:${m1.toString().padLeft(2, '0')} and $h2:${m2.toString().padLeft(2, '0')}.',
       );
     }
 

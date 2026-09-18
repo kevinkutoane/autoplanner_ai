@@ -1,6 +1,8 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../focus/widgets/celebration_overlay.dart';
 
@@ -28,11 +30,8 @@ class LevelUpDialog extends StatelessWidget {
       context: context,
       barrierDismissible: true,
       barrierColor: Colors.black.withAlpha(160),
-      builder: (_) => LevelUpDialog(
-        newLevel: newLevel,
-        title: title,
-        totalXp: totalXp,
-      ),
+      builder: (_) =>
+          LevelUpDialog(newLevel: newLevel, title: title, totalXp: totalXp),
     );
   }
 
@@ -40,11 +39,7 @@ class LevelUpDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        CelebrationOverlay(
-          title: '',
-          subtitle: '',
-          onDismiss: () {},
-        ),
+        CelebrationOverlay(title: '', subtitle: '', onDismiss: () {}),
         Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28),

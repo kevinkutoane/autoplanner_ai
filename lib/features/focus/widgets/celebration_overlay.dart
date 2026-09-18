@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 /// A lightweight, 60fps canvas-based particle celebration effect for focus completion.

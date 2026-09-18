@@ -56,15 +56,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           .read(gamificationServiceProvider.notifier)
           .levelUpStream
           .listen((event) {
-        if (mounted) {
-          LevelUpDialog.show(
-            context,
-            newLevel: event.newLevel,
-            title: event.title,
-            totalXp: event.totalXp,
-          );
-        }
-      });
+            if (mounted) {
+              LevelUpDialog.show(
+                context,
+                newLevel: event.newLevel,
+                title: event.title,
+                totalXp: event.totalXp,
+              );
+            }
+          });
     });
   }
 
@@ -172,12 +172,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                         ),
                                         decoration: BoxDecoration(
                                           gradient: kGradientNeonSunset,
-                                          borderRadius:
-                                              BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color:
-                                                  kSunsetRose.withAlpha(80),
+                                              color: kSunsetRose.withAlpha(80),
                                               blurRadius: 8,
                                               offset: const Offset(0, 2),
                                             ),
@@ -390,10 +390,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SliverPadding(
                 padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
                 sliver: SliverToBoxAdapter(
-                  child: Stagger(
-                    index: 1,
-                    child: DailyRitualCard(),
-                  ),
+                  child: Stagger(index: 1, child: DailyRitualCard()),
                 ),
               ),
 
@@ -413,10 +410,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SliverPadding(
                 padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
                 sliver: SliverToBoxAdapter(
-                  child: Stagger(
-                    index: 1,
-                    child: WhatShouldIDoNowCard(),
-                  ),
+                  child: Stagger(index: 1, child: WhatShouldIDoNowCard()),
                 ),
               ),
 
@@ -424,10 +418,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SliverPadding(
                 padding: EdgeInsets.fromLTRB(16, 10, 16, 4),
                 sliver: SliverToBoxAdapter(
-                  child: Stagger(
-                    index: 1,
-                    child: MicroWinsCard(),
-                  ),
+                  child: Stagger(index: 1, child: MicroWinsCard()),
                 ),
               ),
 

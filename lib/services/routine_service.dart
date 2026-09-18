@@ -64,13 +64,18 @@ class RoutineService {
     final settings = _ref.read(settingsProvider);
 
     // 1. Today's events
-    final todayEvents =
-        events.where((e) => isSameDay(e.startTime, now)).toList();
+    final todayEvents = events
+        .where((e) => isSameDay(e.startTime, now))
+        .toList();
 
     // 2. Rollover tasks (tasks from before today that were never completed)
     final rolloverTasks = tasks.where((t) {
       if (t.isCompleted) return false;
-      final tDate = DateTime(t.startTime.year, t.startTime.month, t.startTime.day);
+      final tDate = DateTime(
+        t.startTime.year,
+        t.startTime.month,
+        t.startTime.day,
+      );
       final todayDate = DateTime(now.year, now.month, now.day);
       return tDate.isBefore(todayDate);
     }).toList();
@@ -108,7 +113,10 @@ class RoutineService {
       (sum, e) => sum + e.endTime.difference(e.startTime).inMinutes,
     );
     final totalWorkMinutes = settings.workHoursPerDay * 60;
-    final availableMinutes = (totalWorkMinutes - meetingMinutes).clamp(0, totalWorkMinutes);
+    final availableMinutes = (totalWorkMinutes - meetingMinutes).clamp(
+      0,
+      totalWorkMinutes,
+    );
     final availableHours = availableMinutes / 60.0;
 
     // AI or heuristic briefing
@@ -160,11 +168,14 @@ class RoutineService {
       // If task was from previous day, pull to today starting from 9am + offset
       if (!isSameDay(task.startTime, now)) {
         final newStart = DateTime(now.year, now.month, now.day, 9 + (i * 2), 0);
-        final newEnd = newStart.add(Duration(minutes: task.durationMinutes > 0 ? task.durationMinutes : 60));
-        taskCtrl.updateTask(task.copyWith(
-          startTime: newStart,
-          endTime: newEnd,
-        ));
+        final newEnd = newStart.add(
+          Duration(
+            minutes: task.durationMinutes > 0 ? task.durationMinutes : 60,
+          ),
+        );
+        taskCtrl.updateTask(
+          task.copyWith(startTime: newStart, endTime: newEnd),
+        );
       }
     }
 
@@ -185,7 +196,9 @@ class RoutineService {
       (sum, t) => sum + (t.actualDurationMinutes ?? t.durationMinutes),
     );
 
-    final rate = todayTasks.isEmpty ? 1.0 : completed.length / todayTasks.length;
+    final rate = todayTasks.isEmpty
+        ? 1.0
+        : completed.length / todayTasks.length;
 
     String headline = 'Daily Shutdown 🌙';
     if (rate >= 0.8) {
@@ -196,7 +209,8 @@ class RoutineService {
       headline = 'Rest & Recharge 🧘';
     }
 
-    const reflectionPrompt = 'What was your single biggest win or learning today?';
+    const reflectionPrompt =
+        'What was your single biggest win or learning today?';
 
     return EveningReview(
       headline: headline,
@@ -226,9 +240,21 @@ class RoutineService {
       final matches = tasks.where((t) => t.id == id);
       if (matches.isNotEmpty) {
         final task = matches.first;
-        final newStart = DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 9, 0);
-        final newEnd = newStart.add(Duration(minutes: task.durationMinutes > 0 ? task.durationMinutes : 60));
-        taskCtrl.updateTask(task.copyWith(startTime: newStart, endTime: newEnd));
+        final newStart = DateTime(
+          tomorrow.year,
+          tomorrow.month,
+          tomorrow.day,
+          9,
+          0,
+        );
+        final newEnd = newStart.add(
+          Duration(
+            minutes: task.durationMinutes > 0 ? task.durationMinutes : 60,
+          ),
+        );
+        taskCtrl.updateTask(
+          task.copyWith(startTime: newStart, endTime: newEnd),
+        );
       }
     }
 
@@ -238,7 +264,9 @@ class RoutineService {
       if (matches.isNotEmpty) {
         final task = matches.first;
         final backlogDate = DateTime(2099, 1, 1);
-        taskCtrl.updateTask(task.copyWith(startTime: backlogDate, endTime: backlogDate));
+        taskCtrl.updateTask(
+          task.copyWith(startTime: backlogDate, endTime: backlogDate),
+        );
       }
     }
 

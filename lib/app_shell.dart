@@ -24,7 +24,9 @@ import 'features/analytics/screens/analytics_screen.dart';
 import 'features/projects/screens/projects_screen.dart';
 import 'features/coach/screens/ai_coach_screen.dart';
 import 'features/focus/screens/focus_hub_screen.dart';
+
 import 'package:flutter/services.dart';
+
 import 'features/commands/widgets/command_palette_modal.dart';
 
 // ── Nav item descriptor ──────────────────────────────────────────────────────
@@ -275,79 +277,80 @@ class _AppShellState extends ConsumerState<AppShell>
           ),
         },
         child: Focus(
-        autofocus: true,
-        child: PopScope(
-          canPop: false,
-          child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Column(
-          children: [
-            const _ConnectivityBanner(),
-            Expanded(
-              child: IndexedStack(
-                index: _currentIndex,
+          autofocus: true,
+          child: PopScope(
+            canPop: false,
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Column(
                 children: [
-                  TickerMode(
-                    enabled: _currentIndex == 0,
-                    child: DashboardScreen(
-                      onNavigateTo: (i) => setState(() => _currentIndex = i),
+                  const _ConnectivityBanner(),
+                  Expanded(
+                    child: IndexedStack(
+                      index: _currentIndex,
+                      children: [
+                        TickerMode(
+                          enabled: _currentIndex == 0,
+                          child: DashboardScreen(
+                            onNavigateTo: (i) =>
+                                setState(() => _currentIndex = i),
+                          ),
+                        ),
+                        TickerMode(
+                          enabled: _currentIndex == 1,
+                          child: const PlannerScreen(),
+                        ),
+                        TickerMode(
+                          enabled: _currentIndex == 2,
+                          child: const FocusHubScreen(),
+                        ),
+                        TickerMode(
+                          enabled: _currentIndex == 3,
+                          child: const AiCoachScreen(),
+                        ),
+                        TickerMode(
+                          enabled: _currentIndex == 4,
+                          child: const CalendarScreen(),
+                        ),
+                        TickerMode(
+                          enabled: _currentIndex == 5,
+                          child: const GoalsScreen(),
+                        ),
+                        TickerMode(
+                          enabled: _currentIndex == 6,
+                          child: const MemoryScreen(),
+                        ),
+                        TickerMode(
+                          enabled: _currentIndex == 7,
+                          child: const NotesScreen(),
+                        ),
+                        TickerMode(
+                          enabled: _currentIndex == 8,
+                          child: const ProjectsScreen(),
+                        ),
+                        TickerMode(
+                          enabled: _currentIndex == 9,
+                          child: const AnalyticsScreen(),
+                        ),
+                        TickerMode(
+                          enabled: _currentIndex == 10,
+                          child: const SettingsScreen(),
+                        ),
+                      ],
                     ),
-                  ),
-                  TickerMode(
-                    enabled: _currentIndex == 1,
-                    child: const PlannerScreen(),
-                  ),
-                  TickerMode(
-                    enabled: _currentIndex == 2,
-                    child: const FocusHubScreen(),
-                  ),
-                  TickerMode(
-                    enabled: _currentIndex == 3,
-                    child: const AiCoachScreen(),
-                  ),
-                  TickerMode(
-                    enabled: _currentIndex == 4,
-                    child: const CalendarScreen(),
-                  ),
-                  TickerMode(
-                    enabled: _currentIndex == 5,
-                    child: const GoalsScreen(),
-                  ),
-                  TickerMode(
-                    enabled: _currentIndex == 6,
-                    child: const MemoryScreen(),
-                  ),
-                  TickerMode(
-                    enabled: _currentIndex == 7,
-                    child: const NotesScreen(),
-                  ),
-                  TickerMode(
-                    enabled: _currentIndex == 8,
-                    child: const ProjectsScreen(),
-                  ),
-                  TickerMode(
-                    enabled: _currentIndex == 9,
-                    child: const AnalyticsScreen(),
-                  ),
-                  TickerMode(
-                    enabled: _currentIndex == 10,
-                    child: const SettingsScreen(),
                   ),
                 ],
               ),
+              bottomNavigationBar: _GlassNavBar(
+                currentIndex: _currentIndex,
+                onTap: (i) => setState(() => _currentIndex = i),
+                onMoreTap: _showMoreSheet,
+              ),
             ),
-          ],
-        ),
-        bottomNavigationBar: _GlassNavBar(
-          currentIndex: _currentIndex,
-          onTap: (i) => setState(() => _currentIndex = i),
-          onMoreTap: _showMoreSheet,
+          ),
         ),
       ),
-    ),
-  ),
-),
-);
+    );
   }
 }
 
@@ -774,10 +777,7 @@ class _DockedBrainDumpButton extends StatefulWidget {
   final bool isDark;
   final VoidCallback onTap;
 
-  const _DockedBrainDumpButton({
-    required this.isDark,
-    required this.onTap,
-  });
+  const _DockedBrainDumpButton({required this.isDark, required this.onTap});
 
   @override
   State<_DockedBrainDumpButton> createState() => _DockedBrainDumpButtonState();
@@ -830,7 +830,9 @@ class _DockedBrainDumpButtonState extends State<_DockedBrainDumpButton>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: kNeonViolet.withAlpha((100 + 80 * _glowAnim.value).round()),
+                    color: kNeonViolet.withAlpha(
+                      (100 + 80 * _glowAnim.value).round(),
+                    ),
                     blurRadius: 14 + 6 * _glowAnim.value,
                     spreadRadius: 0.8 + 0.8 * _glowAnim.value,
                     offset: const Offset(0, 2),
@@ -1041,11 +1043,11 @@ class _GlassMoreSheet extends StatelessWidget {
                     itemCount: _overflowNavItems.length,
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 4,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      childAspectRatio: 0.92,
-                    ),
+                          crossAxisCount: 4,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 0.92,
+                        ),
                     itemBuilder: (ctx, i) {
                       final item = _overflowNavItems[i];
                       final isSelected = currentIndex == item.screenIndex;
@@ -1098,14 +1100,14 @@ class _MoreSheetItem extends StatelessWidget {
             color: isSelected
                 ? item.gradient.first.withAlpha(isDark ? 55 : 35)
                 : (isDark
-                    ? Colors.white.withAlpha(12)
-                    : Colors.black.withAlpha(8)),
+                      ? Colors.white.withAlpha(12)
+                      : Colors.black.withAlpha(8)),
             border: Border.all(
               color: isSelected
                   ? item.gradient.first.withAlpha(140)
                   : (isDark
-                      ? Colors.white.withAlpha(20)
-                      : Colors.black.withAlpha(15)),
+                        ? Colors.white.withAlpha(20)
+                        : Colors.black.withAlpha(15)),
               width: isSelected ? 1.4 : 1,
             ),
           ),
@@ -1121,8 +1123,8 @@ class _MoreSheetItem extends StatelessWidget {
                     colors: isSelected
                         ? item.gradient
                         : item.gradient
-                            .map((c) => c.withAlpha(isDark ? 160 : 130))
-                            .toList(),
+                              .map((c) => c.withAlpha(isDark ? 160 : 130))
+                              .toList(),
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -1155,8 +1157,8 @@ class _MoreSheetItem extends StatelessWidget {
                     color: isSelected
                         ? (isDark ? Colors.white : item.gradient.first)
                         : (isDark
-                            ? Colors.white.withAlpha(180)
-                            : Colors.black.withAlpha(180)),
+                              ? Colors.white.withAlpha(180)
+                              : Colors.black.withAlpha(180)),
                   ),
                 ),
               ),

@@ -146,7 +146,10 @@ void main() {
       expect(task.focusSessionsCount, equals(2));
 
       // Can clear with null sentinel
-      final cleared = task.copyWith(actualDurationMinutes: null, completedAt: null);
+      final cleared = task.copyWith(
+        actualDurationMinutes: null,
+        completedAt: null,
+      );
       expect(cleared.actualDurationMinutes, isNull);
       expect(cleared.completedAt, isNull);
     });
@@ -170,15 +173,18 @@ void main() {
       expect(taskWithEnd.durationMinutes, equals(75));
     });
 
-    test('effectiveDurationMinutes prefers actualDurationMinutes if present', () {
-      final task = makeTask().copyWith(
-        endTime: baseTime.add(const Duration(minutes: 60)),
-      );
-      expect(task.effectiveDurationMinutes, equals(60));
+    test(
+      'effectiveDurationMinutes prefers actualDurationMinutes if present',
+      () {
+        final task = makeTask().copyWith(
+          endTime: baseTime.add(const Duration(minutes: 60)),
+        );
+        expect(task.effectiveDurationMinutes, equals(60));
 
-      final completedTask = task.copyWith(actualDurationMinutes: 45);
-      expect(completedTask.effectiveDurationMinutes, equals(45));
-    });
+        final completedTask = task.copyWith(actualDurationMinutes: 45);
+        expect(completedTask.effectiveDurationMinutes, equals(45));
+      },
+    );
   });
 
   group('TaskItem.priorityLabel', () {

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../core/models/task_model.dart';
 import '../core/utils/date_utils.dart';
 import '../features/calendar/controllers/calendar_controller.dart';
@@ -59,10 +60,13 @@ class ContextAwareService {
     final tasks = _ref.read(taskControllerProvider);
 
     // Filter today's upcoming calendar events
-    final todayEvents = events
-        .where((e) => isSameDay(e.startTime, now) && e.startTime.isAfter(now))
-        .toList()
-      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    final todayEvents =
+        events
+            .where(
+              (e) => isSameDay(e.startTime, now) && e.startTime.isAfter(now),
+            )
+            .toList()
+          ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
     if (todayEvents.isEmpty) return null;
 
@@ -79,8 +83,7 @@ class ContextAwareService {
       if (t.isCompleted) return false;
       final dur = t.durationMinutes > 0 ? t.durationMinutes : 25;
       return dur <= windowMinutes;
-    }).toList()
-      ..sort((a, b) => b.priority.compareTo(a.priority));
+    }).toList()..sort((a, b) => b.priority.compareTo(a.priority));
 
     if (fittingTasks.isEmpty) return null;
 

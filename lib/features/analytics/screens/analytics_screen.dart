@@ -57,7 +57,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen>
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.white.withAlpha(30),
-                            border: Border.all(color: Colors.white.withAlpha(60)),
+                            border: Border.all(
+                              color: Colors.white.withAlpha(60),
+                            ),
                           ),
                           child: const Icon(
                             Icons.insights_rounded,
@@ -306,9 +308,7 @@ class _PerformanceTab extends ConsumerWidget {
         // ── Personal Intelligence & Productivity Health ─────
         const SliverPadding(
           padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-          sliver: SliverToBoxAdapter(
-            child: ProductivityHealthCard(),
-          ),
+          sliver: SliverToBoxAdapter(child: ProductivityHealthCard()),
         ),
 
         // ── Weekly bar chart ─────────────────────────────────

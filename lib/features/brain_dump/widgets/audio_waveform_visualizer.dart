@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
 import '../../../core/theme/ui_kit.dart';
 
 /// A vibrant, reactive 9-bar audio waveform frequency visualizer.
@@ -19,7 +21,8 @@ class AudioWaveformVisualizer extends StatefulWidget {
   });
 
   @override
-  State<AudioWaveformVisualizer> createState() => _AudioWaveformVisualizerState();
+  State<AudioWaveformVisualizer> createState() =>
+      _AudioWaveformVisualizerState();
 }
 
 class _AudioWaveformVisualizerState extends State<AudioWaveformVisualizer>
@@ -57,11 +60,15 @@ class _AudioWaveformVisualizerState extends State<AudioWaveformVisualizer>
             borderRadius: BorderRadius.circular(20),
             color: widget.isListening
                 ? kNeonViolet.withAlpha(isDark ? 25 : 15)
-                : (isDark ? Colors.white.withAlpha(8) : Colors.black.withAlpha(5)),
+                : (isDark
+                      ? Colors.white.withAlpha(8)
+                      : Colors.black.withAlpha(5)),
             border: Border.all(
               color: widget.isListening
                   ? kNeonCyan.withAlpha(isDark ? 120 : 90)
-                  : (isDark ? Colors.white.withAlpha(15) : Colors.black.withAlpha(10)),
+                  : (isDark
+                        ? Colors.white.withAlpha(15)
+                        : Colors.black.withAlpha(10)),
               width: widget.isListening ? 1.5 : 1,
             ),
             boxShadow: widget.isListening
@@ -94,7 +101,9 @@ class _AudioWaveformVisualizerState extends State<AudioWaveformVisualizer>
                         : null,
                     color: widget.isListening
                         ? null
-                        : (isDark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(10)),
+                        : (isDark
+                              ? Colors.white.withAlpha(20)
+                              : Colors.black.withAlpha(10)),
                     boxShadow: widget.isListening
                         ? [
                             BoxShadow(
@@ -107,7 +116,9 @@ class _AudioWaveformVisualizerState extends State<AudioWaveformVisualizer>
                   child: Icon(
                     widget.isListening ? Icons.stop_rounded : Icons.mic_rounded,
                     size: 20,
-                    color: widget.isListening ? Colors.white : (isDark ? kNeonCyan : kNeonViolet),
+                    color: widget.isListening
+                        ? Colors.white
+                        : (isDark ? kNeonCyan : kNeonViolet),
                   ),
                 ),
               ),
@@ -121,13 +132,19 @@ class _AudioWaveformVisualizerState extends State<AudioWaveformVisualizer>
                   children: List.generate(9, (index) {
                     // Phase offset for wave effect
                     final phase = (index / 9) * 2 * math.pi;
-                    final sine = (math.sin(_waveController.value * 2 * math.pi + phase) + 1) / 2;
+                    final sine =
+                        (math.sin(_waveController.value * 2 * math.pi + phase) +
+                            1) /
+                        2;
 
                     double barHeight;
                     if (widget.isListening) {
                       // Height responsive to sound level + harmonic wave
                       final base = 8.0 + (sine * 10.0);
-                      final reactive = normalizedLevel * 14.0 * (1.0 - (index - 4).abs() / 5.0);
+                      final reactive =
+                          normalizedLevel *
+                          14.0 *
+                          (1.0 - (index - 4).abs() / 5.0);
                       barHeight = (base + reactive).clamp(6.0, 30.0);
                     } else {
                       // Low idle ripple
@@ -154,7 +171,9 @@ class _AudioWaveformVisualizerState extends State<AudioWaveformVisualizer>
                         borderRadius: BorderRadius.circular(3),
                         color: widget.isListening
                             ? colors[index]
-                            : (isDark ? Colors.white.withAlpha(60) : Colors.black26),
+                            : (isDark
+                                  ? Colors.white.withAlpha(60)
+                                  : Colors.black26),
                         boxShadow: widget.isListening
                             ? [
                                 BoxShadow(
@@ -173,7 +192,9 @@ class _AudioWaveformVisualizerState extends State<AudioWaveformVisualizer>
 
               // Status text
               Text(
-                widget.isListening ? 'Listening… speak freely' : 'Tap mic to dictate',
+                widget.isListening
+                    ? 'Listening… speak freely'
+                    : 'Tap mic to dictate',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,

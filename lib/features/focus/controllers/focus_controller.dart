@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:autoplanner_ai/core/models/task_model.dart';
@@ -72,10 +73,7 @@ class FocusController extends Notifier<FocusSessionState> {
   void resume() {
     if (!state.isPaused) return;
     HapticFeedback.selectionClick();
-    state = state.copyWith(
-      isRunning: true,
-      isPaused: false,
-    );
+    state = state.copyWith(isRunning: true, isPaused: false);
     _startTicker();
   }
 
@@ -83,9 +81,7 @@ class FocusController extends Notifier<FocusSessionState> {
   void addMinutes(int minutes) {
     if (minutes <= 0) return;
     HapticFeedback.lightImpact();
-    state = state.copyWith(
-      targetSeconds: state.targetSeconds + (minutes * 60),
-    );
+    state = state.copyWith(targetSeconds: state.targetSeconds + (minutes * 60));
   }
 
   /// Log a quick distraction thought without leaving deep focus.
@@ -117,7 +113,9 @@ class FocusController extends Notifier<FocusSessionState> {
 
     // Persist via TaskController
     ref.read(taskControllerProvider.notifier).updateTask(updatedTask);
-    ref.read(gamificationServiceProvider.notifier).awardFocusMinutes(actualMins);
+    ref
+        .read(gamificationServiceProvider.notifier)
+        .awardFocusMinutes(actualMins);
 
     state = state.copyWith(
       task: updatedTask,
@@ -138,6 +136,4 @@ class FocusController extends Notifier<FocusSessionState> {
 }
 
 final focusControllerProvider =
-    NotifierProvider<FocusController, FocusSessionState>(
-  FocusController.new,
-);
+    NotifierProvider<FocusController, FocusSessionState>(FocusController.new);

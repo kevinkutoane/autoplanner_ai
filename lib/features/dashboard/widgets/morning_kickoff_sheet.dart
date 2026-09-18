@@ -1,7 +1,9 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../../services/routine_service.dart';
 
@@ -47,9 +49,7 @@ class _MorningKickoffSheetState extends ConsumerState<MorningKickoffSheet> {
   Future<void> _activate() async {
     if (_briefing == null) return;
     HapticFeedback.heavyImpact();
-    await ref
-        .read(routineServiceProvider)
-        .activateMorningPlan(_briefing!.big3);
+    await ref.read(routineServiceProvider).activateMorningPlan(_briefing!.big3);
     if (mounted) {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -172,7 +172,8 @@ class _MorningKickoffSheetState extends ConsumerState<MorningKickoffSheet> {
                             _HeaderStatCard(
                               icon: Icons.hourglass_top_rounded,
                               label: 'Open Flow',
-                              value: '${_briefing!.availableFocusHours.toStringAsFixed(1)}h',
+                              value:
+                                  '${_briefing!.availableFocusHours.toStringAsFixed(1)}h',
                               color: kUltraEmerald,
                             ),
                             const SizedBox(width: 10),
@@ -206,7 +207,9 @@ class _MorningKickoffSheetState extends ConsumerState<MorningKickoffSheet> {
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12),
                               child: VibrantGlassCard(
-                                glowColor: index == 0 ? kElectricAmber : kIndigo,
+                                glowColor: index == 0
+                                    ? kElectricAmber
+                                    : kIndigo,
                                 padding: const EdgeInsets.all(16),
                                 child: Row(
                                   children: [

@@ -666,14 +666,22 @@ class _GamificationMasteryHero extends ConsumerWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isDark
-                  ? [const Color(0xFF1E1B4B).withAlpha(200), const Color(0xFF172554).withAlpha(180)]
-                  : [const Color(0xFFEEF2FF).withAlpha(220), const Color(0xFFE0E7FF).withAlpha(200)],
+                  ? [
+                      const Color(0xFF1E1B4B).withAlpha(200),
+                      const Color(0xFF172554).withAlpha(180),
+                    ]
+                  : [
+                      const Color(0xFFEEF2FF).withAlpha(220),
+                      const Color(0xFFE0E7FF).withAlpha(200),
+                    ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
-              color: isDark ? const Color(0xFF6366F1).withAlpha(80) : const Color(0xFF818CF8).withAlpha(100),
+              color: isDark
+                  ? const Color(0xFF6366F1).withAlpha(80)
+                  : const Color(0xFF818CF8).withAlpha(100),
               width: 1.5,
             ),
             boxShadow: [
@@ -691,9 +699,14 @@ class _GamificationMasteryHero extends ConsumerWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)]),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                      ),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -720,11 +733,17 @@ class _GamificationMasteryHero extends ConsumerWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF97316).withAlpha(isDark ? 40 : 25),
+                      color: const Color(0xFFF97316)
+                          .withAlpha(isDark ? 40 : 25),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFF97316).withAlpha(120)),
+                      border: Border.all(
+                        color: const Color(0xFFF97316).withAlpha(120),
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -786,8 +805,12 @@ class _GamificationMasteryHero extends ConsumerWidget {
                   height: 10,
                   child: LinearProgressIndicator(
                     value: progress,
-                    backgroundColor: isDark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(15),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                    backgroundColor: isDark
+                        ? Colors.white.withAlpha(20)
+                        : Colors.black.withAlpha(15),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Color(0xFF6366F1),
+                    ),
                   ),
                 ),
               ),
@@ -797,7 +820,11 @@ class _GamificationMasteryHero extends ConsumerWidget {
               // 3. Lifetime Stats pill
               Row(
                 children: [
-                  Icon(Icons.military_tech_rounded, size: 16, color: isDark ? Colors.white60 : Colors.black54),
+                  Icon(
+                    Icons.military_tech_rounded,
+                    size: 16,
+                    color: isDark ? Colors.white60 : Colors.black54,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'Total Earned: ${profile.totalXp} XP  •  ${profile.unlockedBadgeIds.length} Badges Unlocked',
@@ -839,7 +866,8 @@ class _ProductivityPersonaCard extends StatelessWidget {
       _ => '🎯 Strategic & Balanced',
     };
 
-    final deepWorkLabel = '${settings.dailyFocusGoalMinutes ~/ 60}h ${settings.dailyFocusGoalMinutes % 60 > 0 ? "${settings.dailyFocusGoalMinutes % 60}m" : ""}';
+    final deepWorkLabel =
+        '${settings.dailyFocusGoalMinutes ~/ 60}h ${settings.dailyFocusGoalMinutes % 60 > 0 ? "${settings.dailyFocusGoalMinutes % 60}m" : ""}';
 
     return _GlassCard(
       child: Padding(
@@ -851,7 +879,10 @@ class _ProductivityPersonaCard extends StatelessWidget {
             if (settings.userMotto.trim().isNotEmpty) ...[
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -875,7 +906,9 @@ class _ProductivityPersonaCard extends StatelessWidget {
                           fontSize: 13,
                           fontStyle: FontStyle.italic,
                           fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white : const Color(0xFF1E1B4B),
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF1E1B4B),
                         ),
                       ),
                     ),

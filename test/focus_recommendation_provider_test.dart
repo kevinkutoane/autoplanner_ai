@@ -20,7 +20,9 @@ void main() {
 
       final container = ProviderContainer(
         overrides: [
-          taskControllerProvider.overrideWith(() => _MockTaskController([task])),
+          taskControllerProvider.overrideWith(
+            () => _MockTaskController([task]),
+          ),
         ],
       );
 
@@ -32,30 +34,34 @@ void main() {
       expect(rec.type, equals(RecommendationType.activeNow));
     });
 
-    test('recommends currently scheduled task if clock is within task window', () {
-      final nowTime = DateTime(2026, 3, 12, 14, 15);
-      final activeTask = TaskItem(
-        id: 't-sched-now',
-        title: 'Design review meeting',
-        startTime: DateTime(2026, 3, 12, 14, 0),
-        endTime: DateTime(2026, 3, 12, 14, 45),
-        priority: 2,
-      );
-
-      withClock(Clock.fixed(nowTime), () {
-        final container = ProviderContainer(
-          overrides: [
-            taskControllerProvider
-                .overrideWith(() => _MockTaskController([activeTask])),
-          ],
+    test(
+      'recommends currently scheduled task if clock is within task window',
+      () {
+        final nowTime = DateTime(2026, 3, 12, 14, 15);
+        final activeTask = TaskItem(
+          id: 't-sched-now',
+          title: 'Design review meeting',
+          startTime: DateTime(2026, 3, 12, 14, 0),
+          endTime: DateTime(2026, 3, 12, 14, 45),
+          priority: 2,
         );
 
-        final rec = container.read(focusRecommendationProvider);
-        expect(rec, isNotNull);
-        expect(rec!.task.id, equals('t-sched-now'));
-        expect(rec.type, equals(RecommendationType.activeNow));
-      });
-    });
+        withClock(Clock.fixed(nowTime), () {
+          final container = ProviderContainer(
+            overrides: [
+              taskControllerProvider.overrideWith(
+                () => _MockTaskController([activeTask]),
+              ),
+            ],
+          );
+
+          final rec = container.read(focusRecommendationProvider);
+          expect(rec, isNotNull);
+          expect(rec!.task.id, equals('t-sched-now'));
+          expect(rec.type, equals(RecommendationType.activeNow));
+        });
+      },
+    );
 
     test('recommends upcoming task starting within 45 minutes', () {
       final nowTime = DateTime(2026, 3, 12, 9, 40);
@@ -69,8 +75,9 @@ void main() {
       withClock(Clock.fixed(nowTime), () {
         final container = ProviderContainer(
           overrides: [
-            taskControllerProvider
-                .overrideWith(() => _MockTaskController([upcomingTask])),
+            taskControllerProvider.overrideWith(
+              () => _MockTaskController([upcomingTask]),
+            ),
           ],
         );
 
@@ -127,8 +134,9 @@ void main() {
       withClock(Clock.fixed(nowTime), () {
         final container = ProviderContainer(
           overrides: [
-            taskControllerProvider
-                .overrideWith(() => _MockTaskController([doneTask])),
+            taskControllerProvider.overrideWith(
+              () => _MockTaskController([doneTask]),
+            ),
           ],
         );
 

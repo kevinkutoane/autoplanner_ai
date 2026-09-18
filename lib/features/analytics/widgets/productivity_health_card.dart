@@ -24,7 +24,10 @@ class ProductivityHealthCard extends ConsumerWidget {
     }
 
     final activeCalibrations = calibrations.values
-        .where((c) => c.sampleCount >= DurationLearningService.minSamplesForConfidence)
+        .where(
+          (c) =>
+              c.sampleCount >= DurationLearningService.minSamplesForConfidence,
+        )
         .toList();
 
     return GlassCard(
@@ -180,9 +183,7 @@ class ProductivityHealthCard extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        debtMinutes == 0
-                            ? 'Zero debt'
-                            : 'Overdue rolled over',
+                        debtMinutes == 0 ? 'Zero debt' : 'Overdue rolled over',
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark ? Colors.white60 : Colors.black54,

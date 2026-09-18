@@ -231,16 +231,16 @@ class TaskItem extends HiveObject {
   /// Scheduled duration of the task in minutes (defaults to 30 if endTime is null).
   int get durationMinutes => endTime != null
       ? (endTime!.difference(startTime).inMinutes > 0
-          ? endTime!.difference(startTime).inMinutes
-          : 30)
+            ? endTime!.difference(startTime).inMinutes
+            : 30)
       : 30;
 
   /// Effective duration in minutes: uses [actualDurationMinutes] if recorded,
   /// otherwise falls back to [durationMinutes].
   int get effectiveDurationMinutes =>
       (actualDurationMinutes != null && actualDurationMinutes! > 0)
-          ? actualDurationMinutes!
-          : durationMinutes;
+      ? actualDurationMinutes!
+      : durationMinutes;
 
   /// Human-readable label for [priority].
   ///

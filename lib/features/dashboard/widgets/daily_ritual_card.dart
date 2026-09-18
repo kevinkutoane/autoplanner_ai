@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/theme/ui_kit.dart';
 import '../../../services/gamification_service.dart';
 import 'morning_kickoff_sheet.dart';
@@ -16,12 +17,14 @@ class DailyRitualCard extends ConsumerWidget {
     final profile = ref.watch(gamificationServiceProvider);
 
     // Check if ritual already completed today
-    final isMorningCompleted = profile.lastMorningRitualDate != null &&
+    final isMorningCompleted =
+        profile.lastMorningRitualDate != null &&
         profile.lastMorningRitualDate!.year == now.year &&
         profile.lastMorningRitualDate!.month == now.month &&
         profile.lastMorningRitualDate!.day == now.day;
 
-    final isEveningCompleted = profile.lastEveningRitualDate != null &&
+    final isEveningCompleted =
+        profile.lastEveningRitualDate != null &&
         profile.lastEveningRitualDate!.year == now.year &&
         profile.lastEveningRitualDate!.month == now.month &&
         profile.lastEveningRitualDate!.day == now.day;
@@ -85,10 +88,7 @@ class DailyRitualCard extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const GlowBadge(
-                      label: '+50 XP',
-                      color: kElectricAmber,
-                    ),
+                    const GlowBadge(label: '+50 XP', color: kElectricAmber),
                   ],
                 ),
                 const SizedBox(height: 4),

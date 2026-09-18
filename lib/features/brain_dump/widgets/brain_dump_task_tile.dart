@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../../core/models/task_model.dart';
 import '../../../core/theme/ui_kit.dart';
 
@@ -44,13 +45,17 @@ class BrainDumpTaskTile extends StatelessWidget {
         border: Border.all(
           color: selected
               ? (isClash ? kSunsetRose : kNeonCyan).withAlpha(isDark ? 90 : 70)
-              : (isDark ? Colors.white.withAlpha(15) : Colors.black.withAlpha(10)),
+              : (isDark
+                    ? Colors.white.withAlpha(15)
+                    : Colors.black.withAlpha(10)),
           width: selected ? 1.5 : 1,
         ),
         boxShadow: selected
             ? [
                 BoxShadow(
-                  color: (isClash ? kSunsetRose : kNeonCyan).withAlpha(isDark ? 40 : 25),
+                  color: (isClash ? kSunsetRose : kNeonCyan).withAlpha(
+                    isDark ? 40 : 25,
+                  ),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -102,7 +107,9 @@ class BrainDumpTaskTile extends StatelessWidget {
                         color: selected
                             ? (isDark ? Colors.white : Colors.black87)
                             : (isDark ? Colors.white38 : Colors.black38),
-                        decoration: selected ? null : TextDecoration.lineThrough,
+                        decoration: selected
+                            ? null
+                            : TextDecoration.lineThrough,
                         letterSpacing: -0.3,
                       ),
                     ),
@@ -141,7 +148,10 @@ class BrainDumpTaskTile extends StatelessWidget {
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  constraints: const BoxConstraints(
+                    minWidth: 28,
+                    minHeight: 28,
+                  ),
                   tooltip: 'Convert to Note',
                   icon: Icon(
                     Icons.note_alt_outlined,
@@ -181,11 +191,15 @@ class BrainDumpTaskTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                         color: isActive
                             ? kNeonCyan.withAlpha(isDark ? 50 : 35)
-                            : (isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(6)),
+                            : (isDark
+                                  ? Colors.white.withAlpha(12)
+                                  : Colors.black.withAlpha(6)),
                         border: Border.all(
                           color: isActive
                               ? kNeonCyan
-                              : (isDark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(12)),
+                              : (isDark
+                                    ? Colors.white.withAlpha(20)
+                                    : Colors.black.withAlpha(12)),
                           width: isActive ? 1.2 : 1,
                         ),
                       ),
@@ -193,7 +207,9 @@ class BrainDumpTaskTile extends StatelessWidget {
                         '${mins}m',
                         style: TextStyle(
                           fontSize: 11,
-                          fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
+                          fontWeight: isActive
+                              ? FontWeight.w800
+                              : FontWeight.w500,
                           color: isActive
                               ? (isDark ? kNeonCyan : const Color(0xFF00838F))
                               : (isDark ? Colors.white70 : Colors.black54),
@@ -208,10 +224,14 @@ class BrainDumpTaskTile extends StatelessWidget {
                 GestureDetector(
                   onTap: () => onPriorityChanged((task.priority + 1) % 4),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      color: _priorityColor(task.priority).withAlpha(isDark ? 40 : 25),
+                      color: _priorityColor(task.priority)
+                          .withAlpha(isDark ? 40 : 25),
                       border: Border.all(
                         color: _priorityColor(task.priority).withAlpha(120),
                       ),

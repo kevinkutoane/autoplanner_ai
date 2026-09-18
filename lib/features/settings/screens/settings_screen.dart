@@ -46,7 +46,9 @@ class SettingsScreen extends ConsumerWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.white.withAlpha(30),
-                            border: Border.all(color: Colors.white.withAlpha(60)),
+                            border: Border.all(
+                              color: Colors.white.withAlpha(60),
+                            ),
                           ),
                           child: const Icon(
                             Icons.settings_rounded,
@@ -1410,13 +1412,15 @@ class _NotificationCenterCardState
                               color: selected
                                   ? null
                                   : (isDark
-                                      ? Colors.white.withAlpha(12)
-                                      : Colors.black.withAlpha(6)),
+                                        ? Colors.white.withAlpha(12)
+                                        : Colors.black.withAlpha(6)),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
                                 color: selected
                                     ? Colors.transparent
-                                    : (isDark ? Colors.white12 : Colors.black12),
+                                    : (isDark
+                                          ? Colors.white12
+                                          : Colors.black12),
                               ),
                             ),
                             alignment: Alignment.center,
@@ -1427,7 +1431,9 @@ class _NotificationCenterCardState
                                 fontWeight: FontWeight.w700,
                                 color: selected
                                     ? Colors.white
-                                    : (isDark ? Colors.white70 : Colors.black87),
+                                    : (isDark
+                                          ? Colors.white70
+                                          : Colors.black87),
                               ),
                             ),
                           ),
@@ -1462,7 +1468,10 @@ class _NotificationCenterCardState
                 label: Text('Change Kickoff Time ($morningTimeLabel)'),
                 style: TextButton.styleFrom(
                   foregroundColor: kAmber,
-                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -1489,7 +1498,10 @@ class _NotificationCenterCardState
                 label: Text('Change Shutdown Time ($eveningTimeLabel)'),
                 style: TextButton.styleFrom(
                   foregroundColor: kIndigo,
-                  textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  textStyle: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
@@ -1563,7 +1575,8 @@ class _NotificationCenterCardState
                     Switch.adaptive(
                       value: s.notificationVibrateEnabled,
                       activeThumbColor: kCyan,
-                      onChanged: (v) => ctrl.updateNotificationVibrateEnabled(v),
+                      onChanged: (v) =>
+                          ctrl.updateNotificationVibrateEnabled(v),
                     ),
                   ],
                 ),
@@ -1589,15 +1602,38 @@ class _ProductivityPersonaCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final chronotypes = [
-      {'id': 'early_bird', 'label': 'Early Bird', 'icon': Icons.wb_sunny_rounded, 'desc': 'Peak energy 6AM-12PM'},
-      {'id': 'balanced', 'label': 'Balanced', 'icon': Icons.balance_rounded, 'desc': 'Steady energy 9AM-5PM'},
-      {'id': 'night_owl', 'label': 'Night Owl', 'icon': Icons.nightlight_round, 'desc': 'Peak flow 4PM-11PM'},
+      {
+        'id': 'early_bird',
+        'label': 'Early Bird',
+        'icon': Icons.wb_sunny_rounded,
+        'desc': 'Peak energy 6AM-12PM',
+      },
+      {
+        'id': 'balanced',
+        'label': 'Balanced',
+        'icon': Icons.balance_rounded,
+        'desc': 'Steady energy 9AM-5PM',
+      },
+      {
+        'id': 'night_owl',
+        'label': 'Night Owl',
+        'icon': Icons.nightlight_round,
+        'desc': 'Peak flow 4PM-11PM',
+      },
     ];
 
     final coachingStyles = [
       {'id': 'direct', 'label': 'Direct & Sharp', 'icon': Icons.bolt_rounded},
-      {'id': 'balanced', 'label': 'Strategic', 'icon': Icons.track_changes_rounded},
-      {'id': 'empathetic', 'label': 'Empathetic', 'icon': Icons.favorite_rounded},
+      {
+        'id': 'balanced',
+        'label': 'Strategic',
+        'icon': Icons.track_changes_rounded,
+      },
+      {
+        'id': 'empathetic',
+        'label': 'Empathetic',
+        'icon': Icons.favorite_rounded,
+      },
     ];
 
     return Padding(
@@ -1625,15 +1661,22 @@ class _ProductivityPersonaCard extends StatelessWidget {
                     onTap: () => ctrl.updateChronotype(c['id'] as String),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 4,
+                      ),
                       decoration: BoxDecoration(
                         gradient: isSel ? kGradientHero : null,
                         color: isSel
                             ? null
-                            : (isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(6)),
+                            : (isDark
+                                  ? Colors.white.withAlpha(12)
+                                  : Colors.black.withAlpha(6)),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSel ? Colors.transparent : (isDark ? Colors.white12 : Colors.black12),
+                          color: isSel
+                              ? Colors.transparent
+                              : (isDark ? Colors.white12 : Colors.black12),
                         ),
                       ),
                       child: Column(
@@ -1642,7 +1685,9 @@ class _ProductivityPersonaCard extends StatelessWidget {
                           Icon(
                             c['icon'] as IconData,
                             size: 20,
-                            color: isSel ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                            color: isSel
+                                ? Colors.white
+                                : (isDark ? Colors.white70 : Colors.black87),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -1651,7 +1696,9 @@ class _ProductivityPersonaCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: isSel ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                              color: isSel
+                                  ? Colors.white
+                                  : (isDark ? Colors.white70 : Colors.black87),
                             ),
                           ),
                         ],
@@ -1670,7 +1717,11 @@ class _ProductivityPersonaCard extends StatelessWidget {
           // 2. Daily Deep Work Focus Target
           Row(
             children: [
-              Icon(Icons.center_focus_strong_rounded, size: 20, color: isDark ? Colors.white54 : Colors.black45),
+              Icon(
+                Icons.center_focus_strong_rounded,
+                size: 20,
+                color: isDark ? Colors.white54 : Colors.black45,
+              ),
               const SizedBox(width: 10),
               Text(
                 'Daily focus goal',
@@ -1695,7 +1746,9 @@ class _ProductivityPersonaCard extends StatelessWidget {
           Row(
             children: [60, 90, 120, 180].map((mins) {
               final isSel = settings.dailyFocusGoalMinutes == mins;
-              final label = mins >= 60 ? (mins % 60 == 0 ? '${mins ~/ 60}h' : '${mins / 60}h') : '${mins}m';
+              final label = mins >= 60
+                  ? (mins % 60 == 0 ? '${mins ~/ 60}h' : '${mins / 60}h')
+                  : '${mins}m';
               return Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -1708,10 +1761,14 @@ class _ProductivityPersonaCard extends StatelessWidget {
                         gradient: isSel ? kGradientMain : null,
                         color: isSel
                             ? null
-                            : (isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(6)),
+                            : (isDark
+                                  ? Colors.white.withAlpha(12)
+                                  : Colors.black.withAlpha(6)),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: isSel ? Colors.transparent : (isDark ? Colors.white12 : Colors.black12),
+                          color: isSel
+                              ? Colors.transparent
+                              : (isDark ? Colors.white12 : Colors.black12),
                         ),
                       ),
                       alignment: Alignment.center,
@@ -1720,7 +1777,9 @@ class _ProductivityPersonaCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: isSel ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                          color: isSel
+                              ? Colors.white
+                              : (isDark ? Colors.white70 : Colors.black87),
                         ),
                       ),
                     ),
@@ -1751,18 +1810,26 @@ class _ProductivityPersonaCard extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 3),
                   child: GestureDetector(
-                    onTap: () => ctrl.updateCoachingStyle(style['id'] as String),
+                    onTap: () =>
+                        ctrl.updateCoachingStyle(style['id'] as String),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 4,
+                      ),
                       decoration: BoxDecoration(
                         gradient: isSel ? kGradientTeal : null,
                         color: isSel
                             ? null
-                            : (isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(6)),
+                            : (isDark
+                                  ? Colors.white.withAlpha(12)
+                                  : Colors.black.withAlpha(6)),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: isSel ? Colors.transparent : (isDark ? Colors.white12 : Colors.black12),
+                          color: isSel
+                              ? Colors.transparent
+                              : (isDark ? Colors.white12 : Colors.black12),
                         ),
                       ),
                       child: Row(
@@ -1771,7 +1838,9 @@ class _ProductivityPersonaCard extends StatelessWidget {
                           Icon(
                             style['icon'] as IconData,
                             size: 16,
-                            color: isSel ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                            color: isSel
+                                ? Colors.white
+                                : (isDark ? Colors.white70 : Colors.black87),
                           ),
                           const SizedBox(width: 4),
                           Flexible(
@@ -1782,7 +1851,11 @@ class _ProductivityPersonaCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
-                                color: isSel ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                                color: isSel
+                                    ? Colors.white
+                                    : (isDark
+                                          ? Colors.white70
+                                          : Colors.black87),
                               ),
                             ),
                           ),
@@ -1815,7 +1888,8 @@ class _SensoryPreferencesCard extends StatelessWidget {
         _SwitchTile(
           icon: Icons.vibration_rounded,
           title: 'Haptic feedback',
-          subtitle: 'Subtle micro-vibrations on taps, level-ups & task completions',
+          subtitle:
+              'Subtle micro-vibrations on taps, level-ups & task completions',
           value: settings.hapticsEnabled,
           onChanged: (v) => ctrl.updateHapticsEnabled(v),
         ),
@@ -1931,7 +2005,9 @@ class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
               connected ? email : 'Sync events with Google Calendar',
               style: TextStyle(
                 fontSize: 12,
-                color: connected ? kCyan : (isDark ? Colors.white38 : Colors.black38),
+                color: connected
+                    ? kCyan
+                    : (isDark ? Colors.white38 : Colors.black38),
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1960,7 +2036,9 @@ class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
                       ),
                     ),
                   ),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
           ),
           if (connected) ...[
             _GlassDivider(),

@@ -49,20 +49,27 @@ class ScheduleCommand {
     this.rawParams = const {},
   });
 
-  factory ScheduleCommand.unknown({String explanation = 'Could not understand command.'}) {
+  factory ScheduleCommand.unknown({
+    String explanation = 'Could not understand command.',
+  }) {
     return ScheduleCommand(
       type: ScheduleCommandType.unknown,
       explanation: explanation,
     );
   }
 
-  factory ScheduleCommand.fromJson(Map<String, dynamic> json, {DateTime? referenceTime}) {
+  factory ScheduleCommand.fromJson(
+    Map<String, dynamic> json, {
+    DateTime? referenceTime,
+  }) {
     final now = referenceTime ?? DateTime.now();
     final actionStr = (json['action'] as String? ?? 'unknown').toLowerCase();
     final minutes = json['minutes'] as int?;
     final title = json['taskTitle'] as String?;
     final priority = json['priority'] as int?;
-    final tags = (json['tags'] as List?)?.map((e) => e.toString()).toList() ?? <String>[];
+    final tags =
+        (json['tags'] as List?)?.map((e) => e.toString()).toList() ??
+        <String>[];
     final explanation = json['explanation'] as String? ?? '';
 
     DateTime? parseTimeStr(String? timeStr, DateTime baseDate) {
@@ -119,12 +126,18 @@ class ScheduleCommand {
       taskTitle: title,
       priority: priority,
       tags: tags,
-      explanation: explanation.isNotEmpty ? explanation : _defaultExplanation(type, minutes, title),
+      explanation: explanation.isNotEmpty
+          ? explanation
+          : _defaultExplanation(type, minutes, title),
       rawParams: json,
     );
   }
 
-  static String _defaultExplanation(ScheduleCommandType type, int? minutes, String? title) {
+  static String _defaultExplanation(
+    ScheduleCommandType type,
+    int? minutes,
+    String? title,
+  ) {
     switch (type) {
       case ScheduleCommandType.shift:
         return 'Shift upcoming tasks by ${minutes ?? 30} minutes.';
@@ -180,7 +193,10 @@ class CommandPreview {
   });
 
   bool get hasActionableChanges =>
-      shifts.isNotEmpty || newTask != null || focusTask != null || fittingTasks.isNotEmpty;
+      shifts.isNotEmpty ||
+      newTask != null ||
+      focusTask != null ||
+      fittingTasks.isNotEmpty;
 }
 
 /// Outcome of executing a schedule command.

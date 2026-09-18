@@ -117,7 +117,10 @@ class NotesScreen extends ConsumerWidget {
                         border: Border.all(color: Colors.white.withAlpha(50)),
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.add_rounded, color: Colors.white),
+                        icon: const Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                        ),
                         tooltip: 'New Note',
                         onPressed: () => _showAddNoteDialog(context, ref),
                       ),

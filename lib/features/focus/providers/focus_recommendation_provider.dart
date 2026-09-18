@@ -100,8 +100,8 @@ final focusRecommendationProvider = Provider<FocusRecommendation?>((ref) {
   final String targetEnergy = now.hour < 12
       ? 'high'
       : now.hour < 17
-          ? 'medium'
-          : 'low';
+      ? 'medium'
+      : 'low';
 
   final energyMatches = todayPending
       .where((t) => t.energyLevel?.toLowerCase() == targetEnergy)
@@ -114,7 +114,8 @@ final focusRecommendationProvider = Provider<FocusRecommendation?>((ref) {
       task: match,
       type: RecommendationType.energyMatch,
       title: match.title,
-      subtitle: 'Optimal for your $targetEnergy energy window (${match.durationMinutes}m)',
+      subtitle:
+          'Optimal for your $targetEnergy energy window (${match.durationMinutes}m)',
     );
   }
 
@@ -130,6 +131,7 @@ final focusRecommendationProvider = Provider<FocusRecommendation?>((ref) {
     task: fallback,
     type: RecommendationType.highestPriority,
     title: fallback.title,
-    subtitle: 'Priority ${fallback.priorityLabel} • ${fallback.durationMinutes}m scheduled',
+    subtitle:
+        'Priority ${fallback.priorityLabel} • ${fallback.durationMinutes}m scheduled',
   );
 });

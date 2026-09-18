@@ -226,7 +226,9 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
                         radius: 0.85 + (_pulseController.value * 0.15),
                         colors: [
                           kIndigo.withAlpha(
-                            session.isPaused ? 20 : (40 + (_pulseController.value * 25).toInt()),
+                            session.isPaused
+                                ? 20
+                                : (40 + (_pulseController.value * 25).toInt()),
                           ),
                           Colors.transparent,
                         ],

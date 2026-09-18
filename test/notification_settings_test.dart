@@ -105,7 +105,9 @@ void main() {
         priority: 1, // Medium / Low
       );
 
-      final settings = AppSettings.defaults().copyWith(remindCrucialTasksOnly: true);
+      final settings = AppSettings.defaults().copyWith(
+        remindCrucialTasksOnly: true,
+      );
 
       // Should not throw or crash even if plugin not initialized in test environment
       await service.scheduleTaskReminder(lowTask, settings);
@@ -120,7 +122,9 @@ void main() {
         priority: 3, // Urgent
       );
 
-      final settings = AppSettings.defaults().copyWith(taskRemindersEnabled: false);
+      final settings = AppSettings.defaults().copyWith(
+        taskRemindersEnabled: false,
+      );
       await service.scheduleTaskReminder(urgentTask, settings);
     });
 

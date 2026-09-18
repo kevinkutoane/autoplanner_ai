@@ -38,7 +38,9 @@ void main() {
         tracker: TokenTracker(),
       );
 
-      final result = await aiService.brainDump('Review action items, project ideas for gamification, launch MVP');
+      final result = await aiService.brainDump(
+        'Review action items, project ideas for gamification, launch MVP',
+      );
 
       expect(result.isEmpty, isFalse);
       expect(result.tasks.length, greaterThanOrEqualTo(1));
@@ -66,17 +68,20 @@ void main() {
       expect(result.memories.first, contains('focused work blocks'));
     });
 
-    test('Gamification awards +50 XP for mental decluttering on brain dump save', () async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
+    test(
+      'Gamification awards +50 XP for mental decluttering on brain dump save',
+      () async {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
 
-      final notifier = container.read(gamificationServiceProvider.notifier);
-      final initialXp = container.read(gamificationServiceProvider).totalXp;
+        final notifier = container.read(gamificationServiceProvider.notifier);
+        final initialXp = container.read(gamificationServiceProvider).totalXp;
 
-      await notifier.awardBrainDump();
+        await notifier.awardBrainDump();
 
-      final updatedProfile = container.read(gamificationServiceProvider);
-      expect(updatedProfile.totalXp, equals(initialXp + 50));
-    });
+        final updatedProfile = container.read(gamificationServiceProvider);
+        expect(updatedProfile.totalXp, equals(initialXp + 50));
+      },
+    );
   });
 }

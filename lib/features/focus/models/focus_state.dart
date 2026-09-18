@@ -40,8 +40,7 @@ class FocusSessionState {
   bool get isOvertime => elapsedSeconds > targetSeconds;
 
   /// Overtime seconds if the user is working past the planned target.
-  int get overtimeSeconds =>
-      isOvertime ? elapsedSeconds - targetSeconds : 0;
+  int get overtimeSeconds => isOvertime ? elapsedSeconds - targetSeconds : 0;
 
   /// Elapsed focus time rounded to whole minutes (minimum 1 minute if started).
   int get elapsedMinutes {

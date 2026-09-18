@@ -352,17 +352,12 @@ class VibrantGlassCard extends StatelessWidget {
 
     Widget content = Container(
       decoration: BoxDecoration(
-        gradient: backgroundGradient ??
+        gradient:
+            backgroundGradient ??
             LinearGradient(
               colors: d
-                  ? [
-                      Colors.white.withAlpha(16),
-                      defaultGlow.withAlpha(14),
-                    ]
-                  : [
-                      Colors.white.withAlpha(220),
-                      defaultGlow.withAlpha(20),
-                    ],
+                  ? [Colors.white.withAlpha(16), defaultGlow.withAlpha(14)]
+                  : [Colors.white.withAlpha(220), defaultGlow.withAlpha(20)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -370,9 +365,7 @@ class VibrantGlassCard extends StatelessWidget {
         border: Border.all(
           color: gradientBorder != null
               ? Colors.transparent
-              : (d
-                  ? defaultGlow.withAlpha(50)
-                  : defaultGlow.withAlpha(60)),
+              : (d ? defaultGlow.withAlpha(50) : defaultGlow.withAlpha(60)),
           width: 1.2,
         ),
         boxShadow: [
@@ -434,10 +427,7 @@ class GlowBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withAlpha(d ? 32 : 24),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withAlpha(d ? 90 : 70),
-          width: 1,
-        ),
+        border: Border.all(color: color.withAlpha(d ? 90 : 70), width: 1),
         boxShadow: [
           BoxShadow(
             color: color.withAlpha(30),
@@ -456,11 +446,7 @@ class GlowBadge extends StatelessWidget {
               color: color,
               shape: BoxShape.circle,
               boxShadow: [
-                BoxShadow(
-                  color: color,
-                  blurRadius: 6,
-                  spreadRadius: 1,
-                ),
+                BoxShadow(color: color, blurRadius: 6, spreadRadius: 1),
               ],
             ),
           ),

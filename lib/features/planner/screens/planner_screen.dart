@@ -169,33 +169,54 @@ class PlannerScreen extends ConsumerWidget {
                       scrollDirection: Axis.horizontal,
                       itemCount: 14, // 7 days past, 7 days future
                       itemBuilder: (context, index) {
-                        final date = DateTime.now().subtract(const Duration(days: 3)).add(Duration(days: index));
-                        final isSelected = date.year == selectedDate.year &&
+                        final date = DateTime.now()
+                            .subtract(const Duration(days: 3))
+                            .add(Duration(days: index));
+                        final isSelected =
+                            date.year == selectedDate.year &&
                             date.month == selectedDate.month &&
                             date.day == selectedDate.day;
-                        final isToday = date.year == DateTime.now().year &&
+                        final isToday =
+                            date.year == DateTime.now().year &&
                             date.month == DateTime.now().month &&
                             date.day == DateTime.now().day;
-                        
+
                         // Calculate capacity for this day
-                        final dayTasks = allTasks.where((t) =>
-                            t.startTime.year == date.year &&
-                            t.startTime.month == date.month &&
-                            t.startTime.day == date.day);
-                        final totalMinutes = dayTasks.fold<int>(0, (sum, t) => sum + (t.durationMinutes > 0 ? t.durationMinutes : 60));
+                        final dayTasks = allTasks.where(
+                          (t) =>
+                              t.startTime.year == date.year &&
+                              t.startTime.month == date.month &&
+                              t.startTime.day == date.day,
+                        );
+                        final totalMinutes = dayTasks.fold<int>(
+                          0,
+                          (sum, t) =>
+                              sum +
+                              (t.durationMinutes > 0 ? t.durationMinutes : 60),
+                        );
                         final maxMinutes = settings.workHoursPerDay * 60;
-                        final capacityRatio = (totalMinutes / maxMinutes).clamp(0.0, 1.0);
+                        final capacityRatio = (totalMinutes / maxMinutes).clamp(
+                          0.0,
+                          1.0,
+                        );
 
                         return GestureDetector(
                           onTap: () {
-                            ref.read(plannerSelectedDateProvider.notifier).set(date);
+                            ref
+                                .read(plannerSelectedDateProvider.notifier)
+                                .set(date);
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             margin: const EdgeInsets.only(right: 12),
                             width: 60,
                             decoration: BoxDecoration(
-                              color: isSelected ? kIndigo : (Theme.of(context).brightness == Brightness.dark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5)),
+                              color: isSelected
+                                  ? kIndigo
+                                  : (Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white.withAlpha(10)
+                                        : Colors.black.withAlpha(5)),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: isToday ? kCyan : Colors.transparent,
@@ -209,8 +230,15 @@ class PlannerScreen extends ConsumerWidget {
                                   DateFormat('E').format(date),
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white54 : Colors.black54),
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : (Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.white54
+                                              : Colors.black54),
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -218,13 +246,20 @@ class PlannerScreen extends ConsumerWidget {
                                   '${date.day}',
                                   style: TextStyle(
                                     fontSize: 18,
-                                    color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87),
+                                    color: isSelected
+                                        ? Colors.white
+                                        : (Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.white
+                                              : Colors.black87),
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 const SizedBox(height: 6),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(2),
                                     child: LinearProgressIndicator(
@@ -232,7 +267,11 @@ class PlannerScreen extends ConsumerWidget {
                                       minHeight: 4,
                                       backgroundColor: Colors.black12,
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                        capacityRatio > 0.9 ? kCoral : (capacityRatio > 0.5 ? kAmber : kCyan),
+                                        capacityRatio > 0.9
+                                            ? kCoral
+                                            : (capacityRatio > 0.5
+                                                  ? kAmber
+                                                  : kCyan),
                                       ),
                                     ),
                                   ),
@@ -388,9 +427,7 @@ class PlannerScreen extends ConsumerWidget {
                         itemBuilder: (ctx, i) {
                           final task = tasks[i];
                           final rationale = ref.watch(
-                            scheduleRationaleProvider.select(
-                              (r) => r[task.id],
-                            ),
+                            scheduleRationaleProvider.select((r) => r[task.id]),
                           );
                           return AnimationConfiguration.staggeredList(
                             key: ValueKey(task.id),
@@ -2347,7 +2384,8 @@ class _TaskEditSheetState extends ConsumerState<_TaskEditSheet> {
                 splittable: _splittable,
                 blockSizeCtrl: _blockSizeCtrl,
                 onDeadlineChanged: (v) => setState(() => _deadline = v),
-                onEarliestStartChanged: (v) => setState(() => _earliestStart = v),
+                onEarliestStartChanged: (v) =>
+                    setState(() => _earliestStart = v),
                 onLatestFinishChanged: (v) => setState(() => _latestFinish = v),
                 onIsFixedChanged: (v) => setState(() => _isFixed = v),
                 onEnergyLevelChanged: (v) => setState(() => _energyLevel = v),
@@ -2929,8 +2967,7 @@ class _AdvancedSchedulingSectionState
                 hasValue ? '$label: ${_dtFmt.format(value)}' : label,
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight:
-                      hasValue ? FontWeight.w600 : FontWeight.w400,
+                  fontWeight: hasValue ? FontWeight.w600 : FontWeight.w400,
                   color: hasValue
                       ? kIndigo
                       : (isDark ? Colors.white54 : Colors.black45),
@@ -2954,7 +2991,8 @@ class _AdvancedSchedulingSectionState
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final anySet = widget.deadline != null ||
+    final anySet =
+        widget.deadline != null ||
         widget.earliestStart != null ||
         widget.latestFinish != null ||
         widget.isFixed ||
@@ -2973,7 +3011,9 @@ class _AdvancedSchedulingSectionState
             Icon(
               Icons.tune_rounded,
               size: 16,
-              color: anySet ? kIndigo : (isDark ? Colors.white38 : Colors.black38),
+              color: anySet
+                  ? kIndigo
+                  : (isDark ? Colors.white38 : Colors.black38),
             ),
             const SizedBox(width: 8),
             Text(
@@ -3036,10 +3076,7 @@ class _AdvancedSchedulingSectionState
                   Text('📌 ', style: TextStyle(fontSize: 15)),
                   Text(
                     'Fixed time slot',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
@@ -3308,7 +3345,9 @@ class _ConstraintChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? color.withAlpha(40) : Colors.transparent,
           border: Border.all(
-            color: selected ? color : (isDark ? Colors.white24 : Colors.black12),
+            color: selected
+                ? color
+                : (isDark ? Colors.white24 : Colors.black12),
             width: selected ? 1.5 : 1,
           ),
           borderRadius: BorderRadius.circular(20),
@@ -3386,19 +3425,12 @@ class _ScheduleWarningBanner extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.warning_amber_rounded,
-                size: 15,
-                color: kAmber,
-              ),
+              Icon(Icons.warning_amber_rounded, size: 15, color: kAmber),
               const SizedBox(width: 6),
               const Expanded(
                 child: Text(
                   'Scheduling notices',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                 ),
               ),
               GestureDetector(
@@ -3449,11 +3481,7 @@ class _ScheduleWarningBanner extends StatelessWidget {
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(
-                  Icons.event_busy_rounded,
-                  size: 13,
-                  color: kCoral,
-                ),
+                const Icon(Icons.event_busy_rounded, size: 13, color: kCoral),
                 const SizedBox(width: 6),
                 Text(
                   '${unplacedTasks.length} task${unplacedTasks.length == 1 ? '' : 's'} couldn\'t fit in today\'s window',
@@ -3478,10 +3506,7 @@ class _ScheduleRationaleSheet extends StatelessWidget {
   final TaskItem task;
   final TaskPlacementRationale rationale;
 
-  const _ScheduleRationaleSheet({
-    required this.task,
-    required this.rationale,
-  });
+  const _ScheduleRationaleSheet({required this.task, required this.rationale});
 
   static final _timeFmt = DateFormat('h:mm a');
 
@@ -3574,14 +3599,15 @@ class _ScheduleRationaleSheet extends StatelessWidget {
                     child: LinearProgressIndicator(
                       value: normalised,
                       minHeight: 8,
-                      backgroundColor:
-                          isDark ? Colors.white12 : Colors.black.withAlpha(20),
+                      backgroundColor: isDark
+                          ? Colors.white12
+                          : Colors.black.withAlpha(20),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         normalised > 0.6
                             ? const Color(0xFF00C896)
                             : normalised > 0.3
-                                ? kAmber
-                                : kCoral,
+                            ? kAmber
+                            : kCoral,
                       ),
                     ),
                   ),
@@ -3645,7 +3671,9 @@ class _ScheduleRationaleSheet extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5),
+                color: isDark
+                    ? Colors.white.withAlpha(10)
+                    : Colors.black.withAlpha(5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(

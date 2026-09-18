@@ -119,10 +119,9 @@ class TaskController extends Notifier<List<TaskItem>> {
     if (oldTask != null && !oldTask.isCompleted && task.isCompleted) {
       _createTaskMemory(task, 'completed');
       _notifications.cancelTaskReminder(task.id);
-      ref.read(gamificationServiceProvider.notifier).awardTaskCompletion(
-            task,
-            actualMinutes: task.actualDurationMinutes,
-          );
+      ref
+          .read(gamificationServiceProvider.notifier)
+          .awardTaskCompletion(task, actualMinutes: task.actualDurationMinutes);
       final today = todayTasks;
       if (today.isNotEmpty && today.every((t) => t.isCompleted)) {
         ref.read(gamificationServiceProvider.notifier).awardCleanSlate();

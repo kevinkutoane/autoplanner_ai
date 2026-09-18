@@ -47,7 +47,8 @@ class CommandExecutorService {
   ) {
     final minutes = command.minutes ?? 30;
     final shiftDuration = Duration(minutes: minutes);
-    final thresholdTime = command.afterTime ??
+    final thresholdTime =
+        command.afterTime ??
         (isSameDay(targetDay, currentMoment)
             ? currentMoment
             : DateTime(targetDay.year, targetDay.month, targetDay.day, 12, 0));
@@ -63,13 +64,15 @@ class CommandExecutorService {
     for (final task in candidateTasks) {
       final newStart = task.startTime.add(shiftDuration);
       final newEnd = task.endTime?.add(shiftDuration);
-      shifts.add(TaskShiftPreview(
-        task: task,
-        originalStart: task.startTime,
-        originalEnd: task.endTime,
-        newStart: newStart,
-        newEnd: newEnd,
-      ));
+      shifts.add(
+        TaskShiftPreview(
+          task: task,
+          originalStart: task.startTime,
+          originalEnd: task.endTime,
+          newStart: newStart,
+          newEnd: newEnd,
+        ),
+      );
     }
 
     final timeLabel = DateFormat.jm().format(thresholdTime);
@@ -77,11 +80,7 @@ class CommandExecutorService {
         ? 'No upcoming tasks found after $timeLabel to shift.'
         : 'Shift ${shifts.length} task${shifts.length == 1 ? '' : 's'} after $timeLabel by $minutes min.';
 
-    return CommandPreview(
-      command: command,
-      summary: summary,
-      shifts: shifts,
-    );
+    return CommandPreview(command: command, summary: summary, shifts: shifts);
   }
 
   CommandPreview _previewClearWindow(
@@ -90,16 +89,18 @@ class CommandExecutorService {
     DateTime targetDay,
     DateTime currentMoment,
   ) {
-    final from = command.fromTime ??
+    final from =
+        command.fromTime ??
         DateTime(targetDay.year, targetDay.month, targetDay.day, 13, 0);
-    final to = command.toTime ??
-        from.add(Duration(minutes: command.minutes ?? 120));
+    final to =
+        command.toTime ?? from.add(Duration(minutes: command.minutes ?? 120));
 
     // Find non-completed tasks on targetDay that overlap [from, to]
     final conflicting = tasks.where((t) {
       if (t.isCompleted) return false;
       if (!isSameDay(t.startTime, targetDay)) return false;
-      final end = t.endTime ?? t.startTime.add(Duration(minutes: t.durationMinutes));
+      final end =
+          t.endTime ?? t.startTime.add(Duration(minutes: t.durationMinutes));
       return t.startTime.isBefore(to) && end.isAfter(from);
     }).toList()..sort((a, b) => a.startTime.compareTo(b.startTime));
 
@@ -110,14 +111,18 @@ class CommandExecutorService {
       final duration = Duration(minutes: task.durationMinutes);
       final newStart = nextAvailableTime;
       final newEnd = newStart.add(duration);
-      shifts.add(TaskShiftPreview(
-        task: task,
-        originalStart: task.startTime,
-        originalEnd: task.endTime,
-        newStart: newStart,
-        newEnd: newEnd,
-      ));
-      nextAvailableTime = newEnd.add(const Duration(minutes: 5)); // 5m breathing room
+      shifts.add(
+        TaskShiftPreview(
+          task: task,
+          originalStart: task.startTime,
+          originalEnd: task.endTime,
+          newStart: newStart,
+          newEnd: newEnd,
+        ),
+      );
+      nextAvailableTime = newEnd.add(
+        const Duration(minutes: 5),
+      ); // 5m breathing room
     }
 
     final fromStr = DateFormat.jm().format(from);
@@ -126,11 +131,7 @@ class CommandExecutorService {
         ? 'Window $fromStr – $toStr is already clear.'
         : 'Free window $fromStr – $toStr and shift ${shifts.length} conflicting task${shifts.length == 1 ? '' : 's'}.';
 
-    return CommandPreview(
-      command: command,
-      summary: summary,
-      shifts: shifts,
-    );
+    return CommandPreview(command: command, summary: summary, shifts: shifts);
   }
 
   CommandPreview _previewQuickAdd(
@@ -141,7 +142,7 @@ class CommandExecutorService {
   ) {
     final title = command.taskTitle ?? 'New Task';
     final durationMins = command.minutes ?? 30;
-    
+
     // Choose start time: specified fromTime/afterTime, or next round 15-min slot
     DateTime start;
     if (command.fromTime != null) {
@@ -149,10 +150,18 @@ class CommandExecutorService {
     } else if (command.afterTime != null) {
       start = command.afterTime!;
     } else {
-      final base = isSameDay(targetDay, currentMoment) ? currentMoment : targetDay;
+      final base = isSameDay(targetDay, currentMoment)
+          ? currentMoment
+          : targetDay;
       final minuteRounded = ((base.minute / 15).ceil() * 15) % 60;
       final hourAdded = (base.minute >= 45) ? 1 : 0;
-      start = DateTime(base.year, base.month, base.day, base.hour + hourAdded, minuteRounded);
+      start = DateTime(
+        base.year,
+        base.month,
+        base.day,
+        base.hour + hourAdded,
+        minuteRounded,
+      );
     }
 
     final end = start.add(Duration(minutes: durationMins));
@@ -166,7 +175,8 @@ class CommandExecutorService {
       note: 'Added via AI Omnibar',
     );
 
-    final summary = 'Add "${candidate.title}" at ${DateFormat.jm().format(start)} (${durationMins}m)';
+    final summary =
+        'Add "${candidate.title}" at ${DateFormat.jm().format(start)} (${durationMins}m)';
 
     return CommandPreview(
       command: command,
@@ -181,16 +191,16 @@ class CommandExecutorService {
     DateTime currentMoment,
   ) {
     final limitMins = command.minutes ?? 30;
-    final fitting = tasks.where((t) {
-      if (t.isCompleted) return false;
-      return t.durationMinutes <= limitMins;
-    }).toList()
-      ..sort((a, b) {
-        // Priority first desc, then shortest duration
-        final p = b.priority.compareTo(a.priority);
-        if (p != 0) return p;
-        return a.durationMinutes.compareTo(b.durationMinutes);
-      });
+    final fitting =
+        tasks.where((t) {
+          if (t.isCompleted) return false;
+          return t.durationMinutes <= limitMins;
+        }).toList()..sort((a, b) {
+          // Priority first desc, then shortest duration
+          final p = b.priority.compareTo(a.priority);
+          if (p != 0) return p;
+          return a.durationMinutes.compareTo(b.durationMinutes);
+        });
 
     final summary = fitting.isEmpty
         ? 'No tasks found that take $limitMins minutes or less.'
@@ -214,17 +224,16 @@ class CommandExecutorService {
     if (command.taskTitle != null && command.taskTitle!.trim().isNotEmpty) {
       final query = command.taskTitle!.trim().toLowerCase();
       target = pending.cast<TaskItem?>().firstWhere(
-            (t) => t!.title.toLowerCase().contains(query),
-            orElse: () => null,
-          );
+        (t) => t!.title.toLowerCase().contains(query),
+        orElse: () => null,
+      );
     }
 
     // Default to next scheduled task for today or first pending
     if (target == null && pending.isNotEmpty) {
-      final todayPending = pending
-          .where((t) => isSameDay(t.startTime, currentMoment))
-          .toList()
-        ..sort((a, b) => a.startTime.compareTo(b.startTime));
+      final todayPending =
+          pending.where((t) => isSameDay(t.startTime, currentMoment)).toList()
+            ..sort((a, b) => a.startTime.compareTo(b.startTime));
       target = todayPending.isNotEmpty ? todayPending.first : pending.first;
     }
 
@@ -257,15 +266,13 @@ class CommandExecutorService {
           );
         }
         final updatedTasks = preview.shifts.map((s) {
-          return s.task.copyWith(
-            startTime: s.newStart,
-            endTime: s.newEnd,
-          );
+          return s.task.copyWith(startTime: s.newStart, endTime: s.newEnd);
         }).toList();
         taskController.batchUpdateTasks(updatedTasks);
         return CommandExecutionResult(
           success: true,
-          message: 'Updated ${updatedTasks.length} task schedule${updatedTasks.length == 1 ? '' : 's'}.',
+          message:
+              'Updated ${updatedTasks.length} task schedule${updatedTasks.length == 1 ? '' : 's'}.',
           affectedTasksCount: updatedTasks.length,
         );
 
@@ -301,10 +308,7 @@ class CommandExecutorService {
         );
 
       case ScheduleCommandType.unknown:
-        return CommandExecutionResult(
-          success: false,
-          message: preview.summary,
-        );
+        return CommandExecutionResult(success: false, message: preview.summary);
     }
   }
 }
