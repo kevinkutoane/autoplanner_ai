@@ -9,7 +9,7 @@ Thank you for contributing to AutoPlanner AI! This guide details everything you 
 ### Prerequisites
 - **Flutter SDK**: `>=3.8.1` (tested with 3.8.1 / 3.47.2 channel)
 - **Dart SDK**: `>=3.8.1`
-- **JDK**: Java 17 (required for Android Gradle builds)
+- **JDK**: Java 21 (aligned with Android Gradle & Kotlin toolchain)
 - **Google AI Studio Key**: Optional for local development; you can toggle `USE_MOCK_AI=true`.
 
 ### Initial Setup
