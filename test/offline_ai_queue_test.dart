@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -22,9 +23,11 @@ void main() {
 
   tearDown(() async {
     await Hive.close();
-    if (tempDir.existsSync()) {
-      tempDir.deleteSync(recursive: true);
-    }
+    try {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    } catch (_) {}
   });
 
   group('QueuedAIRequest', () {
@@ -283,6 +286,127 @@ void main() {
 
       queue.dispose();
       await Hive.deleteBoxFromDisk('aiQueueBox');
+    });
+
+    test('AES-256 encryption lifecycle: enqueued requests persist across simulated app restart', () async {
+      final key = List<int>.generate(32, (i) => (i * 7 + 13) % 256);
+      final cipher = HiveAesCipher(key);
+
+      bool isOnline = false;
+      final executed = <String>[];
+      final queue1 = OfflineAIQueue(
+        executeCallback: (method, args) async {
+          if (!isOnline) throw Exception('Network offline');
+          executed.add(method);
+        },
+      );
+      await queue1.init(cipher: cipher, customDir: tempDir.path);
+
+      // Enqueue while offline
+      await queue1.enqueue('parseTasks', {'raw': 'meeting tomorrow'});
+      await queue1.enqueue('brainDump', {'text': 'new project idea'});
+      expect(queue1.pending, equals(2));
+
+      // 2. Simulate app termination: dispose queue and close Hive
+      queue1.dispose();
+      await Hive.close();
+
+      // 3. Second app launch: re-init Hive and re-open with same encryption key
+      Hive.init(tempDir.path);
+      final queue2 = OfflineAIQueue(
+        executeCallback: (method, args) async {
+          if (!isOnline) throw Exception('Network offline');
+          executed.add(method);
+        },
+      );
+      await queue2.init(
+        cipher: cipher,
+        customDir: tempDir.path,
+        autoDrain: false,
+      );
+
+      // Verify requests were safely preserved in encrypted storage
+      expect(queue2.pending, equals(2));
+      final pending = queue2.pendingRequests;
+      expect(pending.map((r) => r.method).toList(), [
+        'parseTasks',
+        'brainDump',
+      ]);
+
+      // 4. Reconnect to network and drain
+      isOnline = true;
+      await queue2.drain();
+      expect(executed, ['parseTasks', 'brainDump']);
+      expect(queue2.pending, equals(0));
+
+      queue2.dispose();
+      await Hive.close();
+      Hive.init(tempDir.path);
+    });
+
+    test('opening encrypted queue with incorrect key fails safely', () async {
+      final key1 = List<int>.generate(32, (i) => i);
+      final key2 = List<int>.generate(32, (i) => 255 - i);
+      final cipher1 = HiveAesCipher(key1);
+      final cipher2 = HiveAesCipher(key2);
+
+      final queue1 = OfflineAIQueue(
+        executeCallback: (m, a) async => throw Exception('Offline'),
+      );
+      await queue1.init(cipher: cipher1, customDir: tempDir.path);
+      await queue1.enqueue('dailyInsight', {});
+      queue1.dispose();
+      await Hive.close();
+
+      Hive.init(tempDir.path);
+      final queue2 = OfflineAIQueue(executeCallback: (m, a) async {});
+      bool didThrow = false;
+      final completer = Completer<void>();
+      runZonedGuarded(
+        () async {
+          try {
+            await queue2.init(cipher: cipher2, customDir: tempDir.path);
+          } catch (e) {
+            if (e is HiveError || e.toString().contains('checksum')) {
+              didThrow = true;
+            }
+          } finally {
+            if (!completer.isCompleted) completer.complete();
+          }
+        },
+        (error, stack) {
+          if (error is HiveError || error.toString().contains('checksum')) {
+            didThrow = true;
+          }
+          if (!completer.isCompleted) completer.complete();
+        },
+      );
+      await completer.future;
+      expect(didThrow, isTrue);
+      await Hive.close();
+      Hive.init(tempDir.path);
+    });
+
+    test('concurrent drain calls do not execute duplicate requests', () async {
+      int executionCount = 0;
+      final queue = OfflineAIQueue(
+        executeCallback: (method, args) async {
+          executionCount++;
+          await Future.delayed(const Duration(milliseconds: 30));
+        },
+      );
+      await queue.init(customDir: tempDir.path);
+      await queue.enqueue('taskA', {});
+
+      // Launch 3 simultaneous drain calls
+      await Future.wait([queue.drain(), queue.drain(), queue.drain()]);
+
+      expect(executionCount, equals(1));
+      expect(queue.pending, equals(0));
+
+      queue.dispose();
+      await Hive.close();
+      Hive.init(tempDir.path);
     });
   });
 }

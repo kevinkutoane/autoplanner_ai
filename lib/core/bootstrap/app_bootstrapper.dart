@@ -190,10 +190,10 @@ class AppBootstrapper {
       ],
     );
 
-    // 9. Offline AI Queue
+    // 9. Offline AI Queue (encrypted with device-unique keychain key)
     try {
       final offlineAIQueue = container.read(offlineAIQueueProvider);
-      await offlineAIQueue.init();
+      await offlineAIQueue.init(cipher: hiveCipher);
     } catch (e) {
       if (kDebugMode) debugPrint('OfflineAIQueue init failed: $e');
     }

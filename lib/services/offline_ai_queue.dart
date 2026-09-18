@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 
 /// Represents a queued AI request that can be persisted and retried.
 ///
@@ -100,8 +100,20 @@ class OfflineAIQueue {
   OfflineAIQueue({required this.executeCallback});
 
   /// Initialise the queue box and start listening for connectivity changes.
-  Future<void> init() async {
-    _box = await Hive.openBox<Map>(_boxName);
+  /// If [cipher] is provided, the queue box is opened using AES-256 encryption.
+  /// [customDir] can be passed for test isolation.
+  /// [autoDrain] determines whether to trigger an immediate drain upon init.
+  Future<void> init({
+    HiveCipher? cipher,
+    String? customDir,
+    bool autoDrain = true,
+  }) async {
+    _box = await Hive.openBox<Map>(
+      _boxName,
+      encryptionCipher: cipher,
+      path: customDir,
+      crashRecovery: false,
+    );
     _updatePendingCount();
 
     // Listen for connectivity changes and drain when online.
@@ -113,7 +125,9 @@ class OfflineAIQueue {
     });
 
     // Attempt an initial drain in case we came online while the app was closed.
-    drain();
+    if (autoDrain) {
+      drain();
+    }
   }
 
   /// Enqueue an AI request for later execution.
@@ -135,7 +149,7 @@ class OfflineAIQueue {
       );
     }
     // Try to drain immediately — if online, it will execute right away.
-    drain();
+    await drain();
   }
 
   /// Drain the queue, executing pending requests in FIFO order.
@@ -143,25 +157,42 @@ class OfflineAIQueue {
   /// Requests that fail are retried up to [_maxAttempts] times.
   /// Requests exceeding the limit are removed from the queue.
   Future<void> drain() async {
+    if (!_box.isOpen) return;
     if (_currentDrain != null) {
       await _currentDrain;
       return;
     }
-    final drainFuture = _performDrain();
-    _currentDrain = drainFuture;
+    final completer = Completer<void>();
+    _currentDrain = completer.future;
     try {
-      await drainFuture;
+      bool continueDraining = true;
+      while (continueDraining && _box.isOpen) {
+        final hadTransientError = await _performDrain();
+        if (hadTransientError) {
+          break; // Stop draining, network still down or rate limited
+        }
+        // Check if new actionable items were added while draining
+        continueDraining = activePending > 0;
+      }
     } finally {
-      if (_currentDrain == drainFuture) {
-        _currentDrain = null;
+      _currentDrain = null;
+      if (!completer.isCompleted) {
+        completer.complete();
       }
     }
   }
 
-  Future<void> _performDrain() async {
-    // Process in insertion order (Hive preserves insertion order for maps).
-    final keys = _box.keys.toList();
-    for (final key in keys) {
+  /// Executes actionable requests in strict FIFO order by [queuedAt].
+  /// Returns `true` if drain halted due to a transient failure.
+  Future<bool> _performDrain() async {
+    bool hadTransientFailure = false;
+    if (!_box.isOpen) return false;
+
+    // Process in strict FIFO order sorted by queuedAt timestamp
+    final requests = pendingRequests;
+    for (final queued in requests) {
+      final key = queued.id;
+      if (!_box.isOpen) return false;
       final raw = _box.get(key);
       if (raw == null) continue;
 
@@ -173,6 +204,7 @@ class OfflineAIQueue {
         // Exceeded max attempts — mark as permanent failure instead of deleting.
         request.isPermanentFailure = true;
         request.lastError = 'Exceeded $_maxAttempts attempts';
+        if (!_box.isOpen) return false;
         await _box.put(key, request.toMap());
         _updatePendingCount();
         if (kDebugMode) {
@@ -187,6 +219,7 @@ class OfflineAIQueue {
         final args = jsonDecode(request.argsJson) as Map<String, dynamic>;
         await executeCallback(request.method, args);
         // Success — remove from queue.
+        if (!_box.isOpen) return false;
         await _box.delete(key);
         _updatePendingCount();
         if (kDebugMode) {
@@ -205,6 +238,7 @@ class OfflineAIQueue {
           request.isPermanentFailure = true;
         }
 
+        if (!_box.isOpen) return false;
         await _box.put(key, request.toMap());
         _updatePendingCount();
         if (kDebugMode) {
@@ -214,10 +248,12 @@ class OfflineAIQueue {
         }
         // Stop draining on first transient failure — likely still offline or rate limited.
         if (!request.isPermanentFailure) {
+          hadTransientFailure = true;
           break;
         }
       }
     }
+    return hadTransientFailure;
   }
 
   /// Total number of requests in the queue box.
