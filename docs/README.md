@@ -2,7 +2,7 @@
 
 > **AI-powered daily planner for Android & iOS** — turn a stream-of-consciousness brain dump into a fully scheduled, priority-scored day in seconds.
 
-**Version:** 2.3.1 · **Flutter SDK:** `^3.8.1` · **Dart SDK:** `^3.8.1` · **AI Model:** Gemini 2.5 Flash
+**Version:** 2.3.1 · **Flutter SDK:** `^3.47.2` · **Dart SDK:** `^3.13.0` · **AI Model:** Gemini 2.5 Flash
 
 ---
 
@@ -172,8 +172,9 @@ When the app comes to the foreground the scheduler checks for overdue tasks (mis
 
 ### Prerequisites
 
-- Flutter `>=3.3.0`
-- Dart `>=3.0.0`
+- Flutter `>=3.47.2`
+- Dart `>=3.13.0`
+- Java 21 (for Android build tools and Gradle 8.14)
 - A [Google AI Studio](https://aistudio.google.com) API key (free tier works)
 
 ### Run

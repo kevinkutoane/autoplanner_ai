@@ -2,10 +2,10 @@
 
 > **AI-powered daily planner for Android & iOS** — turn a stream-of-consciousness brain dump into a fully scheduled, priority-scored day in seconds.
 
-[![Flutter](https://img.shields.io/badge/Flutter-%5E3.8.1-02569B?logo=flutter)](https://flutter.dev)
-[![Dart](https://img.shields.io/badge/Dart-%5E3.8.1-0175C2?logo=dart)](https://dart.dev)
+[![Flutter](https://img.shields.io/badge/Flutter-%5E3.47.2-02569B?logo=flutter)](https://flutter.dev)
+[![Dart](https://img.shields.io/badge/Dart-%5E3.13.x-0175C2?logo=dart)](https://dart.dev)
 [![AI Engine](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-4285F4?logo=google)](https://aistudio.google.com)
-[![Tests](https://img.shields.io/badge/Tests-528%20Passing-brightgreen)](test/)
+[![Tests](https://img.shields.io/badge/Tests-529%20Passing-brightgreen)](test/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **Version:** 2.3.1 · **Target Platforms:** Android & iOS · **State:** Riverpod · **Persistence:** Encrypted Hive (AES-256)
@@ -156,9 +156,9 @@ Explore the technical and architectural documentation:
 
 ### Prerequisites
 
-- Flutter `>=3.8.1`
-- Dart `>=3.8.1`
-- Java 17 (for Android build tools)
+- Flutter `>=3.47.2`
+- Dart `>=3.13.0`
+- Java 21 (for Android build tools and Gradle 8.14)
 - A [Google AI Studio](https://aistudio.google.com) API key (free tier works) or run in Mock AI mode
 
 ### Setup & Run
@@ -199,7 +199,7 @@ Quality checks run automatically via GitHub Actions CI on every pull request:
 # Static analysis (enforces zero issues)
 flutter analyze --fatal-infos
 
-# Run full test suite (528 passing tests across 34 test files)
+# Run full test suite (529 passing tests across 34 test files)
 flutter test
 
 # Run scheduler behavioral and constraint tests with clock abstraction

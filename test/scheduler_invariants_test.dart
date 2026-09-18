@@ -4,6 +4,12 @@ import 'package:autoplanner_ai/core/models/task_model.dart';
 import 'package:autoplanner_ai/services/dependency_graph_service.dart';
 import 'package:autoplanner_ai/services/scheduler_service.dart';
 
+/// Invariant and boundary test suite for the AutoPlanner AI scheduler engine.
+///
+/// Contains 21 deterministic invariant and boundary tests validating hard temporal
+/// constraints, work-window policies, non-overlap buffers, immovable anchors, DAG
+/// topological ordering, past-time protection, overload handling, circular dependency
+/// recovery, and multi-run idempotence.
 void main() {
   late SchedulerService scheduler;
   final futureDay = DateTime(2099, 6, 15);

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
+import 'package:uuid/uuid.dart';
 
 /// Represents a queued AI request that can be persisted and retried.
 ///
@@ -83,6 +84,7 @@ class QueuedAIRequest {
 class OfflineAIQueue {
   static const String _boxName = 'aiQueueBox';
   static const int _maxAttempts = 5;
+  static const _uuid = Uuid();
 
   late Box<Map> _box;
   StreamSubscription? _connectivitySub;
@@ -136,7 +138,7 @@ class OfflineAIQueue {
   /// immediately after enqueuing.
   Future<void> enqueue(String method, Map<String, dynamic> args) async {
     final request = QueuedAIRequest(
-      id: '${method}_${DateTime.now().millisecondsSinceEpoch}',
+      id: '${method}_${DateTime.now().millisecondsSinceEpoch}_${_uuid.v4().substring(0, 8)}',
       method: method,
       argsJson: jsonEncode(args),
       queuedAt: DateTime.now().toIso8601String(),

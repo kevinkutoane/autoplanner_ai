@@ -11,10 +11,10 @@
 
 | Item | Requirement | Status | Evidence / Notes |
 | :--- | :--- | :---: | :--- |
-| **Toolchain Consistency** | Flutter 3.29.0 / Dart 3.7.0 / Java 21 / Gradle 8.12 / AGP 8.8.0 / Kotlin 2.2.20 | **PASS** | Toolchain audited; Gradle JVM and GitHub Actions CI workflow aligned to Java 21 (`java-version: '21'`). |
+| **Toolchain Consistency** | Flutter 3.47.2 / Dart 3.13.x / Java 21 / Gradle 8.14.0 / AGP 8.11.1 / Kotlin 2.2.20 / compileSdk 35 / targetSdk 35 / minSdk 21 | **PASS** | Verified against live repository, Gradle wrapper, and GitHub Actions CI log. Note: Flutter SDK emits forward-looking deprecation warnings that future versions will require Gradle 9.1+, AGP 9.0.1+, and Kotlin 2.3.20+, and `actions/setup-java@v4` is deprecated. Recorded as technical debt item #9 in `docs/ARCHITECTURE_DEBT.md`. |
 | **Clean Build Verification** | Clean environment build succeeds | **PASS** | Debug APK build compiled cleanly via `flutter build apk --debug`. |
-| **Release Metadata Alignment** | Version一致across config and documentation | **PASS** | `pubspec.yaml` aligned to `2.3.1+1`, synchronized with `README.md`, `docs/README.md`, `docs/CHANGELOG.md`, and `docs/ROADMAP.md`. |
-| **Dependency Integrity** | No unnecessary package churn or unapproved migrations | **PASS** | Zero new dependencies introduced; preserved approved packages (`hive`, `flutter_riverpod`, `connectivity_plus`, `google_sign_in`, `flutter_local_notifications`). |
+| **Release Metadata Alignment** | Version consistency across config and documentation | **PASS** | `pubspec.yaml` aligned to `2.3.1+1`, synchronized with `README.md`, `docs/README.md`, `docs/CHANGELOG.md`, and `docs/ROADMAP.md`. |
+| **Dependency Integrity** | No unnecessary package churn or unapproved migrations | **PASS** | Zero new unapproved dependencies introduced; preserved approved packages (`hive`, `flutter_riverpod`, `connectivity_plus`, `google_sign_in`, `flutter_local_notifications`, `uuid`). |
 
 ---
 
@@ -22,10 +22,10 @@
 
 | Item | Requirement | Status | Evidence / Notes |
 | :--- | :--- | :---: | :--- |
-| **Code Formatting** | Zero format diffs (`dart format --output=none --set-exit-if-changed`) | **PASS** | Ran `dart format lib test` and verified exit code 0 on 137 files. |
+| **Code Formatting** | Zero format diffs (`dart format --output=none --set-exit-if-changed`) | **PASS** | Verified format check with exit code 0 across `lib` and `test`. |
 | **Static Analysis** | Zero errors, zero warnings, zero infos with `--fatal-infos` | **PASS** | `flutter analyze lib test --fatal-infos` ran across all files with `No issues found!`. |
-| **Unit & Behavioral Tests** | 100% pass rate across entire suite | **PASS** | 528 tests passed across 34 test files (`flutter test`) with zero failures. |
-| **CI Exact-SHA Reproduction** | GitHub Actions passes on target commit without secrets | **PASS** | CI workflow executes format check, static analysis with `--fatal-infos`, full test suite with coverage, and debug APK build using Mock AI provider. |
+| **Unit & Behavioral Tests** | 100% pass rate across entire suite | **PASS** | 529 tests passed across 34 test files (`flutter test`) with zero failures. |
+| **CI Exact-SHA Reproduction** | GitHub Actions passes on target commit without secrets | **PASS** | CI workflow executes format check, static analysis with `--fatal-infos`, full test suite with coverage generation, and debug APK build using Mock AI provider. Codecov upload step configured with optional repository secret `CODECOV_TOKEN` as non-blocking telemetry. |
 
 ---
 
@@ -36,7 +36,7 @@
 | **Secrets Exposure Audit** | No real API keys, credentials, or secrets committed | **PASS** | Repository scanned for `GEMINI_API_KEY`, tokens, client secrets; `.env` is gitignored; `.env.example` contains placeholders only. |
 | **Hive AES-256 Storage** | Critical application data boxes encrypted | **PASS** | Boxes (`tasksBox`, `notesBox`, `goalsBox`, `projectsBox`, `calendarBox`, `settingsBox`, `appEventsBox`, `gamificationBox`, `aiLogsBox`, `memoryBox`) opened with `HiveAesCipher`. |
 | **Offline AI Queue Encryption** | Queue storage protected inside AES-256 boundary | **PASS** | `OfflineAIQueue.init(cipher: hiveCipher)` opens `aiQueueBox` using `HiveAesCipher` key derived from `SecureKeyService`. |
-| **Key Generation & Storage** | Platform-secure key storage | **PASS** | `SecureKeyService` uses `FlutterSecureStorage` backed by Android Keystore and iOS Keychain; automated fallback to robust file key with restricted permissions. |
+| **Key Generation & Storage** | Platform-secure key storage | **PASS** | `SecureKeyService` uses `FlutterSecureStorage` backed by Android Keystore and iOS Keychain. Platform-secure key generation and retrieval; no file-key fallback implemented. |
 | **Diagnostic Sanitization** | Logs do not leak PII or prompts | **PASS** | `TokenTracker` and `AIService` mask sensitive strings; prompts sanitized for control characters and delimiters before processing. |
 
 ---
@@ -48,7 +48,7 @@
 | **Hard Earliest Start** | `start >= earliestStart` | **PASS** | Tested in `test/scheduler_invariants_test.dart` (Hard Temporal Invariants). |
 | **Hard Latest Finish** | `end <= latestFinish` or unplaced | **PASS** | Tasks unable to complete before `latestFinish` become `unplaced` with `no_slot_available` diagnostic warning; verified in invariant suite. |
 | **Deadline Compliance** | `end <= deadline` or warning | **PASS** | Scheduler generates `deadline_exceeded` warning while producing valid placement. |
-| **Work Window Containment** | Placed within configured hours | **PASS** | All scheduled tasks bounded by `[workStart, workEnd]` (or evening extension for today's late runs). |
+| **Work-Window Policy with Documented Same-Day Extension** | `end <= configuredWorkEnd` OR `today + after-hours extension policy` | **PASS** | Tasks placed within configured working hours `[workStart, workEnd]`. When running for today after configured hours (`isToday && now.isAfter(workEnd)`), the window dynamically extends to `23:59` so tasks are scheduled rather than dropped. Verified in invariant and scheduler test suites. |
 | **No-Overlap & Buffer** | `end(A) + buffer <= start(B)` | **PASS** | Consecutive tasks maintain >= 10m buffer; verified across multi-priority mixes. |
 | **Fixed Tasks Immovable** | `isFixed == true` remains anchored | **PASS** | Anchor tasks preserve exact start and end times regardless of other task priorities. |
 | **Completed Tasks Preserved** | `isCompleted == true` not moved | **PASS** | Completed tasks retain historical timestamps. |
@@ -81,6 +81,7 @@
 | :--- | :--- | :---: | :--- |
 | **Delivery Model** | At-least-once execution | **PASS** | Request persisted before execution; acknowledged and deleted only after successful completion. |
 | **Restart Persistence** | Enqueued items survive app restart | **PASS** | Verified in `test/offline_ai_queue_test.dart` by disposing queue, closing Hive, re-initializing, and draining. |
+| **Unique ID Deduplication** | Collision-safe identifier generation | **PASS** | Generates UUID v4-suffixed IDs (`${method}_${timestamp}_${uuid}`) preventing overwrite even on multiple requests within the exact same millisecond. Verified in automated test. |
 | **Encryption** | Box encrypted with `HiveAesCipher` | **PASS** | Initialized with cipher; wrong key throws `HiveError` and prevents unauthorized decryption. |
 | **Bounded Retry** | Max 5 attempts for transient errors | **PASS** | Incrementing attempt counter; upon 5th failure marks request as `isPermanentFailure: true` without deleting. |
 | **Fast Permanent Failure** | Non-retriable exceptions fail fast | **PASS** | `UnsupportedError` immediately marked permanent failure without retry loops. |
@@ -112,9 +113,10 @@
 
 ## Summary Verdict
 
-* **Total Readiness Criteria Evaluated**: 36
-* **PASS**: 36
+* **Total Readiness Criteria Evaluated**: 37
+* **PASS**: 37 (Conditioned on real-device QA & private beta)
 * **FAIL**: 0
 * **BLOCKED**: 0
-* **DEFERRED**: 8 (Formally tracked in `docs/ARCHITECTURE_DEBT.md`)
-* **Conclusion**: **RELEASE CANDIDATE READY**
+* **DEFERRED / MANAGED DEBT**: 9 (Formally tracked in `docs/ARCHITECTURE_DEBT.md`, including toolchain deprecation warnings)
+* **Classification**: **RELEASE CANDIDATE — CONDITIONAL**
+* **Next Steps**: Device QA on physical Android/iOS hardware and private beta distribution prior to general production release.

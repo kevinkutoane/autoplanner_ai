@@ -408,5 +408,28 @@ void main() {
       await Hive.close();
       Hive.init(tempDir.path);
     });
+
+    test(
+      'rapid enqueues generate distinct collision-safe IDs without overwriting',
+      () async {
+        final queue = OfflineAIQueue(
+          executeCallback: (method, args) async => throw Exception('Offline'),
+        );
+        await queue.init(customDir: tempDir.path, autoDrain: false);
+
+        const batchCount = 20;
+        for (var i = 0; i < batchCount; i++) {
+          await queue.enqueue('sameMethod', {'index': i});
+        }
+
+        expect(queue.pending, equals(batchCount));
+        final ids = queue.pendingRequests.map((r) => r.id).toSet();
+        expect(ids.length, equals(batchCount));
+
+        queue.dispose();
+        await Hive.close();
+        Hive.init(tempDir.path);
+      },
+    );
   });
 }

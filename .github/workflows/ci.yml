@@ -43,8 +43,14 @@ jobs:
       - name: Build APK (Debug Verification)
         run: flutter build apk --debug
 
+      # Upload coverage report. Codecov upload is non-blocking optional telemetry
+      # (governed by repository secret CODECOV_TOKEN if configured). Local test
+      # coverage generation in the preceding step ('flutter test --coverage') is the
+      # blocking quality gate.
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         with:
           file: coverage/lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: kevinkutoane/autoplanner_ai
         continue-on-error: true

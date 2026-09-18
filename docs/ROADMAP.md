@@ -161,16 +161,16 @@
 
 ---
 
-### Phase 2.3.1: Production Readiness & Engineering Stabilisation `[RELEASE CANDIDATE]`
+### Phase 2.3.1: Production Readiness & Engineering Stabilisation `[RELEASE CANDIDATE — CONDITIONAL]`
 - **Goal**: Harden, verify, and certify the existing product into a high-confidence Release Candidate; freeze new features and audit all failure modes.
 - **Delivered**:
-  1. **Offline AI Queue Encryption**: Bound `OfflineAIQueue` inside AES-256 (`HiveAesCipher`) storage boundary via `SecureKeyService`; guaranteed at-least-once lifecycle, restart persistence, and bounded retry (5 max attempts).
+  1. **Offline AI Queue Encryption & Collision Safety**: Bound `OfflineAIQueue` inside AES-256 (`HiveAesCipher`) storage boundary via `SecureKeyService`; guaranteed at-least-once lifecycle, restart persistence, bounded retry (5 max attempts), and collision-safe unique UUID request IDs.
   2. **Hive Recovery Boundary Certification**: Verified 4 distinct failure classes in automated tests: filesystem/storage failures (rethrow, never delete), key mismatch (throw `HiveKeyMismatchException`, preserve data), programming errors (rethrow, never delete), and genuine corruption (verified `.bak` before quarantine and recreate).
-  3. **Universal Scheduler Invariant Suite**: 21 property-style tests certifying hard temporal constraints (`start >= earliestStart`, `end <= latestFinish`), work-window containment, 10m buffer non-overlap, immovable fixed tasks, completed task protection, DAG topological ordering, past-time cursor protection, overload handling, circular dependency safety, and time-of-day determinism.
+  3. **Universal Scheduler Invariant Suite**: 21 scheduler invariant and boundary tests certifying hard temporal constraints (`start >= earliestStart`, `end <= latestFinish`), work-window policy with same-day extension, 10m buffer non-overlap, immovable fixed tasks, completed task protection, DAG topological ordering, past-time cursor protection, overload handling, circular dependency safety, and time-of-day determinism.
   4. **Calendar Sync Certification**: Full verification of initial sync, incremental sync with `syncToken`, pagination interruption safety, 410 Gone full-resync recovery, cancelled event cleanup, and conflict handling.
   5. **Toolchain & CI Synchronization**: Aligned GitHub Actions to Java 21; verified reproducible clean build with `flutter build apk --debug`.
   6. **Readiness & Debt Registers**: Established `docs/PRODUCTION_READINESS.md` and `docs/ARCHITECTURE_DEBT.md`.
-  7. **Verification**: 528 automated tests passing across 34 test files (100% pass rate), 0 analyzer issues with `--fatal-infos`.
+  7. **Verification**: 529 automated tests passing across 34 test files (100% pass rate), 0 analyzer issues with `--fatal-infos`.
 
 ---
 
