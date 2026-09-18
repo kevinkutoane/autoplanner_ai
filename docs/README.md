@@ -2,7 +2,7 @@
 
 > **AI-powered daily planner for Android & iOS** — turn a stream-of-consciousness brain dump into a fully scheduled, priority-scored day in seconds.
 
-**Version:** 2.3.0 · **Flutter SDK:** `^3.8.1` · **Dart SDK:** `^3.8.1` · **AI Model:** Gemini 2.5 Flash
+**Version:** 2.3.1 · **Flutter SDK:** `^3.8.1` · **Dart SDK:** `^3.8.1` · **AI Model:** Gemini 2.5 Flash
 
 ---
 
@@ -10,9 +10,11 @@
 
 | Document | Description |
 | --- | --- |
+| [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) | Release Candidate verification matrix, empirical certification evidence, and quality checklist |
+| [ARCHITECTURE_DEBT.md](ARCHITECTURE_DEBT.md) | Formally tracked non-blocking architectural debt, impact, risks, and deferral rationale |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Complete system architecture map, runtime data flows, AI safety boundary, and Hive schema |
 | [PHASE_1_2_SPEC.md](PHASE_1_2_SPEC.md) | Technical specification & delivery verification for the Smart Scheduling Engine |
-| [ROADMAP.md](ROADMAP.md) | Multi-phase strategic product and architectural roadmap from 1.1 to 2.3+ |
+| [ROADMAP.md](ROADMAP.md) | Multi-phase strategic product and architectural roadmap from 1.1 to 2.3.1 Release Candidate |
 | [CHANGELOG.md](CHANGELOG.md) | Detailed release notes, breaking changes, and migration history |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Developer guide, coding standards, test execution, and pull request checklist |
 
@@ -248,7 +250,7 @@ Automated tests and quality checks run via GitHub Actions (`.github/workflows/ci
 # Run static analysis
 flutter analyze lib test --fatal-infos
 
-# Run full test suite (449 tests across 24 suites)
+# Run full test suite (528 tests across 34 test files)
 flutter test
 
 # Run scheduler behavioral and constraint tests

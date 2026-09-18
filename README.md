@@ -5,10 +5,10 @@
 [![Flutter](https://img.shields.io/badge/Flutter-%5E3.8.1-02569B?logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-%5E3.8.1-0175C2?logo=dart)](https://dart.dev)
 [![AI Engine](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-4285F4?logo=google)](https://aistudio.google.com)
-[![Tests](https://img.shields.io/badge/Tests-503%20Passing-brightgreen)](test/)
+[![Tests](https://img.shields.io/badge/Tests-528%20Passing-brightgreen)](test/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Version:** 2.3.0 · **Target Platforms:** Android & iOS · **State:** Riverpod · **Persistence:** Encrypted Hive (AES-256)
+**Version:** 2.3.1 · **Target Platforms:** Android & iOS · **State:** Riverpod · **Persistence:** Encrypted Hive (AES-256)
 
 ---
 
@@ -18,9 +18,11 @@ Explore the technical and architectural documentation:
 
 | Document | Purpose |
 | --- | --- |
+| 🛡️ [PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md) | Release Candidate verification matrix, empirical certification evidence, and quality checklist |
+| 🧱 [ARCHITECTURE_DEBT.md](docs/ARCHITECTURE_DEBT.md) | Formally tracked non-blocking architectural debt, impact, risks, and deferral rationale |
 | 🏗️ [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Complete system architecture map, runtime data flows, AI safety boundary, and Hive schema |
 | 📋 [PHASE_1_2_SPEC.md](docs/PHASE_1_2_SPEC.md) | Technical specification and verification details for the Smart Scheduling Engine |
-| 🗺️ [ROADMAP.md](docs/ROADMAP.md) | Strategic product & engineering roadmap from Phase 1.1 to 2.3+ |
+| 🗺️ [ROADMAP.md](docs/ROADMAP.md) | Strategic product & engineering roadmap from Phase 1.1 to 2.3.1 Release Candidate |
 | 📜 [CHANGELOG.md](docs/CHANGELOG.md) | Full release notes and historical change record |
 | 🤝 [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Developer guidelines, coding standards, test instructions, and PR checklist |
 
@@ -197,7 +199,7 @@ Quality checks run automatically via GitHub Actions CI on every pull request:
 # Static analysis (enforces zero issues)
 flutter analyze --fatal-infos
 
-# Run full test suite (449 passing tests across 24 test suites)
+# Run full test suite (528 passing tests across 34 test files)
 flutter test
 
 # Run scheduler behavioral and constraint tests with clock abstraction

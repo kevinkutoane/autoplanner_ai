@@ -64,7 +64,18 @@
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Phase 2.4 — Weekly Intelligence & Capacity Planning [NEXT UP]               │
+│ Phase 2.3.1 — Production Readiness & Engineering Stabilisation [RELEASE CANDIDATE] │
+│ • Offline AI Queue AES-256 Hardening & Bounded Retry Diagnostics            │
+│ • Hive Recovery Certification across 4 Fault Classes (Storage, Key, Config) │
+│ • Universal Scheduler Invariant Certification (21 Test Scenarios)           │
+│ • Calendar Sync Token Safety & 410 Recovery Certification                   │
+│ • Toolchain & CI Alignment (Java 21, Gradle, 528 Tests, Clean APK Build)     │
+│ • Formal Registers: PRODUCTION_READINESS.md & ARCHITECTURE_DEBT.md          │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Phase 2.4 — Weekly Intelligence & Capacity Planning [DEFERRED / POST-RC]    │
 │ • "Plan My Week" Multi-Day Capacity Allocation                              │
 │ • "Replan My Week" Mid-Week Recovery & Workload Balancing                   │
 │ • Planning Debt Burn-Down & Habit Adherence                                 │
@@ -150,8 +161,21 @@
 
 ---
 
-### Phase 2.4: Weekly Intelligence & Capacity Planning `[NEXT UP]`
-- **Goal**: Multi-day capacity planning, mid-week recovery, and workload balancing.
+### Phase 2.3.1: Production Readiness & Engineering Stabilisation `[RELEASE CANDIDATE]`
+- **Goal**: Harden, verify, and certify the existing product into a high-confidence Release Candidate; freeze new features and audit all failure modes.
+- **Delivered**:
+  1. **Offline AI Queue Encryption**: Bound `OfflineAIQueue` inside AES-256 (`HiveAesCipher`) storage boundary via `SecureKeyService`; guaranteed at-least-once lifecycle, restart persistence, and bounded retry (5 max attempts).
+  2. **Hive Recovery Boundary Certification**: Verified 4 distinct failure classes in automated tests: filesystem/storage failures (rethrow, never delete), key mismatch (throw `HiveKeyMismatchException`, preserve data), programming errors (rethrow, never delete), and genuine corruption (verified `.bak` before quarantine and recreate).
+  3. **Universal Scheduler Invariant Suite**: 21 property-style tests certifying hard temporal constraints (`start >= earliestStart`, `end <= latestFinish`), work-window containment, 10m buffer non-overlap, immovable fixed tasks, completed task protection, DAG topological ordering, past-time cursor protection, overload handling, circular dependency safety, and time-of-day determinism.
+  4. **Calendar Sync Certification**: Full verification of initial sync, incremental sync with `syncToken`, pagination interruption safety, 410 Gone full-resync recovery, cancelled event cleanup, and conflict handling.
+  5. **Toolchain & CI Synchronization**: Aligned GitHub Actions to Java 21; verified reproducible clean build with `flutter build apk --debug`.
+  6. **Readiness & Debt Registers**: Established `docs/PRODUCTION_READINESS.md` and `docs/ARCHITECTURE_DEBT.md`.
+  7. **Verification**: 528 automated tests passing across 34 test files (100% pass rate), 0 analyzer issues with `--fatal-infos`.
+
+---
+
+### Phase 2.4: Weekly Intelligence & Capacity Planning `[DEFERRED / POST-RC]`
+- **Goal**: Multi-day capacity planning, mid-week recovery, and workload balancing (frozen during Phase 2.3.1 stabilisation).
 - **Key Capabilities**:
   1. **"Plan My Week"**: Balances workloads across 5–7 days, protecting goal-aligned deep work blocks against meeting overload.
   2. **"Replan My Week"**: Autonomous Thursday/Friday recovery pass moving low-priority tasks, splitting blockers, and protecting upcoming hard deadlines.

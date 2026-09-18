@@ -4,6 +4,38 @@ All notable changes to AutoPlanner AI are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/).
 
+## [2.3.1] — 2026-09-18
+
+### Production Readiness & Engineering Stabilisation (Release Candidate)
+
+- **Offline AI Queue AES-256 Hardening (`OfflineAIQueue`)**:
+  - Bound `OfflineAIQueue` securely inside the application's AES-256 encryption boundary (`HiveAesCipher`) via `SecureKeyService`.
+  - Certified at-least-once lifecycle (`enqueue` -> `persist` -> `restart/reload` -> `dispatch` -> `execute` -> `acknowledge`).
+  - Added bounded retry enforcement: requests failing 5 times are marked `isPermanentFailure: true` and retained diagnostically instead of infinite retries or silent drops.
+  - Added fast permanent failure for non-retriable exceptions (`UnsupportedError`).
+  - Guarded against concurrent overlapping drains using atomic future completers and active pending checks.
+- **Hive Recovery Safety Invariant Certification (`AppBootstrapper.openBoxSafe`)**:
+  - Certified 4 distinct fault classes in `test/hive_recovery_test.dart`:
+    1. *Storage / Filesystem error*: rethrows cleanly, never deletes data.
+    2. *Encryption key mismatch*: throws `HiveKeyMismatchException`, preserves user data intact, never deletes or quarantines.
+    3. *Programming / configuration error*: rethrows without deleting data.
+    4. *Genuine file corruption*: creates verified diagnostic backup copy (`.corrupt.<ts>.bak`), verifies byte length, and only then quarantines and recreates box.
+- **Universal Scheduler Invariant Certification (`test/scheduler_invariants_test.dart`)**:
+  - Certified all hard invariants across 21 test scenarios: hard earliest start (`start >= earliestStart`), hard latest finish (`end <= latestFinish` or unplaced), deadline warnings, work window containment, non-overlap with 10-minute buffers, immovable fixed tasks, historical completed tasks preservation, DAG prerequisite ordering, past-time protection, determinism, idempotence, overload handling, DAG circular cycle safety, task splitting duration conservation, and clock time-of-day determinism.
+- **Clock Abstraction Standardization (`package:clock`)**:
+  - Audited scheduling-sensitive boundaries and converted `RescheduleService.checkOverdue` to `clock.now()`.
+- **Toolchain & CI Alignment**:
+  - Upgraded GitHub Actions CI toolchain (`.github/workflows/ci.yml`) to Java 21, resolving JVM compatibility mismatch with Gradle 8.12.
+  - Aligned project release metadata across `pubspec.yaml`, `README.md`, `docs/README.md`, and documentation to `2.3.1+1`.
+  - Verified clean static analysis with `--fatal-infos` (zero issues) and clean debug APK build (`flutter build apk --debug`).
+- **Engineering Registers**:
+  - Created `docs/PRODUCTION_READINESS.md` containing full empirical verification matrix across build, quality, security, scheduler, calendar, offline queue, and reliability.
+  - Created `docs/ARCHITECTURE_DEBT.md` establishing a formal register of non-blocking architectural debt, impacts, risks, and post-2.3 deferral rationale.
+- **Test Suite Scale**:
+  - Expanded test suite to **528 passing automated tests across 34 test files** with 100% pass rate.
+
+---
+
 ## [2.3.0] — 2026-09-18
 
 ### Navigation Dock Overhaul, Signature Screen Themes, Voice Simulator & AI Coach Guardrails
