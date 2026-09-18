@@ -1,3 +1,5 @@
+import 'package:clock/clock.dart';
+
 import '../core/models/task_model.dart';
 import '../core/models/calendar_event_model.dart';
 import '../core/models/memory_entry_model.dart';
@@ -63,7 +65,7 @@ class RescheduleService {
     required AppSettings settings,
     List<GoalItem> goals = const [],
   }) async {
-    final now = DateTime.now();
+    final now = clock.now();
     final today = DateTime(now.year, now.month, now.day);
 
     // Filter: today's tasks that are uncompleted and overdue by > grace period.
