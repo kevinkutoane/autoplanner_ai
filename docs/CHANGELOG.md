@@ -6,6 +6,15 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [2.3.1] — 2026-09-18
 
+### Release Candidate Verification Hardening (2026-09-19)
+
+- Added an exact-SHA CI assertion so a workflow cannot report certification for a different checkout than the triggering commit.
+- Added release-mode APK compilation to the blocking CI verification path.
+- Added a short-retention release APK artifact for controlled private-beta device validation.
+- Reconciled the production-readiness register with the current Android compile SDK configuration (compileSdk 37) and current RC verification model.
+- Pinned the beta QA protocol to the current RC candidate commit.
+
+
 ### Production Readiness & Engineering Stabilisation (Release Candidate — Conditional)
 
 - **Offline AI Queue Hardening & Collision Safety (`OfflineAIQueue`)**:
