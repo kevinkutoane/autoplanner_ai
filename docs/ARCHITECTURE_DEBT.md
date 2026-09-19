@@ -102,13 +102,12 @@ This register documents known architectural debt, design trade-offs, and structu
 
 ---
 
-## 9. Android Toolchain Forward Compatibility Warnings (Gradle 8.14 / AGP 8.11.1 / Kotlin 2.2.20 / Actions Java v4)
+## 9. Android Toolchain Forward Compatibility Warnings (Gradle 8.14 / AGP 8.11.1 / Kotlin 2.2.20)
 
 * **Category**: Build System & Toolchain Maintenance
 * **Problem**: Build and CI logs emit forward-looking toolchain deprecation warnings:
   - Flutter SDK warns that future releases will require minimum versions higher than Gradle 8.14, AGP 8.11.1, and Kotlin 2.2.20 (e.g. Gradle 9.1+, AGP 9.0.1+, Kotlin 2.3.20+).
-  - GitHub Actions warns that `actions/setup-java@v4` is deprecated.
-* **Impact**: Zero impact on current builds (clean build exit 0 in local environments and GitHub Actions CI run `35352506852`). However, subsequent Flutter framework major upgrades will enforce these minimum requirements.
+* **Impact**: Zero impact on current builds (clean build exit 0 in local environments and GitHub Actions CI). However, subsequent Flutter framework major upgrades will enforce these minimum requirements.
 * **Risk**: Upgrading Gradle, AGP, or Kotlin now risks introducing plugin incompatibilities, breaking changes in Android Gradle Plugin extensions, or JVM bytecode mismatches right before Release Candidate tagging.
 * **Future Direction**: Perform a coordinated toolchain migration in Phase 3.0 on a dedicated build-verification branch once upstream Flutter plugins validate compatibility with AGP 9 and Gradle 9.
 * **Why Deferred**: Restraint is preserved per principal-engineer review to protect the proven, green CI baseline and prevent unforced dependency churn during release candidate stabilisation.
