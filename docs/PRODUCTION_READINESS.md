@@ -11,8 +11,8 @@
 
 | Item | Requirement | Status | Evidence / Notes |
 | :--- | :--- | :---: | :--- |
-| **Toolchain Consistency** | Flutter 3.47.2 / Dart 3.13.x / Java 21 / Gradle 8.14.0 / AGP 8.11.1 / Kotlin 2.2.20 / compileSdk 35 / targetSdk 35 / minSdk 21 | **PASS** | Verified against live repository, Gradle wrapper, and GitHub Actions CI log. Note: Flutter SDK emits forward-looking deprecation warnings that future versions will require Gradle 9.1+, AGP 9.0.1+, and Kotlin 2.3.20+, and `actions/setup-java@v4` is deprecated. Recorded as technical debt item #9 in `docs/ARCHITECTURE_DEBT.md`. |
-| **Clean Build Verification** | Clean environment build succeeds | **PASS** | Debug APK build compiled cleanly via `flutter build apk --debug`. |
+| **Toolchain Consistency** | Flutter 3.47.2 / Dart 3.13.x / Java 21 / Gradle 8.14.0 / AGP 8.11.1 / Kotlin 2.2.20 / compileSdk 37 / targetSdk managed by Flutter / minSdk managed by Flutter | **PASS** | Verified against live repository, Gradle wrapper, and GitHub Actions CI configuration. Flutter SDK emits forward-looking deprecation warnings that future versions will require Gradle 9.1+, AGP 9.0.1+, and Kotlin 2.3.20+; these remain tracked as technical debt item #9 in `docs/ARCHITECTURE_DEBT.md`. |
+| **Clean Build Verification** | Clean environment build succeeds | **PASS** | Debug APK and release-mode APK compile cleanly via `flutter build apk --debug` and `flutter build apk --release`. |
 | **Release Metadata Alignment** | Version consistency across config and documentation | **PASS** | `pubspec.yaml` aligned to `2.3.1+1`, synchronized with `README.md`, `docs/README.md`, `docs/CHANGELOG.md`, and `docs/ROADMAP.md`. |
 | **Dependency Integrity** | No unnecessary package churn or unapproved migrations | **PASS** | Zero new unapproved dependencies introduced; preserved approved packages (`hive`, `flutter_riverpod`, `connectivity_plus`, `google_sign_in`, `flutter_local_notifications`, `uuid`). |
 
@@ -25,7 +25,7 @@
 | **Code Formatting** | Zero format diffs (`dart format --output=none --set-exit-if-changed`) | **PASS** | Verified format check with exit code 0 across `lib` and `test`. |
 | **Static Analysis** | Zero errors, zero warnings, zero infos with `--fatal-infos` | **PASS** | `flutter analyze lib test --fatal-infos` ran across all files with `No issues found!`. |
 | **Unit & Behavioral Tests** | 100% pass rate across entire suite | **PASS** | 529 tests passed across 34 test files (`flutter test`) with zero failures. |
-| **CI Exact-SHA Reproduction** | GitHub Actions passes on target commit without secrets | **PASS** | CI workflow executes format check, static analysis with `--fatal-infos`, full test suite with coverage generation, and debug APK build using Mock AI provider. Codecov upload step configured with optional repository secret `CODECOV_TOKEN` as non-blocking telemetry. |
+| **CI Exact-SHA Reproduction** | GitHub Actions passes on target commit without secrets | **PASS** | CI verifies the checked-out `git rev-parse HEAD` exactly matches `${{ github.sha }}`, executes format check, static analysis with `--fatal-infos`, full test suite with coverage generation, and both debug and release APK builds using the Mock AI provider. The release APK is uploaded as a short-retention CI artifact for beta validation. Codecov remains optional non-blocking telemetry. |
 
 ---
 
