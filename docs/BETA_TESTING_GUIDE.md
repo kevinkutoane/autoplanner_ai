@@ -1,6 +1,7 @@
 # AutoPlanner AI — Beta Testing & Real-Device QA Protocol
 
-> **Phase**: 2.3.1 Release Candidate (Conditional) → Private Beta  
+> **Phase**: 2.3.1 Release Candidate (Conditional) → Private Beta
+> **Current RC Candidate**: `6154882a509b1d9d8d9bfce6404402b603fcfbc4`  
 > **Document Status**: Authoritative QA Test Matrix  
 > **Target Platforms**: Android 12+ (minSdk 21, targetSdk 35) & iOS 15+  
 > **Test Environment**: Physical Devices (Primary) & High-Fidelity Emulators (Secondary)
@@ -157,7 +158,7 @@ When reporting findings, beta testers should use this concise template:
 ### Beta Test Report
 
 * **Tester Name / Device**: (e.g., Jane Doe / Pixel 8 Pro / Android 14)
-* **App Version / Build**: 2.3.1 (Commit 41a8315)
+* **App Version / Build**: 2.3.1+1 (RC candidate SHA `6154882a509b1d9d8d9bfce6404402b603fcfbc4`)
 * **Test Case ID**: (e.g., TC-BD-01)
 * **Severity**: [P0 Blocker / P1 High / P2 Quality / P3 Polish]
 * **Summary**: Brief 1-line description of the issue.
