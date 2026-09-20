@@ -59,14 +59,19 @@ class MicroWinsCard extends ConsumerWidget {
                               color: kNeonCyan,
                             ),
                           ),
-                          const Spacer(),
-                          Text(
-                            'Before: ${window.nextEventTitle}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: isDark ? Colors.white54 : Colors.black45,
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                'Before: ${window.nextEventTitle}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: isDark ? Colors.white54 : Colors.black45,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -104,6 +109,8 @@ class MicroWinsCard extends ConsumerWidget {
                       children: [
                         Text(
                           topTask.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,

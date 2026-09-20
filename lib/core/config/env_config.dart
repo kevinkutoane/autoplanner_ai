@@ -13,6 +13,7 @@ class EnvConfig {
   final String geminiApiKey;
   final String appName;
   final String sentryDsn;
+  final String aiGatewayUrl;
 
   /// Whether to print each AI prompt/response to the debug console.
   final bool enableAILogging;
@@ -32,6 +33,7 @@ class EnvConfig {
     this.geminiApiKey = '',
     this.appName = 'AutoPlanner AI [DEV]',
     this.sentryDsn = '',
+    this.aiGatewayUrl = '',
     this.enableAILogging = true,
     this.enableTokenTracking = true,
     this.maxTokensPerDay = 100000,
@@ -43,6 +45,7 @@ class EnvConfig {
     required this.geminiApiKey,
     required this.appName,
     required this.sentryDsn,
+    required this.aiGatewayUrl,
     required this.enableAILogging,
     required this.enableTokenTracking,
     required this.maxTokensPerDay,
@@ -74,6 +77,7 @@ class EnvConfig {
       geminiApiKey: dotenv.get('GEMINI_API_KEY', fallback: ''),
       appName: appName,
       sentryDsn: dotenv.get('SENTRY_DSN', fallback: ''),
+      aiGatewayUrl: dotenv.get('AI_GATEWAY_URL', fallback: ''),
       enableAILogging:
           dotenv.get('ENABLE_AI_LOGGING', fallback: 'true') == 'true',
       enableTokenTracking:

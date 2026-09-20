@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/ai/ai_guard.dart';
+import '../core/ai/ai_invocation.dart';
 import '../core/ai/ai_provider.dart';
 import '../core/ai/token_tracker.dart';
 import '../core/models/task_model.dart';
@@ -207,8 +208,15 @@ User input: "${_sanitize(input)}"
 (Input pre-screened for safety)
 ''';
 
+    final invocation = AIInvocation(
+      id: _uuid.v4(),
+      operation: AIOperation.parseTasks,
+      input: {'text': input},
+      context: {'memories': memories?.map((m) => m.content).toList() ?? []},
+    );
+
     return await _withRetry(() async {
-      final response = await _provider.complete(prompt);
+      final response = await _provider.complete(prompt, invocation: invocation);
       await _tracker.log(action: 'parseTasks', response: response);
       return _parseTasksFromJson(response.text);
     });
@@ -246,8 +254,14 @@ $conversation
 User: ${_sanitize(safeInput)}
 Coach:''';
 
+    final invocation = AIInvocation(
+      id: _uuid.v4(),
+      operation: AIOperation.chatCoach,
+      input: {'message': safeInput, 'history': history},
+    );
+
     return await _withRetry(() async {
-      final response = await _provider.complete(prompt);
+      final response = await _provider.complete(prompt, invocation: invocation);
       await _tracker.log(action: 'chatWithCoach', response: response);
       return response.text.trim();
     });
@@ -309,8 +323,22 @@ Respond ONLY with a valid JSON array — no markdown, no explanation:
 [{"id":"existing-uuid-or-null","title":"...","estimatedMinutes":60,"priority":2,"tags":["work"]}]
 ''';
 
+    final invocation = AIInvocation(
+      id: _uuid.v4(),
+      operation: AIOperation.planDay,
+      input: {'additionalInput': ?safeAdditional},
+      context: {
+        'existingTasks': pending
+            .map((t) => {'id': t.id, 'title': t.title, 'priority': t.priority})
+            .toList(),
+        'memories': memories.map((m) => m.content).toList(),
+        'workStartHour': workStartHour,
+        'workHoursPerDay': workHoursPerDay,
+      },
+    );
+
     return await _withRetry(() async {
-      final response = await _provider.complete(prompt);
+      final response = await _provider.complete(prompt, invocation: invocation);
       await _tracker.log(action: 'planDay', response: response);
       return _parsePlanDayResult(response.text, existingTasks);
     });
@@ -354,8 +382,22 @@ Pick the single best slot number considering priority, goal urgency, the user's 
 Respond with ONLY the slot number as a single integer (e.g. "2"). No explanation.
 ''';
 
+    final invocation = AIInvocation(
+      id: _uuid.v4(),
+      operation: AIOperation.suggestReschedule,
+      input: {
+        'taskTitle': task.title,
+        'durationMinutes': _taskDurationMinutes(task),
+      },
+      context: {
+        'slots': slots.map((s) => s.toIso8601String()).toList(),
+        'memories': memories?.map((m) => m.content).toList() ?? [],
+        if (linkedGoal != null) 'linkedGoal': linkedGoal.title,
+      },
+    );
+
     return await _withRetry(() async {
-      final response = await _provider.complete(prompt);
+      final response = await _provider.complete(prompt, invocation: invocation);
       await _tracker.log(action: 'suggestReschedule', response: response);
       final pick = int.tryParse(response.text.trim());
       if (pick != null && pick >= 1 && pick <= slots.length) {
@@ -396,8 +438,13 @@ Summarize this note in 1-3 concise sentences. Respond with ONLY the summary text
 ${_sanitize(content)}
 """
 ''';
+    final invocation = AIInvocation(
+      id: _uuid.v4(),
+      operation: AIOperation.summarizeNote,
+      input: {'content': content},
+    );
     return await _withRetry(() async {
-      final response = await _provider.complete(prompt);
+      final response = await _provider.complete(prompt, invocation: invocation);
       await _tracker.log(action: 'summarizeNote', response: response);
       // Screen output before returning to UI
       _guard.validateOutput(response.text);
@@ -423,8 +470,13 @@ Return ONLY a JSON array of lowercase strings. Example: ["productivity","meeting
 ${_sanitize(content)}
 """
 ''';
+    final invocation = AIInvocation(
+      id: _uuid.v4(),
+      operation: AIOperation.generateTags,
+      input: {'content': content},
+    );
     return await _withRetry(() async {
-      final response = await _provider.complete(prompt);
+      final response = await _provider.complete(prompt, invocation: invocation);
       await _tracker.log(action: 'generateTags', response: response);
       return _parseStringList(response.text);
     });
@@ -475,9 +527,23 @@ $goalDesc
 Context:
 $memDesc
 ''';
+    final invocation = AIInvocation(
+      id: _uuid.v4(),
+      operation: AIOperation.dailyInsight,
+      input: {},
+      context: {
+        'tasksCount': tasks.length,
+        'goalsCount': goals.length,
+        'memories': memories.take(5).map((m) => m.content).toList(),
+      },
+    );
+
     try {
       return await _withRetry(() async {
-        final response = await _provider.complete(prompt);
+        final response = await _provider.complete(
+          prompt,
+          invocation: invocation,
+        );
         await _tracker.log(action: 'dailyInsight', response: response);
         // Screen output before returning to UI
         _guard.validateOutput(response.text);
@@ -510,9 +576,18 @@ If nothing noteworthy, return "NONE".
 ${_sanitize(context)}
 """
 ''';
+    final invocation = AIInvocation(
+      id: _uuid.v4(),
+      operation: AIOperation.extractMemory,
+      input: {'context': context, 'sourceType': sourceType},
+    );
+
     try {
       return await _withRetry(() async {
-        final response = await _provider.complete(prompt);
+        final response = await _provider.complete(
+          prompt,
+          invocation: invocation,
+        );
         await _tracker.log(action: 'extractMemory', response: response);
         final text = response.text.trim();
         if (text != 'NONE' && text.isNotEmpty) return text;
@@ -603,18 +678,31 @@ ${_sanitize(input)}
 """
 ''';
 
+    final invocation = AIInvocation(
+      id: _uuid.v4(),
+      operation: AIOperation.brainDump,
+      input: {'text': input},
+      context: {'suggestedStartTime': suggestedStartTime},
+    );
+
     try {
       return await _withRetry(() async {
         String fullText;
         if (onChunk != null) {
           final buffer = StringBuffer();
-          await for (final chunk in _provider.streamComplete(prompt)) {
+          await for (final chunk in _provider.streamComplete(
+            prompt,
+            invocation: invocation,
+          )) {
             buffer.write(chunk);
             onChunk(buffer.toString());
           }
           fullText = buffer.toString();
         } else {
-          final response = await _provider.complete(prompt);
+          final response = await _provider.complete(
+            prompt,
+            invocation: invocation,
+          );
           fullText = response.text;
         }
 
@@ -679,9 +767,22 @@ Rules:
 - Be specific and actionable (e.g., NOT "user likes mornings" but "user completes high-priority tasks before 11am")
 ''';
 
+    final invocation = AIInvocation(
+      id: _uuid.v4(),
+      operation: AIOperation.extractPatterns,
+      input: {},
+      context: {
+        'completedCount': completed.length,
+        'memories': memories?.map((m) => m.content).toList() ?? [],
+      },
+    );
+
     try {
       return await _withRetry(() async {
-        final response = await _provider.complete(prompt);
+        final response = await _provider.complete(
+          prompt,
+          invocation: invocation,
+        );
         await _tracker.log(action: 'extractPatterns', response: response);
         final list = AIValidator.extractArray(
           response.text,
@@ -746,9 +847,22 @@ Rules:
 - Only suggest things plausibly relevant to this user's context
 ''';
 
+    final invocation = AIInvocation(
+      id: _uuid.v4(),
+      operation: AIOperation.suggestTasks,
+      input: {'dayName': dayName, 'date': date.toIso8601String()},
+      context: {
+        'memories': memories.map((m) => m.content).toList(),
+        'recentHistoryCount': recentHistory?.length ?? 0,
+      },
+    );
+
     try {
       return await _withRetry(() async {
-        final response = await _provider.complete(prompt);
+        final response = await _provider.complete(
+          prompt,
+          invocation: invocation,
+        );
         await _tracker.log(action: 'suggestTasks', response: response);
         return _parseStringList(response.text);
       });
@@ -821,9 +935,26 @@ Write a structured weekly review with these sections:
 Keep it encouraging, concise, and actionable. Use markdown formatting.
 Respond with ONLY the review text.
 ''';
+    final invocation = AIInvocation(
+      id: _uuid.v4(),
+      operation: AIOperation.weeklyReview,
+      input: {
+        'tasksCount': total,
+        'completedCount': completed,
+        'completionRate': rate,
+      },
+      context: {
+        'goalsCount': weekGoals.length,
+        'memories': memories.map((m) => m.content).toList(),
+      },
+    );
+
     try {
       return await _withRetry(() async {
-        final response = await _provider.complete(prompt);
+        final response = await _provider.complete(
+          prompt,
+          invocation: invocation,
+        );
         await _tracker.log(action: 'weeklyReview', response: response);
         // Screen output before returning to UI
         _guard.validateOutput(response.text);
@@ -1094,8 +1225,16 @@ JSON Schema:
 Output ONLY valid JSON.
 ''';
 
+    final invocation = AIInvocation(
+      id: _uuid.v4(),
+      operation: AIOperation.parseScheduleCommand,
+      input: {'query': cleanQuery, 'referenceTime': now.toIso8601String()},
+    );
+
     try {
-      final response = await _withRetry(() => _provider.complete(prompt));
+      final response = await _withRetry(
+        () => _provider.complete(prompt, invocation: invocation),
+      );
       final json = AIValidator.extractObject(
         response.text,
         context: 'parseScheduleCommand',

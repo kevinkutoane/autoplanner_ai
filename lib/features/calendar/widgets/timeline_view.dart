@@ -115,49 +115,57 @@ class _TimelineViewState extends State<TimelineView> {
             ),
             // Event area
             Expanded(
-              child: Stack(
-                children: [
-                  // Hour divider lines
-                  ...List.generate(_endHour - _startHour, (i) {
-                    return Positioned(
-                      top: i * _hourHeight,
-                      left: 0,
-                      right: 0,
-                      child: Divider(
-                        height: 1,
-                        color: isDark
-                            ? Colors.white.withAlpha(18)
-                            : Colors.black.withAlpha(10),
-                      ),
-                    );
-                  }),
-
-                  // Now line
-                  if (isToday)
-                    Positioned(
-                      top: (now.hour + now.minute / 60.0) * _hourHeight,
-                      left: 0,
-                      right: 0,
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: kCoral,
-                              shape: BoxShape.circle,
-                            ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Stack(
+                    children: [
+                      // Hour divider lines
+                      ...List.generate(_endHour - _startHour, (i) {
+                        return Positioned(
+                          top: i * _hourHeight,
+                          left: 0,
+                          right: 0,
+                          child: Divider(
+                            height: 1,
+                            color: isDark
+                                ? Colors.white.withAlpha(18)
+                                : Colors.black.withAlpha(10),
                           ),
-                          Expanded(
-                            child: Container(height: 1.5, color: kCoral),
-                          ),
-                        ],
-                      ),
-                    ),
+                        );
+                      }),
 
-                  // Events
-                  ..._buildEventBlocks(dayEvents, isDark),
-                ],
+                      // Now line
+                      if (isToday)
+                        Positioned(
+                          top: (now.hour + now.minute / 60.0) * _hourHeight,
+                          left: 0,
+                          right: 0,
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: kCoral,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              Expanded(
+                                child: Container(height: 1.5, color: kCoral),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      // Events
+                      ..._buildEventBlocks(
+                        dayEvents,
+                        isDark,
+                        constraints.maxWidth,
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -166,7 +174,11 @@ class _TimelineViewState extends State<TimelineView> {
     );
   }
 
-  List<Widget> _buildEventBlocks(List<CalendarEvent> events, bool isDark) {
+  List<Widget> _buildEventBlocks(
+    List<CalendarEvent> events,
+    bool isDark,
+    double totalWidth,
+  ) {
     final widgets = <Widget>[];
 
     // Detect overlapping events and assign column indices
@@ -184,61 +196,89 @@ class _TimelineViewState extends State<TimelineView> {
           (event.endTime.hour + event.endTime.minute / 60.0) - _startHour;
       final top = startFraction * _hourHeight;
       final height = ((endFraction - startFraction) * _hourHeight).clamp(
-        _hourHeight * 0.3,
+        26.0,
         double.infinity,
       );
 
       final isConflict = event.syncStatus == 'conflict';
       final color = isConflict ? kCoral : Color(event.colorValue);
 
+      final colWidth = (totalWidth - 4) / colTotal;
+      final left = 2.0 + (colIndex * colWidth);
+
       widgets.add(
         Positioned(
           top: top + 2,
-          left: colIndex == 0 ? 2 : colIndex * (1 / colTotal) * 1000 * 0.001,
-          right: ((colTotal - colIndex - 1) / colTotal) * 2,
+          left: left,
+          width: colWidth.clamp(20.0, totalWidth),
           height: height - 4,
           child: GestureDetector(
             onTap: () => widget.onEventTap?.call(event),
-            child: Container(
-              margin: const EdgeInsets.only(right: 3),
-              decoration: BoxDecoration(
-                color: color.withAlpha(isDark ? 60 : 40),
-                borderRadius: BorderRadius.circular(8),
-                border: Border(left: BorderSide(color: color, width: 3)),
-              ),
-              padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (isConflict) ...[
-                    const Icon(
-                      Icons.warning_amber_rounded,
-                      size: 12,
-                      color: kCoral,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                margin: const EdgeInsets.only(right: 3),
+                decoration: BoxDecoration(
+                  color: color.withAlpha(isDark ? 60 : 40),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border(left: BorderSide(color: color, width: 3)),
+                ),
+                padding: const EdgeInsets.fromLTRB(6, 2, 4, 2),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.topLeft,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: (colWidth - 10).clamp(60.0, 500.0),
+                      maxHeight: (height - 8).clamp(18.0, 1000.0),
                     ),
-                    const SizedBox(width: 4),
-                  ],
-                  Text(
-                    event.title,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : const Color(0xFF1A1A2E),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isConflict) ...[
+                              const Icon(
+                                Icons.warning_amber_rounded,
+                                size: 12,
+                                color: kCoral,
+                              ),
+                              const SizedBox(width: 4),
+                            ],
+                            Flexible(
+                              child: Text(
+                                event.title,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1A1A2E),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (height > 34)
+                          Text(
+                            DateFormat('h:mm a').format(event.startTime),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: isDark
+                                  ? Colors.white54
+                                  : const Color(0xFF6060A0),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                  if (height > 28)
-                    Text(
-                      DateFormat('h:mm a').format(event.startTime),
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isDark
-                            ? Colors.white54
-                            : const Color(0xFF6060A0),
-                      ),
-                    ),
-                ],
+                ),
               ),
             ),
           ),

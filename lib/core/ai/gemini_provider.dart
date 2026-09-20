@@ -1,6 +1,7 @@
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 import '../config/env_config.dart';
+import 'ai_invocation.dart';
 import 'ai_provider.dart';
 
 /// Gemini implementation of [AIProvider].
@@ -18,7 +19,7 @@ class GeminiProvider implements AIProvider {
   }
 
   @override
-  Future<AIResponse> complete(String prompt) async {
+  Future<AIResponse> complete(String prompt, {AIInvocation? invocation}) async {
     final stopwatch = Stopwatch()..start();
     final content = [Content.text(prompt)];
     final response = await _model.generateContent(content);
@@ -43,7 +44,10 @@ class GeminiProvider implements AIProvider {
   }
 
   @override
-  Stream<String> streamComplete(String prompt) async* {
+  Stream<String> streamComplete(
+    String prompt, {
+    AIInvocation? invocation,
+  }) async* {
     final content = [Content.text(prompt)];
     final stream = _model.generateContentStream(content);
     await for (final chunk in stream) {

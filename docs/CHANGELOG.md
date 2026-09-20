@@ -6,6 +6,25 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [2.3.1] — 2026-09-18
 
+### Dashboard Overflow Hardening & App Stability (2026-09-19)
+
+- **Dashboard RenderFlex Overflow Hardening**:
+  - Reduced vertical padding on `GradStatCard` and enforced `mainAxisSize: MainAxisSize.min` with a slightly taller horizontal scroll container (88px), eliminating vertical bottom overflows on scaled fonts.
+  - Hardened Dashboard greeting header and XP pill row with `Flexible(fit: FlexFit.loose)` so narrow widths never clip or push against action buttons.
+  - Hardened `DailyRitualCard` title row with `Flexible` and ellipsis, preventing text overflow when badge and long titles coincide.
+  - Hardened `WhatShouldIDoNowCard` category and energy level row with `Flexible` and safe spacing; added ellipsis protection to the primary CTA button.
+  - Hardened `MicroWinsCard` gap row with `Flexible` and right-aligned text so long calendar event titles truncate cleanly instead of causing RenderFlex right overflows.
+  - Resolved `_StreakBadge` pip indicator milestone indexing calculation for streaks >= 100 days.
+- **Hive Box Type Unification & Crash Prevention**:
+  - Resolved fatal `HiveError` on `gamificationBox` by aligning box typing to `dynamic` across `AppBootstrapper` and `GamificationService`, ensuring XP, streak, and level load cleanly on startup.
+- **Home Widget Package Alignment**:
+  - Corrected `_appId` to `com.kevinkutoane.autoplannerai` in `HomeWidgetService`, resolving Android `ClassNotFoundException` during widget updates.
+- **Focus Timer Resumption & Calendar Responsive Layout**:
+  - Automatically resumed active countdowns when entering `FocusModeScreen` for paused tasks, and ensured timer ticker cancellation on pause.
+  - Integrated `LayoutBuilder` into `TimelineView` with proportional column widths and `FittedBox` constraints, eliminating RenderFlex bottom overflows on short-duration events.
+- **Help Screen & Guide Updates**:
+  - Updated `HelpScreen` feature guides to reflect Day Timeline views, focus timer auto-resumption, circadian energy matching, and Google Calendar two-way synchronization.
+
 ### Release Candidate Verification Hardening (2026-09-19)
 
 - Added an exact-SHA CI assertion so a workflow cannot report certification for a different checkout than the triggering commit.

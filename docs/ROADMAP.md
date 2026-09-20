@@ -170,7 +170,8 @@
   4. **Calendar Sync Certification**: Full verification of initial sync, incremental sync with `syncToken`, pagination interruption safety, 410 Gone full-resync recovery, cancelled event cleanup, and conflict handling.
   5. **Toolchain & CI Synchronization**: Aligned GitHub Actions to Java 21; verified reproducible clean build with `flutter build apk --debug`.
   6. **Readiness & Debt Registers**: Established `docs/PRODUCTION_READINESS.md` and `docs/ARCHITECTURE_DEBT.md`.
-  7. **Verification**: 529 automated tests passing across 34 test files (100% pass rate), 0 analyzer issues with `--fatal-infos`.
+  7. **Verification**: 558 automated tests passing across 38 test files (100% pass rate), 0 analyzer issues with `--fatal-infos`.
+  8. **Device QA & UI Hardening**: Physical hardware verification on Android (SM A266B); patched boot initialization Hive typing, HomeWidget package namespace, chronometer resumption, and hardened dashboard components against RenderFlex overflow across variable font scales and screen densities.
 
 ---
 

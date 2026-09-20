@@ -2,6 +2,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:autoplanner_ai/core/config/env_config.dart';
 import 'package:autoplanner_ai/core/ai/ai_guard.dart';
+import 'package:autoplanner_ai/core/ai/ai_invocation.dart';
 import 'package:autoplanner_ai/core/ai/ai_provider.dart';
 import 'package:autoplanner_ai/core/ai/ai_validator.dart';
 import 'package:autoplanner_ai/core/ai/mock_ai_provider.dart';
@@ -540,5 +541,6 @@ class _CallbackAIProvider extends AIProvider {
   String get modelName => 'callback-mock';
 
   @override
-  Future<AIResponse> complete(String prompt) => _onComplete(prompt);
+  Future<AIResponse> complete(String prompt, {AIInvocation? invocation}) =>
+      _onComplete(prompt);
 }

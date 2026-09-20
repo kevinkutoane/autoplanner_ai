@@ -1,20 +1,27 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:autoplanner_ai/services/ai_service.dart';
 import 'package:autoplanner_ai/services/app_monitor_service.dart';
+import 'package:autoplanner_ai/core/ai/ai_invocation.dart';
 import 'package:autoplanner_ai/core/ai/ai_provider.dart';
 import 'package:autoplanner_ai/core/ai/token_tracker.dart';
 
 class FakeAIProvider extends AIProvider {
   String responseText = '';
   @override
-  Future<AIResponse> complete(String prompt) async => AIResponse(
+  Future<AIResponse> complete(
+    String prompt, {
+    AIInvocation? invocation,
+  }) async => AIResponse(
     text: responseText,
     promptTokens: 0,
     completionTokens: 0,
     model: 'fake',
   );
   @override
-  Stream<String> streamComplete(String prompt) async* {
+  Stream<String> streamComplete(
+    String prompt, {
+    AIInvocation? invocation,
+  }) async* {
     yield responseText;
   }
 

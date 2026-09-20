@@ -9,7 +9,7 @@ import '../core/models/task_model.dart';
 /// You must call [update] from TaskController / SettingsController after
 /// any task change so the widget reflects the latest state.
 class HomeWidgetService {
-  static const _appId = 'com.example.autoplanner_ai';
+  static const _appId = 'com.kevinkutoane.autoplannerai';
   static const _androidWidgetName = 'AutoPlannerWidgetProvider';
   static const _iOSWidgetName = 'AutoPlannerWidget';
 

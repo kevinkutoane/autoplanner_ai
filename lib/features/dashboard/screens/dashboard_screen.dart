@@ -162,49 +162,54 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    GestureDetector(
-                                      onTap: () =>
-                                          AchievementsSheet.show(context),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          gradient: kGradientNeonSunset,
-                                          borderRadius: BorderRadius.circular(
-                                            10,
+                                    Flexible(
+                                      fit: FlexFit.loose,
+                                      child: GestureDetector(
+                                        onTap: () =>
+                                            AchievementsSheet.show(context),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 3,
                                           ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: kSunsetRose.withAlpha(80),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
+                                          decoration: BoxDecoration(
+                                            gradient: kGradientNeonSunset,
+                                            borderRadius: BorderRadius.circular(
+                                              10,
                                             ),
-                                          ],
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(
-                                              Icons.bolt_rounded,
-                                              size: 13,
-                                              color: Colors.white,
-                                            ),
-                                            const SizedBox(width: 3),
-                                            FittedBox(
-                                              fit: BoxFit.scaleDown,
-                                              child: Text(
-                                                'LVL ${profile.currentLevel} · ${profile.totalXp} XP',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10.5,
-                                                  fontWeight: FontWeight.w900,
-                                                  letterSpacing: 0.2,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: kSunsetRose.withAlpha(80),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                Icons.bolt_rounded,
+                                                size: 13,
+                                                color: Colors.white,
+                                              ),
+                                              const SizedBox(width: 3),
+                                              Flexible(
+                                                child: FittedBox(
+                                                  fit: BoxFit.scaleDown,
+                                                  child: Text(
+                                                    'LVL ${profile.currentLevel} · ${profile.totalXp} XP',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 10.5,
+                                                      fontWeight: FontWeight.w900,
+                                                      letterSpacing: 0.2,
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -348,7 +353,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: Stagger(
                     index: 0,
                     child: SizedBox(
-                      height: 84,
+                      height: 88,
                       child: ListView(
                         scrollDirection: Axis.horizontal,
                         physics: const BouncingScrollPhysics(),
@@ -754,6 +759,10 @@ class _StreakBadge extends StatelessWidget {
       orElse: () => streak + 10,
     );
     final remaining = nextMilestone - streak;
+    final mIndex = milestones.indexOf(nextMilestone);
+    final prevMilestone = mIndex <= 0 ? 0 : milestones[mIndex - 1];
+    final totalSteps = (nextMilestone - prevMilestone).clamp(1, 10);
+    final currentSteps = (streak - prevMilestone).clamp(0, totalSteps);
 
     return GlassCard(
       child: Row(
@@ -774,12 +783,16 @@ class _StreakBadge extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.3,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   remaining == 1
                       ? 'One more day to reach $nextMilestone!'
                       : '$remaining days to reach $nextMilestone',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(context).brightness == Brightness.dark
@@ -795,27 +808,19 @@ class _StreakBadge extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Row(
-                children: List.generate(
-                  (nextMilestone -
-                          (nextMilestone == milestones.first
-                              ? 0
-                              : (milestones[milestones.indexOf(nextMilestone) -
-                                    1])))
-                      .clamp(1, 10),
-                  (i) {
-                    final filled = i < streak.clamp(0, 10);
-                    return Container(
-                      width: 6,
-                      height: 6,
-                      margin: const EdgeInsets.only(left: 3),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: filled ? kGradientWarm : null,
-                        color: filled ? null : Colors.grey.withAlpha(60),
-                      ),
-                    );
-                  },
-                ),
+                children: List.generate(totalSteps, (i) {
+                  final filled = i < currentSteps;
+                  return Container(
+                    width: 6,
+                    height: 6,
+                    margin: const EdgeInsets.only(left: 3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: filled ? kGradientWarm : null,
+                      color: filled ? null : Colors.grey.withAlpha(60),
+                    ),
+                  );
+                }),
               ),
             ],
           ),

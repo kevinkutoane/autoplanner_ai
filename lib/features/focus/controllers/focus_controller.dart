@@ -61,6 +61,7 @@ class FocusController extends Notifier<FocusSessionState> {
   /// Pause current session.
   void pause() {
     if (!state.isRunning || state.isPaused) return;
+    _ticker?.cancel();
     HapticFeedback.selectionClick();
     state = state.copyWith(
       isRunning: false,

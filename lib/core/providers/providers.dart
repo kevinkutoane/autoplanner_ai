@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/schedule_result.dart';
 
 import '../ai/ai_provider.dart';
+import '../ai/cloud_ai_provider.dart';
 import '../ai/gemini_provider.dart';
 import '../ai/mock_ai_provider.dart';
 import '../ai/token_tracker.dart';
@@ -30,6 +31,11 @@ import '../../features/settings/controllers/settings_controller.dart';
 import '../../features/planner/controllers/task_controller.dart';
 
 import 'package:clock/clock.dart';
+
+// Re-export AI abstractions so features can use them from providers.dart
+export '../ai/ai_invocation.dart';
+export '../ai/ai_provider.dart';
+export '../ai/cloud_ai_provider.dart';
 
 // Re-export note controller provider so screens can import from providers.dart
 export '../../features/notes/controllers/note_controller.dart'
@@ -60,6 +66,12 @@ final settingsProvider = NotifierProvider<SettingsController, AppSettings>(
 final aiProviderProvider = Provider<AIProvider>((ref) {
   final settings = ref.watch(settingsProvider);
   if (settings.useMockAI) return MockAIProvider();
+
+  // If a cloud AI Gateway URL is configured, route through CloudAIProvider
+  if (appConfig.aiGatewayUrl.isNotEmpty) {
+    return CloudAIProvider(gatewayBaseUrl: Uri.parse(appConfig.aiGatewayUrl));
+  }
+
   // Prefer the user-supplied key from secure storage; fall back to .env.
   final key = settings.geminiApiKey.isNotEmpty
       ? settings.geminiApiKey

@@ -1,3 +1,5 @@
+import 'ai_invocation.dart';
+
 /// Model-agnostic AI provider abstraction.
 ///
 /// All AI calls flow through [AIProvider]. Implementations can wrap
@@ -8,13 +10,16 @@ abstract class AIProvider {
   /// Human-readable name (e.g. "gemini-2.0-flash", "gpt-4o")
   String get modelName;
 
-  /// Send a prompt and receive raw text back.
-  Future<AIResponse> complete(String prompt);
+  /// Send a prompt (and optional semantic [invocation]) and receive raw text back.
+  Future<AIResponse> complete(String prompt, {AIInvocation? invocation});
 
   /// Stream tokens as they arrive. Override for real streaming; the default
   /// implementation falls back to a single [complete] call.
-  Stream<String> streamComplete(String prompt) async* {
-    final response = await complete(prompt);
+  Stream<String> streamComplete(
+    String prompt, {
+    AIInvocation? invocation,
+  }) async* {
+    final response = await complete(prompt, invocation: invocation);
     yield response.text;
   }
 

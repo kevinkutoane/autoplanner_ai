@@ -410,8 +410,9 @@ class HelpScreen extends StatelessWidget {
                           detail:
                               'Match demanding cognitive tasks to your natural peak energy windows (Deep Work, '
                               'Collaborative, Light Admin, Creative Flow, Recharge). Enter Focus Mode with a distraction-free '
-                              'radial timer, ambient soundscapes (Binaural Beats, Rain, White Noise, Cafe), a distraction '
-                              'scratchpad to offload random thoughts without breaking flow, and micro-break alerts.',
+                              'radial timer that automatically resumes paused sessions, quick +5m and +15m flow extensions, ambient '
+                              'soundscapes (Binaural Beats, Rain, White Noise, Cafe), a distraction scratchpad to offload random '
+                              'thoughts without breaking flow, and micro-break alerts.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),
@@ -469,12 +470,13 @@ class HelpScreen extends StatelessWidget {
                         _FeatureTile(
                           icon: Icons.widgets_rounded,
                           color: kCyan,
-                          title: 'Google Calendar Sync & Home Widget',
-                          summary: 'Two-way calendar sync and glanceable home screen widgets',
+                          title: 'Calendar Views, Sync & Home Widget',
+                          summary: 'Month grid, Day timeline view, Google Calendar sync & home screen widgets',
                           detail:
-                              'Connect Google Calendar in Settings to automatically import meetings as blocked calendar time. '
-                              'Your home screen widget displays your top 3 upcoming tasks and daily completion progress '
-                              'without needing to open the app.',
+                              'Switch effortlessly between Month overview and granular Day Timeline views. '
+                              'Connect Google Calendar in Settings to automatically import meetings as blocked calendar time '
+                              'with two-way conflict detection. Your glanceable Android and iOS home screen widgets push '
+                              'today\'s top 3 tasks and completion progress straight to your home screen.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),

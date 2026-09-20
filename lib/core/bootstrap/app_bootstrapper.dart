@@ -118,7 +118,7 @@ class AppBootstrapper {
     await openBoxSafe<CalendarEvent>('calendarBox', hiveCipher);
     await openBoxSafe<dynamic>('settingsBox', hiveCipher);
     await openBoxSafe<AppEvent>('appEventsBox', hiveCipher);
-    await openBoxSafe<String>('gamificationBox', hiveCipher);
+    await openBoxSafe<dynamic>('gamificationBox', hiveCipher);
 
     // 5. Initialize services that require Hive
     final tokenTracker = TokenTracker();

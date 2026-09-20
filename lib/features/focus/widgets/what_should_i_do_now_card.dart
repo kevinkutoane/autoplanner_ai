@@ -155,18 +155,22 @@ class WhatShouldIDoNowCard extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   if (task.energyLevel != null) ...[
-                    Text(
-                      task.energyLevel == 'high'
-                          ? '⚡ High Energy'
-                          : task.energyLevel == 'medium'
-                          ? '🔋 Medium Energy'
-                          : '🌱 Low Energy',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? Colors.white60 : Colors.black54,
-                        fontWeight: FontWeight.w500,
+                    Flexible(
+                      child: Text(
+                        task.energyLevel == 'high'
+                            ? '⚡ High Energy'
+                            : task.energyLevel == 'medium'
+                            ? '🔋 Medium Energy'
+                            : '🌱 Low Energy',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.white60 : Colors.black54,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
@@ -239,6 +243,8 @@ class WhatShouldIDoNowCard extends ConsumerWidget {
                                     ? 'Resume Focus'
                                     : 'Open Focus Mode')
                               : 'Start Focus (${task.durationMinutes}m)',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,

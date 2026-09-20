@@ -31,7 +31,7 @@ class GamificationNotifier extends Notifier<GamificationProfile> {
   static const String boxName = 'gamificationBox';
   static const String profileKey = 'user_gamification_profile';
 
-  Box? _box;
+  Box<dynamic>? _box;
   final _levelUpController = StreamController<LevelUpEvent>.broadcast();
   final _badgeController = StreamController<BadgeUnlockedEvent>.broadcast();
 
@@ -46,15 +46,21 @@ class GamificationNotifier extends Notifier<GamificationProfile> {
     });
 
     // If box is already open (from AppBootstrapper), load initial profile synchronously
-    if (Hive.isBoxOpen(boxName)) {
-      _box = Hive.box(boxName);
-      final raw = _box?.get(profileKey);
-      if (raw != null) {
-        if (raw is String) {
-          return GamificationProfile.fromJson(raw);
-        } else if (raw is Map) {
-          return GamificationProfile.fromMap(Map<String, dynamic>.from(raw));
+    try {
+      if (Hive.isBoxOpen(boxName)) {
+        _box = Hive.box<dynamic>(boxName);
+        final raw = _box?.get(profileKey);
+        if (raw != null) {
+          if (raw is String) {
+            return GamificationProfile.fromJson(raw);
+          } else if (raw is Map) {
+            return GamificationProfile.fromMap(Map<String, dynamic>.from(raw));
+          }
         }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('GamificationNotifier: synchronous box read failed — $e');
       }
     }
 
@@ -65,9 +71,9 @@ class GamificationNotifier extends Notifier<GamificationProfile> {
   Future<void> _initHive() async {
     try {
       if (Hive.isBoxOpen(boxName)) {
-        _box = Hive.box(boxName);
+        _box = Hive.box<dynamic>(boxName);
       } else if (Hive.isBoxOpen('tasksBox') || Hive.isBoxOpen('settingsBox')) {
-        _box = await Hive.openBox(boxName);
+        _box = await Hive.openBox<dynamic>(boxName);
       }
       final raw = _box?.get(profileKey);
       if (raw != null) {
