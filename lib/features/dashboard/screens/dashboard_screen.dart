@@ -179,7 +179,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                             ),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: kSunsetRose.withAlpha(80),
+                                                color: kSunsetRose.withAlpha(
+                                                  80,
+                                                ),
                                                 blurRadius: 8,
                                                 offset: const Offset(0, 2),
                                               ),
@@ -202,7 +204,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                                     style: const TextStyle(
                                                       color: Colors.white,
                                                       fontSize: 10.5,
-                                                      fontWeight: FontWeight.w900,
+                                                      fontWeight:
+                                                          FontWeight.w900,
                                                       letterSpacing: 0.2,
                                                     ),
                                                   ),

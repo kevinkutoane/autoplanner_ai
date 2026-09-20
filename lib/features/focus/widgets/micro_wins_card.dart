@@ -69,7 +69,9 @@ class MicroWinsCard extends ConsumerWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 11.5,
-                                  color: isDark ? Colors.white54 : Colors.black45,
+                                  color: isDark
+                                      ? Colors.white54
+                                      : Colors.black45,
                                 ),
                               ),
                             ),
