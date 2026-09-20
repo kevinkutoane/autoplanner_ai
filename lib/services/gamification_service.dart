@@ -45,6 +45,19 @@ class GamificationNotifier extends Notifier<GamificationProfile> {
       _badgeController.close();
     });
 
+    // If box is already open (from AppBootstrapper), load initial profile synchronously
+    if (Hive.isBoxOpen(boxName)) {
+      _box = Hive.box(boxName);
+      final raw = _box?.get(profileKey);
+      if (raw != null) {
+        if (raw is String) {
+          return GamificationProfile.fromJson(raw);
+        } else if (raw is Map) {
+          return GamificationProfile.fromMap(Map<String, dynamic>.from(raw));
+        }
+      }
+    }
+
     unawaited(_initHive());
     return const GamificationProfile();
   }

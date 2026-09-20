@@ -660,58 +660,67 @@ class GradStatCard extends StatelessWidget {
   final String label;
   final String value;
   final List<Color> gradient;
+  final double? width;
+
   const GradStatCard({
     super.key,
     required this.icon,
     required this.label,
     required this.value,
     required this.gradient,
+    this.width,
   });
 
   @override
   Widget build(BuildContext context) {
     final d = Theme.of(context).brightness == Brightness.dark;
-    return Expanded(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  gradient[0].withAlpha(d ? 55 : 38),
-                  gradient[1].withAlpha(d ? 32 : 22),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: gradient[0].withAlpha(d ? 65 : 52),
-                width: 1,
-              ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          width: width,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                gradient[0].withAlpha(d ? 55 : 38),
+                gradient[1].withAlpha(d ? 32 : 22),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            child: Column(
-              children: [
-                ShaderMask(
-                  shaderCallback: (b) =>
-                      LinearGradient(colors: gradient).createShader(b),
-                  child: Icon(icon, size: 20, color: Colors.white),
-                ),
-                const SizedBox(height: 5),
-                Text(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: gradient[0].withAlpha(d ? 65 : 52),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ShaderMask(
+                shaderCallback: (b) =>
+                    LinearGradient(colors: gradient).createShader(b),
+                child: Icon(icon, size: 20, color: Colors.white),
+              ),
+              const SizedBox(height: 5),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
                   value,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.w900,
                     color: d ? Colors.white : kDark0,
                     height: 1,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
+              ),
+              const SizedBox(height: 2),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
                   label,
                   style: TextStyle(
                     fontSize: 11,
@@ -721,8 +730,8 @@ class GradStatCard extends StatelessWidget {
                     letterSpacing: 0.2,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

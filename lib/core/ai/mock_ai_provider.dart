@@ -47,15 +47,40 @@ class MockAIProvider implements AIProvider {
       } else {
         text = '{"action":"quick_add","taskTitle":"Follow up with team","minutes":30,"priority":1,"tags":["work"],"explanation":"Add task Follow up with team."}';
       }
-    } else if (lower.contains('extract') || lower.contains('memory')) {
+    } else if (lower.contains('extract memories') ||
+        lower.contains('extract memory') ||
+        lower.contains('memory context')) {
       text = 'User prefers morning schedules and blocks deep work before noon.';
     } else if (lower.contains('insight') || lower.contains('daily')) {
       text = 'You tend to be most productive in the morning. Try scheduling your hardest task before 10am.';
-    } else if (lower.contains('coach') ||
-        lower.contains('autoplanner ai coach')) {
-      if (lower.contains('structure') ||
+    } else if (lower.contains('autoplanner ai coach') ||
+        lower.contains('productivity coach') ||
+        lower.contains('coach:')) {
+      if (lower.contains('procrastinat') ||
+          lower.contains('stuck') ||
+          lower.contains('resist')) {
+        text = '''Overcoming friction starts with shrinking the ask:
+
+1. **The 5-Minute Rule**: Commit to working on the task for just 5 minutes. You are free to stop afterwards, but 85% of people keep going once inertia breaks.
+2. **Clarify the Micro-Step**: What is the literal physical next action? (e.g., "Open document and write title" instead of "Finish presentation").
+3. **Trigger Focus Mode**: Tap the Focus tab and start a 25-minute Pomodoro session with gentle ambient sound.
+
+Which task is causing the most resistance right now? Let's break it down together!''';
+      } else if (lower.contains('cake') ||
+          lower.contains('recipe') ||
+          lower.contains('weather') ||
+          lower.contains('movie') ||
+          lower.contains('president')) {
+        text = '''I am your **AutoPlanner AI Coach**! 🎯
+
+My expertise is focused strictly on leveling up your productivity, designing daily schedules, defeating procrastination, and mastering your goals.
+
+Let's channel this energy into your day — what's one priority or goal we can make progress on right now?''';
+      } else if (lower.contains('structure') ||
           lower.contains('plan my day') ||
-          lower.contains('plan')) {
+          lower.contains('plan') ||
+          lower.contains('schedule') ||
+          lower.contains('task')) {
         text = '''Here is a high-impact structure to maximize your productivity today:
 
 🌅 **Morning Anchor (8:00 - 9:30 AM)**
@@ -76,26 +101,6 @@ class MockAIProvider implements AIProvider {
 • Review completed tasks and brain dump tomorrow's attack plan!
 
 Would you like me to help you schedule specific tasks or time blocks right now?''';
-      } else if (lower.contains('procrastinat') ||
-          lower.contains('stuck') ||
-          lower.contains('resist')) {
-        text = '''Overcoming friction starts with shrinking the ask:
-
-1. **The 5-Minute Rule**: Commit to working on the task for just 5 minutes. You are free to stop afterwards, but 85% of people keep going once inertia breaks.
-2. **Clarify the Micro-Step**: What is the literal physical next action? (e.g., "Open document and write title" instead of "Finish presentation").
-3. **Trigger Focus Mode**: Tap the Focus tab and start a 25-minute Pomodoro session with gentle ambient sound.
-
-Which task is causing the most resistance right now? Let's break it down together!''';
-      } else if (lower.contains('cake') ||
-          lower.contains('recipe') ||
-          lower.contains('weather') ||
-          lower.contains('movie') ||
-          lower.contains('president')) {
-        text = '''I am your **AutoPlanner AI Coach**! 🎯
-
-My expertise is focused strictly on leveling up your productivity, designing daily schedules, defeating procrastination, and mastering your goals.
-
-Let's channel this energy into your day — what's one priority or goal we can make progress on right now?''';
       } else {
         text = '''Great question! To make consistent progress, remember:
 

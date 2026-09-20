@@ -88,26 +88,31 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
                             icon: Icons.chevron_left_rounded,
                             onTap: () => _changeMonth(-1),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           Expanded(
                             child: FadeTransition(
                               opacity: _monthFade,
-                              child: Text(
-                                DateFormat('MMMM yyyy').format(_focusedMonth),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.3,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  DateFormat('MMMM yyyy').format(_focusedMonth),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.3,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
+                          const SizedBox(width: 4),
                           _IconBtn(
                             icon: Icons.chevron_right_rounded,
                             onTap: () => _changeMonth(1),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           _IconBtn(
                             icon: Icons.today_rounded,
                             onTap: () {
@@ -184,6 +189,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen>
               // Events — timeline or list
               if (_showTimeline)
                 SliverFillRemaining(
+                  hasScrollBody: true,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
                     child: TimelineView(

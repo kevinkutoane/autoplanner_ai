@@ -192,13 +192,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                               color: Colors.white,
                                             ),
                                             const SizedBox(width: 3),
-                                            Text(
-                                              'LVL ${profile.currentLevel} · ${profile.totalXp} XP',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10.5,
-                                                fontWeight: FontWeight.w900,
-                                                letterSpacing: 0.2,
+                                            FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              child: Text(
+                                                'LVL ${profile.currentLevel} · ${profile.totalXp} XP',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10.5,
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: 0.2,
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -344,43 +347,54 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 sliver: SliverToBoxAdapter(
                   child: Stagger(
                     index: 0,
-                    child: Row(
-                      children: [
-                        GradStatCard(
-                          icon: Icons.task_alt_rounded,
-                          label: 'Tasks',
-                          value: '$completedCount/${todayTasks.length}',
-                          gradient: const [kIndigo, Color(0xFF9D97FF)],
-                        ),
-                        const SizedBox(width: 10),
-                        GradStatCard(
-                          icon: Icons.flag_rounded,
-                          label: 'Goals',
-                          value: '${activeGoals.length}',
-                          gradient: const [kCoral, Color(0xFFFF8E8E)],
-                        ),
-                        const SizedBox(width: 10),
-                        GradStatCard(
-                          icon: Icons.calendar_month_rounded,
-                          label: 'Events',
-                          value: '${events.length}',
-                          gradient: const [kCyan, Color(0xFF00B894)],
-                        ),
-                        const SizedBox(width: 10),
-                        GradStatCard(
-                          icon: Icons.psychology_rounded,
-                          label: 'Memories',
-                          value: '${memories.length}',
-                          gradient: const [kAmber, Color(0xFFFFB347)],
-                        ),
-                        const SizedBox(width: 10),
-                        GradStatCard(
-                          icon: Icons.sticky_note_2_rounded,
-                          label: 'Notes',
-                          value: '${ref.watch(noteControllerProvider).length}',
-                          gradient: const [Color(0xFF00B894), kCyan],
-                        ),
-                      ],
+                    child: SizedBox(
+                      height: 84,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        children: [
+                          GradStatCard(
+                            width: 90,
+                            icon: Icons.task_alt_rounded,
+                            label: 'Tasks',
+                            value: '$completedCount/${todayTasks.length}',
+                            gradient: const [kIndigo, Color(0xFF9D97FF)],
+                          ),
+                          const SizedBox(width: 10),
+                          GradStatCard(
+                            width: 90,
+                            icon: Icons.flag_rounded,
+                            label: 'Goals',
+                            value: '${activeGoals.length}',
+                            gradient: const [kCoral, Color(0xFFFF8E8E)],
+                          ),
+                          const SizedBox(width: 10),
+                          GradStatCard(
+                            width: 90,
+                            icon: Icons.calendar_month_rounded,
+                            label: 'Events',
+                            value: '${events.length}',
+                            gradient: const [kCyan, Color(0xFF00B894)],
+                          ),
+                          const SizedBox(width: 10),
+                          GradStatCard(
+                            width: 90,
+                            icon: Icons.psychology_rounded,
+                            label: 'Memories',
+                            value: '${memories.length}',
+                            gradient: const [kAmber, Color(0xFFFFB347)],
+                          ),
+                          const SizedBox(width: 10),
+                          GradStatCard(
+                            width: 90,
+                            icon: Icons.sticky_note_2_rounded,
+                            label: 'Notes',
+                            value:
+                                '${ref.watch(noteControllerProvider).length}',
+                            gradient: const [Color(0xFF00B894), kCyan],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

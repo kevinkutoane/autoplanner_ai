@@ -74,34 +74,69 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
   }
 
   String _cleanMessageContent(String content) {
-    final trimmed = content.trim();
-    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+    var text = content.trim();
+
+    // Strip markdown code fences if wrapped in ``` or ```json
+    if (text.startsWith('```')) {
+      final lines = text.split('\n');
+      if (lines.isNotEmpty && lines.first.startsWith('```')) {
+        lines.removeAt(0);
+      }
+      if (lines.isNotEmpty && lines.last.trim() == '```') {
+        lines.removeLast();
+      }
+      text = lines.join('\n').trim();
+    }
+
+    // Try decoding if text looks like JSON
+    if ((text.startsWith('{') && text.endsWith('}')) ||
+        (text.startsWith('[') && text.endsWith(']'))) {
       try {
-        final list = jsonDecode(trimmed);
-        if (list is List && list.isNotEmpty && list.first is Map) {
-          final buffer = StringBuffer(
-            'Here is the action plan suggested for your schedule:\n\n',
-          );
-          for (final item in list) {
-            if (item is Map) {
-              final title = item['title'] ?? 'Task';
-              final time = item['startTime'] != null
-                  ? ' (${item['startTime']})'
-                  : '';
-              final est = item['estimatedMinutes'] != null
-                  ? ' · ${item['estimatedMinutes']}m'
-                  : '';
-              buffer.writeln('• **$title**$time$est');
-            }
+        final decoded = jsonDecode(text);
+        if (decoded is List) {
+          return _formatTaskList(decoded);
+        } else if (decoded is Map) {
+          if (decoded['tasks'] is List) {
+            return _formatTaskList(decoded['tasks'] as List);
           }
-          buffer.writeln(
-            '\nWould you like me to help you schedule these into AutoPlanner?',
-          );
-          return buffer.toString();
+          if (decoded['message'] is String &&
+              (decoded['message'] as String).isNotEmpty) {
+            return decoded['message'] as String;
+          }
+          if (decoded['response'] is String &&
+              (decoded['response'] as String).isNotEmpty) {
+            return decoded['response'] as String;
+          }
+          if (decoded['explanation'] is String &&
+              (decoded['explanation'] as String).isNotEmpty) {
+            return decoded['explanation'] as String;
+          }
         }
       } catch (_) {}
     }
     return content;
+  }
+
+  String _formatTaskList(List<dynamic> list) {
+    if (list.isEmpty) return 'No specific tasks suggested.';
+    final buffer = StringBuffer(
+      'Here is the action plan suggested for your schedule:\n\n',
+    );
+    for (final item in list) {
+      if (item is Map) {
+        final title = item['title'] ?? item['taskTitle'] ?? 'Task';
+        final time = item['startTime'] != null ? ' (${item['startTime']})' : '';
+        final estMinutes = item['estimatedMinutes'] ?? item['minutes'];
+        final est = estMinutes != null ? ' · ${estMinutes}m' : '';
+        buffer.writeln('• **$title**$time$est');
+      } else if (item is String) {
+        buffer.writeln('• $item');
+      }
+    }
+    buffer.writeln(
+      '\nWould you like me to help you schedule these into AutoPlanner?',
+    );
+    return buffer.toString();
   }
 
   @override
@@ -110,309 +145,324 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: true,
       body: OrbBackground(
         subtle: true,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            GradientHeader(
-              gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF8A2387),
-                  Color(0xFFE94057),
-                  Color(0xFFF27121),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withAlpha(30),
-                      border: Border.all(color: Colors.white.withAlpha(60)),
-                    ),
-                    child: const Icon(
-                      Icons.smart_toy_rounded,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'AI Coach & Tutor',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Your personal productivity assistant',
-                          style: TextStyle(color: Colors.white70, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_messages.length > 1)
-                    IconButton(
-                      icon: const Icon(
-                        Icons.refresh_rounded,
-                        color: Colors.white70,
+        child: SafeArea(
+          top: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              GradientHeader(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF8A2387),
+                    Color(0xFFE94057),
+                    Color(0xFFF27121),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withAlpha(30),
+                        border: Border.all(color: Colors.white.withAlpha(60)),
                       ),
-                      tooltip: 'Reset Conversation',
-                      onPressed: () {
-                        setState(() {
-                          _messages.clear();
-                          _messages.add({
-                            'role': 'assistant',
-                            'content': 'Hi! I am your AI Coach. How can I help you plan your day, overcome procrastination, or reflect on your goals?',
+                      child: const Icon(
+                        Icons.smart_toy_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'AI Coach & Tutor',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Your personal productivity assistant',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_messages.length > 1)
+                      IconButton(
+                        icon: const Icon(
+                          Icons.refresh_rounded,
+                          color: Colors.white70,
+                        ),
+                        tooltip: 'Reset Conversation',
+                        onPressed: () {
+                          setState(() {
+                            _messages.clear();
+                            _messages.add({
+                              'role': 'assistant',
+                              'content': 'Hi! I am your AI Coach. How can I help you plan your day, overcome procrastination, or reflect on your goals?',
+                            });
                           });
-                        });
-                      },
-                    ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollCtrl,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                        },
+                      ),
+                  ],
                 ),
-                itemCount: _messages.length + (_isLoading ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == _messages.length) {
-                    return _TypingBubble(isDark: isDark);
-                  }
+              ),
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollCtrl,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  itemCount: _messages.length + (_isLoading ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == _messages.length) {
+                      return _TypingBubble(isDark: isDark);
+                    }
 
-                  final msg = _messages[index];
-                  final isUser = msg['role'] == 'user';
-                  final displayContent = _cleanMessageContent(
-                    msg['content'] ?? '',
-                  );
+                    final msg = _messages[index];
+                    final isUser = msg['role'] == 'user';
+                    final displayContent = _cleanMessageContent(
+                      msg['content'] ?? '',
+                    );
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: Row(
-                      mainAxisAlignment: isUser
-                          ? MainAxisAlignment.end
-                          : MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (!isUser) ...[
-                          Container(
-                            width: 30,
-                            height: 30,
-                            margin: const EdgeInsets.only(top: 2),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF8A2387), Color(0xFFE94057)],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFE94057).withAlpha(80),
-                                  blurRadius: 8,
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: Row(
+                        mainAxisAlignment: isUser
+                            ? MainAxisAlignment.end
+                            : MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (!isUser) ...[
+                            Container(
+                              width: 30,
+                              height: 30,
+                              margin: const EdgeInsets.only(top: 2),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF8A2387),
+                                    Color(0xFFE94057),
+                                  ],
                                 ),
-                              ],
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFFE94057)
+                                        .withAlpha(80),
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.smart_toy_rounded,
+                                size: 16,
+                                color: Colors.white,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.smart_toy_rounded,
-                              size: 16,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        Flexible(
-                          child: Container(
-                            constraints: BoxConstraints(
-                              maxWidth:
-                                  MediaQuery.of(context).size.width * 0.74,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 13,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: isUser
-                                  ? const LinearGradient(
-                                      colors: [kIndigo, kCyan],
-                                    )
-                                  : LinearGradient(
-                                      colors: isDark
-                                          ? [
-                                              Colors.white.withAlpha(16),
-                                              Colors.white.withAlpha(12),
-                                            ]
-                                          : [Colors.white, Colors.white],
+                            const SizedBox(width: 8),
+                          ],
+                          Flexible(
+                            child: Container(
+                              constraints: BoxConstraints(
+                                maxWidth:
+                                    MediaQuery.of(context).size.width * 0.74,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 13,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: isUser
+                                    ? const LinearGradient(
+                                        colors: [kIndigo, kCyan],
+                                      )
+                                    : LinearGradient(
+                                        colors: isDark
+                                            ? [
+                                                Colors.white.withAlpha(16),
+                                                Colors.white.withAlpha(12),
+                                              ]
+                                            : [Colors.white, Colors.white],
+                                      ),
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(isUser ? 18 : 4),
+                                  topRight: Radius.circular(isUser ? 4 : 18),
+                                  bottomLeft: const Radius.circular(18),
+                                  bottomRight: const Radius.circular(18),
+                                ),
+                                border: !isUser
+                                    ? Border.all(
+                                        color: isDark
+                                            ? Colors.white.withAlpha(25)
+                                            : Colors.black.withAlpha(12),
+                                      )
+                                    : null,
+                                boxShadow: [
+                                  if (!isUser && !isDark)
+                                    BoxShadow(
+                                      color: Colors.black.withAlpha(10),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 3),
                                     ),
-                              borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(isUser ? 18 : 4),
-                                topRight: Radius.circular(isUser ? 4 : 18),
-                                bottomLeft: const Radius.circular(18),
-                                bottomRight: const Radius.circular(18),
+                                  if (isUser)
+                                    BoxShadow(
+                                      color: kIndigo.withAlpha(
+                                        isDark ? 60 : 35,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                ],
                               ),
-                              border: !isUser
-                                  ? Border.all(
-                                      color: isDark
-                                          ? Colors.white.withAlpha(25)
-                                          : Colors.black.withAlpha(12),
-                                    )
-                                  : null,
-                              boxShadow: [
-                                if (!isUser && !isDark)
-                                  BoxShadow(
-                                    color: Colors.black.withAlpha(10),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                if (isUser)
-                                  BoxShadow(
-                                    color: kIndigo.withAlpha(isDark ? 60 : 35),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 3),
-                                  ),
-                              ],
-                            ),
-                            child: Text(
-                              displayContent,
-                              style: TextStyle(
-                                color: isUser
-                                    ? Colors.white
-                                    : (isDark ? Colors.white : kDark0),
-                                height: 1.45,
-                                fontSize: 14.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (isUser) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 28,
-                            height: 28,
-                            margin: const EdgeInsets.only(top: 2),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const LinearGradient(
-                                colors: [kIndigo, kCyan],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: kCyan.withAlpha(80),
-                                  blurRadius: 6,
+                              child: Text(
+                                displayContent,
+                                style: TextStyle(
+                                  color: isUser
+                                      ? Colors.white
+                                      : (isDark ? Colors.white : kDark0),
+                                  height: 1.45,
+                                  fontSize: 14.5,
                                 ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.person_rounded,
-                              size: 16,
-                              color: Colors.white,
+                              ),
                             ),
                           ),
+                          if (isUser) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 28,
+                              height: 28,
+                              margin: const EdgeInsets.only(top: 2),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: const LinearGradient(
+                                  colors: [kIndigo, kCyan],
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: kCyan.withAlpha(80),
+                                    blurRadius: 6,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.person_rounded,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ],
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-            if (_messages.length <= 2)
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 6,
-                ),
-                child: Row(
-                  children: [
-                    _PromptChip(
-                      label: '🗓️ Plan my day',
-                      isDark: isDark,
-                      onTap: () {
-                        _ctrl.text = 'Can you help me structure my day for maximum productivity?';
-                        _sendMessage();
-                      },
-                    ),
-                    _PromptChip(
-                      label: '⚡ Beat procrastination',
-                      isDark: isDark,
-                      onTap: () {
-                        _ctrl.text = 'I feel stuck on a difficult task. How do I get momentum?';
-                        _sendMessage();
-                      },
-                    ),
-                    _PromptChip(
-                      label: '🎯 Lock in Big 3',
-                      isDark: isDark,
-                      onTap: () {
-                        _ctrl.text = 'Help me pick my Big 3 must-complete tasks for today.';
-                        _sendMessage();
-                      },
-                    ),
-                    _PromptChip(
-                      label: '🧘 Flow state tips',
-                      isDark: isDark,
-                      onTap: () {
-                        _ctrl.text = 'What is the best way to maintain deep focus without burnout?';
-                        _sendMessage();
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
-              child: GlassCard(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _ctrl,
-                        style: TextStyle(color: isDark ? Colors.white : kDark0),
-                        decoration: InputDecoration(
-                          hintText: 'Ask me anything...',
-                          hintStyle: TextStyle(
-                            color: isDark ? Colors.white38 : Colors.black38,
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                        ),
-                        onSubmitted: (_) => _sendMessage(),
                       ),
-                    ),
-                    IconButton(
-                      icon: ShaderMask(
-                        shaderCallback: (b) =>
-                            const LinearGradient(colors: [kIndigo, kCyan])
-                                .createShader(b),
-                        child: const Icon(
-                          Icons.send_rounded,
-                          color: Colors.white,
+                    );
+                  },
+                ),
+              ),
+              if (_messages.length <= 2)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    children: [
+                      _PromptChip(
+                        label: '🗓️ Plan my day',
+                        isDark: isDark,
+                        onTap: () {
+                          _ctrl.text = 'Can you help me structure my day for maximum productivity?';
+                          _sendMessage();
+                        },
+                      ),
+                      _PromptChip(
+                        label: '⚡ Beat procrastination',
+                        isDark: isDark,
+                        onTap: () {
+                          _ctrl.text = 'I feel stuck on a difficult task. How do I get momentum?';
+                          _sendMessage();
+                        },
+                      ),
+                      _PromptChip(
+                        label: '🎯 Lock in Big 3',
+                        isDark: isDark,
+                        onTap: () {
+                          _ctrl.text = 'Help me pick my Big 3 must-complete tasks for today.';
+                          _sendMessage();
+                        },
+                      ),
+                      _PromptChip(
+                        label: '🧘 Flow state tips',
+                        isDark: isDark,
+                        onTap: () {
+                          _ctrl.text = 'What is the best way to maintain deep focus without burnout?';
+                          _sendMessage();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+                child: GlassCard(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _ctrl,
+                          style: TextStyle(
+                            color: isDark ? Colors.white : kDark0,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Ask me anything...',
+                            hintStyle: TextStyle(
+                              color: isDark ? Colors.white38 : Colors.black38,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                          ),
+                          onSubmitted: (_) => _sendMessage(),
                         ),
                       ),
-                      onPressed: _sendMessage,
-                    ),
-                  ],
+                      IconButton(
+                        icon: ShaderMask(
+                          shaderCallback: (b) =>
+                              const LinearGradient(colors: [kIndigo, kCyan])
+                                  .createShader(b),
+                          child: const Icon(
+                            Icons.send_rounded,
+                            color: Colors.white,
+                          ),
+                        ),
+                        onPressed: _sendMessage,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

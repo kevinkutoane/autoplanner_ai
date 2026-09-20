@@ -17,8 +17,17 @@ class SettingsController extends Notifier<AppSettings> {
 
   @override
   AppSettings build() {
+    // If settingsBox is already opened by AppBootstrapper, read stored settings immediately
+    AppSettings initialSettings = AppSettings.defaults();
+    if (Hive.isBoxOpen(AppSettings.boxName)) {
+      _box = Hive.box<dynamic>(AppSettings.boxName);
+      if (_box.isNotEmpty) {
+        initialSettings = AppSettings.fromMap(_box.toMap());
+      }
+    }
+
     _init();
-    return AppSettings.defaults();
+    return initialSettings;
   }
 
   Future<void> _init() async {

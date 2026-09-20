@@ -30,6 +30,15 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     )..repeat(reverse: true);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final session = ref.read(focusControllerProvider);
+      // Start session if not currently running or if running for a different task
+      if (!session.isRunning || session.task?.id != widget.task.id) {
+        ref.read(focusControllerProvider.notifier).startSession(widget.task);
+      }
+    });
   }
 
   @override
