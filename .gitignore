@@ -63,3 +63,7 @@ coverage/
 # Generated debug info
 build/debug-info/
 build/debug-info-*/
+
+# Sub-repositories
+autoplanner-ai-gateway/
+
