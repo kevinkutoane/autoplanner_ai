@@ -20,7 +20,7 @@ import 'services/secure_key_service.dart';
 ///
 /// Must be a top-level (non-closure) function annotated with
 /// `@pragma('vm:entry-point')` so the AOT compiler does not tree-shake it.
-/// Re-initialises Hive and all required services independently of the
+/// Re-initializes Hive and all required services independently of the
 /// main isolate, because background isolates have no shared memory.
 @pragma('vm:entry-point')
 void callbackDispatcher() {

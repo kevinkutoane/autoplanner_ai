@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/ui_kit.dart';
@@ -333,16 +334,46 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
                                     ),
                                 ],
                               ),
-                              child: Text(
-                                displayContent,
-                                style: TextStyle(
-                                  color: isUser
-                                      ? Colors.white
-                                      : (isDark ? Colors.white : kDark0),
-                                  height: 1.45,
-                                  fontSize: 14.5,
-                                ),
-                              ),
+                              child: isUser
+                                  ? Text(
+                                      displayContent,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        height: 1.45,
+                                        fontSize: 14.5,
+                                      ),
+                                    )
+                                  : MarkdownBody(
+                                      data: displayContent,
+                                      shrinkWrap: true,
+                                      styleSheet: MarkdownStyleSheet(
+                                        p: TextStyle(
+                                          color: isDark ? Colors.white : kDark0,
+                                          fontSize: 14.5,
+                                          height: 1.45,
+                                        ),
+                                        strong: TextStyle(
+                                          color: isDark ? Colors.white : kDark0,
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w800,
+                                          height: 1.45,
+                                        ),
+                                        em: TextStyle(
+                                          color: isDark
+                                              ? Colors.white70
+                                              : kDark0.withAlpha(200),
+                                          fontSize: 14.5,
+                                          fontStyle: FontStyle.italic,
+                                          height: 1.45,
+                                        ),
+                                        listBullet: TextStyle(
+                                          color: isDark ? Colors.white : kDark0,
+                                          fontSize: 14.5,
+                                          height: 1.45,
+                                        ),
+                                        blockSpacing: 6,
+                                      ),
+                                    ),
                             ),
                           ),
                           if (isUser) ...[

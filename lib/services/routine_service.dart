@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -129,10 +131,12 @@ class RoutineService {
       final prompt =
           'User morning briefing: ${todayEvents.length} meetings today, ${rolloverTasks.length} rollover tasks. '
           'The Big 3 priorities are: ${big3.map((t) => t.title).join(", ")}. '
-          'Generate an inspiring, sharp 2-sentence morning greeting and focus recommendation.';
-      final aiGreeting = await aiService.chatWithCoach(prompt, const []);
-      if (aiGreeting.trim().isNotEmpty) {
-        message = aiGreeting.trim();
+          'Generate an inspiring, sharp 2-sentence morning greeting and focus recommendation. '
+          'Reply with plain text only — no JSON, no code fences, no bullet lists.';
+      final rawGreeting = await aiService.chatWithCoach(prompt, const []);
+      final cleaned = _extractPlainText(rawGreeting);
+      if (cleaned.trim().isNotEmpty) {
+        message = cleaned.trim();
       }
     } catch (_) {
       // Graceful fallback to deterministic high-vibrancy message
@@ -292,6 +296,42 @@ class RoutineService {
 
     // 5. Award +50 XP and unlock zen master badge
     await _ref.read(gamificationServiceProvider.notifier).awardEveningRitual();
+  }
+  /// Strips code fences and extracts a plain-text string from an AI response.
+  /// If the response is raw JSON, tries to extract a prose field from it.
+  /// Returns an empty string if no usable text can be found.
+  String _extractPlainText(String raw) {
+    var text = raw.trim();
+
+    // Strip markdown code fences (```json ... ``` or ``` ... ```)
+    if (text.startsWith('```')) {
+      final lines = text.split('\n');
+      if (lines.isNotEmpty && lines.first.startsWith('```')) {
+        lines.removeAt(0);
+      }
+      if (lines.isNotEmpty && lines.last.trim() == '```') {
+        lines.removeLast();
+      }
+      text = lines.join('\n').trim();
+    }
+
+    // If it still looks like JSON, try to pull a prose field
+    if ((text.startsWith('{') && text.endsWith('}')) ||
+        (text.startsWith('[') && text.endsWith(']'))) {
+      try {
+        final decoded = jsonDecode(text);
+        if (decoded is Map) {
+          for (final key in ['message', 'response', 'greeting', 'text', 'explanation']) {
+            final val = decoded[key];
+            if (val is String && val.trim().isNotEmpty) return val.trim();
+          }
+        }
+        // Couldn't extract prose — return empty to trigger fallback
+        return '';
+      } catch (_) {}
+    }
+
+    return text;
   }
 }
 
