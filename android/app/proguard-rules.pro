@@ -8,11 +8,24 @@
 # MSAL
 -keep class com.microsoft.identity.** { *; }
 
-# Hive
+# Hive & TypeAdapters
 -keep class ** extends com.google.protobuf.GeneratedMessageLite { *; }
+-keep class * extends hive.TypeAdapter { *; }
 
 # flutter_secure_storage — Android Keystore provider
 -keep class androidx.security.crypto.** { *; }
+
+# Workmanager Background Tasks
+-keep class androidx.work.** { *; }
+
+# Flutter Local Notifications
+-keep class com.dexterous.flutterlocalnotifications.** { *; }
+
+# HomeWidget
+-keep class es.antonborri.home_widget.** { *; }
+
+# AndroidX BiometricPrompt
+-keep class androidx.biometric.** { *; }
 
 # Keep annotations
 -keepattributes *Annotation*

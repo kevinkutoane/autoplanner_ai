@@ -10,8 +10,8 @@ import '../controllers/settings_controller.dart';
 import '../models/app_settings_model.dart';
 import 'profile_screen.dart';
 import '../../onboarding/screens/onboarding_screen.dart';
-import 'api_key_screen.dart';
 import 'help_screen.dart';
+import '../widgets/ai_engine_card.dart';
 import '../../analytics/screens/weekly_review_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -180,79 +180,103 @@ class SettingsScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  // ── Appearance ────────────────────────────────────────
+                  // ── Appearance & Feel ────────────────────────────────
                   Stagger(
                     index: 0,
                     child: SectionLabel(
                       icon: Icons.palette_rounded,
-                      label: 'Appearance',
+                      label: 'Appearance & Feel',
                       color: kIndigo,
                     ),
                   ),
                   Stagger(
                     index: 1,
                     child: GlassCard(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Theme',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                                color: isDark ? Colors.white : kDark0,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _ThemeOption(
-                                  icon: Icons.brightness_auto_rounded,
-                                  label: 'System',
-                                  mode: ThemeMode.system,
-                                  selected: settings.themeMode,
-                                  onTap: () =>
-                                      ctrl.updateThemeMode(ThemeMode.system),
-                                  isDark: isDark,
+                                Text(
+                                  'Theme',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                    color: isDark ? Colors.white : kDark0,
+                                  ),
                                 ),
-                                const SizedBox(width: 10),
-                                _ThemeOption(
-                                  icon: Icons.light_mode_rounded,
-                                  label: 'Light',
-                                  mode: ThemeMode.light,
-                                  selected: settings.themeMode,
-                                  onTap: () =>
-                                      ctrl.updateThemeMode(ThemeMode.light),
-                                  isDark: isDark,
-                                ),
-                                const SizedBox(width: 10),
-                                _ThemeOption(
-                                  icon: Icons.dark_mode_rounded,
-                                  label: 'Dark',
-                                  mode: ThemeMode.dark,
-                                  selected: settings.themeMode,
-                                  onTap: () =>
-                                      ctrl.updateThemeMode(ThemeMode.dark),
-                                  isDark: isDark,
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    _ThemeOption(
+                                      icon: Icons.brightness_auto_rounded,
+                                      label: 'System',
+                                      mode: ThemeMode.system,
+                                      selected: settings.themeMode,
+                                      onTap: () =>
+                                          ctrl.updateThemeMode(ThemeMode.system),
+                                      isDark: isDark,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    _ThemeOption(
+                                      icon: Icons.light_mode_rounded,
+                                      label: 'Light',
+                                      mode: ThemeMode.light,
+                                      selected: settings.themeMode,
+                                      onTap: () =>
+                                          ctrl.updateThemeMode(ThemeMode.light),
+                                      isDark: isDark,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    _ThemeOption(
+                                      icon: Icons.dark_mode_rounded,
+                                      label: 'Dark',
+                                      mode: ThemeMode.dark,
+                                      selected: settings.themeMode,
+                                      onTap: () =>
+                                          ctrl.updateThemeMode(ThemeMode.dark),
+                                      isDark: isDark,
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                          _GlassDivider(),
+                          _SwitchTile(
+                            icon: Icons.vibration_rounded,
+                            title: 'Haptic feedback',
+                            subtitle:
+                                'Subtle micro-vibrations on taps and task completions',
+                            value: settings.hapticsEnabled,
+                            onChanged: (v) => ctrl.updateHapticsEnabled(v),
+                          ),
+                          const _GlassDivider(),
+                          _SwitchTile(
+                            icon: Icons.celebration_rounded,
+                            title: 'Achievement celebrations',
+                            subtitle:
+                                'Visual fireworks when hitting streak and level milestones',
+                            value: settings.confettiCelebrationsEnabled,
+                            onChanged: (v) =>
+                                ctrl.updateConfettiCelebrationsEnabled(v),
+                          ),
+                        ],
                       ),
                     ),
                   ),
 
                   const SizedBox(height: 16),
 
-                  // ── Work Preferences ──────────────────────────────────
+                  // ── Work & Rhythm ─────────────────────────────────────
                   Stagger(
                     index: 2,
                     child: SectionLabel(
                       icon: Icons.schedule_rounded,
-                      label: 'Work Preferences',
+                      label: 'Work & Rhythm',
                       color: kCyan,
                     ),
                   ),
@@ -385,6 +409,11 @@ class SettingsScreen extends ConsumerWidget {
                               ],
                             ),
                           ),
+                          _GlassDivider(),
+                          _ProductivityPersonaCard(
+                            settings: settings,
+                            ctrl: ctrl,
+                          ),
                         ],
                       ),
                     ),
@@ -392,67 +421,21 @@ class SettingsScreen extends ConsumerWidget {
 
                   const SizedBox(height: 16),
 
-                  // ── AI Settings ───────────────────────────────────────
+                  // ── AI Engine & Gateway ───────────────────────────────
                   Stagger(
                     index: 4,
                     child: SectionLabel(
                       icon: Icons.psychology_rounded,
-                      label: 'AI Settings',
+                      label: 'AI Gateway & Autonomous Engine',
                       color: kCoral,
                     ),
                   ),
                   Stagger(
                     index: 5,
                     child: GlassCard(
-                      child: Column(
-                        children: [
-                          _SwitchTile(
-                            icon: Icons.science_outlined,
-                            title: 'Use mock AI',
-                            subtitle: 'Offline mode — no API calls made',
-                            value: settings.useMockAI,
-                            onChanged: (v) => ctrl.updateUseMockAI(v),
-                          ),
-                          _GlassDivider(),
-                          _SwitchTile(
-                            icon: Icons.receipt_long_outlined,
-                            title: 'Log AI calls',
-                            subtitle: 'Track prompts & responses in memory',
-                            value: settings.enableAILogging,
-                            onChanged: (v) => ctrl.updateEnableAILogging(v),
-                          ),
-                          _GlassDivider(),
-                          _ListTile(
-                            icon: Icons.token_outlined,
-                            title: 'Daily token limit',
-                            subtitle:
-                                '${_formatTokens(settings.maxTokensPerDay)} tokens / day',
-                            trailing: const Icon(Icons.chevron_right, size: 18),
-                            onTap: () =>
-                                _showTokenPicker(context, settings, ctrl),
-                          ),
-                          _GlassDivider(),
-                          _ListTile(
-                            icon: Icons.key_rounded,
-                            title: 'Gemini API key',
-                            subtitle: settings.geminiApiKey.isNotEmpty
-                                ? '••••••••${settings.geminiApiKey.length > 4 ? settings.geminiApiKey.substring(settings.geminiApiKey.length - 4) : ''}'
-                                : 'Not set — using bundled key',
-                            trailing: settings.geminiApiKey.isNotEmpty
-                                ? const Icon(
-                                    Icons.check_circle_outline,
-                                    color: kCyan,
-                                    size: 18,
-                                  )
-                                : const Icon(Icons.chevron_right, size: 18),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const ApiKeyScreen(),
-                              ),
-                            ),
-                          ),
-                        ],
+                      child: AIEngineCard(
+                        settings: settings,
+                        ctrl: ctrl,
                       ),
                     ),
                   ),
@@ -496,47 +479,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
 
-                  // ── Productivity & Chronotype ─────────────────────────
-                  Stagger(
-                    index: 10,
-                    child: SectionLabel(
-                      icon: Icons.psychology_alt_rounded,
-                      label: 'Productivity & Chronotype',
-                      color: kIndigo,
-                    ),
-                  ),
-                  Stagger(
-                    index: 11,
-                    child: GlassCard(
-                      child: _ProductivityPersonaCard(
-                        settings: settings,
-                        ctrl: ctrl,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // ── Sensory & Haptics ──────────────────────────────────
-                  Stagger(
-                    index: 12,
-                    child: SectionLabel(
-                      icon: Icons.auto_awesome_rounded,
-                      label: 'Sensory & Celebrations',
-                      color: kAmber,
-                    ),
-                  ),
-                  Stagger(
-                    index: 13,
-                    child: GlassCard(
-                      child: _SensoryPreferencesCard(
-                        settings: settings,
-                        ctrl: ctrl,
-                      ),
-                    ),
-                  ),
 
                   const SizedBox(height: 16),
 
@@ -580,7 +523,7 @@ class SettingsScreen extends ConsumerWidget {
                             icon: Icons.info_outlined,
                             title: 'Version',
                             trailing: const Text(
-                              '1.0.0+1',
+                              '3.0.0+1',
                               style: TextStyle(
                                 color: kCyan,
                                 fontWeight: FontWeight.w600,
@@ -624,21 +567,7 @@ class SettingsScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          _GlassDivider(),
-                          _ListTile(
-                            icon: Icons.health_and_safety_outlined,
-                            title: 'App Health & Analytics',
-                            subtitle: 'View diagnostics and AI performance',
-                            trailing: const Icon(Icons.chevron_right, size: 18),
-                            onTap: () {
-                              // Deep-link to the App Health tab in Analytics
-                              // We use the shell navigation via a provider update
-                              // but since we're in settings, we just nav to a
-                              // specialized analytics view or pop back.
-                              // For simplicity, we just nav to the main Analytics screen.
-                              // (AppShell handles indices).
-                            },
-                          ),
+
                           _GlassDivider(),
                           _ListTile(
                             icon: Icons.help_outline_rounded,
@@ -724,13 +653,6 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  static String _formatTokens(int t) {
-    if (t >= 1000000) return '${(t / 1000000).toStringAsFixed(1)}M';
-    if (t >= 1000) return '${(t / 1000).round()}K';
-    return '$t';
-  }
-
-  static const _tokenOptions = [10000, 50000, 100000, 250000, 500000];
 
   static Future<void> _pickStartTime(
     BuildContext context,
@@ -745,84 +667,18 @@ class SettingsScreen extends ConsumerWidget {
     if (picked != null) ctrl.updateWorkStartHour(picked.hour);
   }
 
-  static void _showTokenPicker(
-    BuildContext context,
-    AppSettings settings,
-    SettingsController ctrl,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        final isDark = Theme.of(ctx).brightness == Brightness.dark;
-        return Container(
-          margin: const EdgeInsets.all(16),
-          child: GlassCard(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Row(
-                    children: [
-                      ShaderMask(
-                        shaderCallback: (b) => kGradientMain.createShader(b),
-                        child: const Icon(
-                          Icons.token_outlined,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Text(
-                        'Daily Token Limit',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Divider(color: isDark ? Colors.white12 : Colors.black12),
-                RadioGroup<int>(
-                  groupValue: settings.maxTokensPerDay,
-                  onChanged: (v) {
-                    if (v != null) {
-                      ctrl.updateMaxTokensPerDay(v);
-                      Navigator.pop(ctx);
-                    }
-                  },
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: _tokenOptions
-                        .map(
-                          (t) => RadioListTile<int>(
-                            title: Text('${_formatTokens(t)} tokens'),
-                            subtitle: t == 100000
-                                ? const Text('Recommended')
-                                : null,
-                            value: t,
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   static Future<void> _exportBackup(BuildContext context) async {
     try {
       await BackupService().exportToFile();
-    } catch (e) {
+    } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e'), backgroundColor: kCoral),
+          const SnackBar(
+            content: Text(
+              'Export could not be completed. Please check device permissions and try again.',
+            ),
+            backgroundColor: kCoral,
+          ),
         );
       }
     }
@@ -851,10 +707,15 @@ class SettingsScreen extends ConsumerWidget {
           SnackBar(content: Text(e.message), backgroundColor: kCoral),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Import failed: $e'), backgroundColor: kCoral),
+          const SnackBar(
+            content: Text(
+              'Import could not be completed. Please ensure the file is a valid AutoPlanner backup.',
+            ),
+            backgroundColor: kCoral,
+          ),
         );
       }
     }
@@ -1521,68 +1382,22 @@ class _NotificationCenterCardState
         _GlassDivider(),
 
         // 5. Sound and Haptic alert preferences
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Icon(
-                      s.notificationSoundEnabled
-                          ? Icons.volume_up_rounded
-                          : Icons.volume_off_rounded,
-                      size: 20,
-                      color: isDark ? Colors.white60 : Colors.black54,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Sound',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : kDark0,
-                      ),
-                    ),
-                    const Spacer(),
-                    Switch.adaptive(
-                      value: s.notificationSoundEnabled,
-                      activeThumbColor: kCyan,
-                      onChanged: (v) => ctrl.updateNotificationSoundEnabled(v),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.vibration_rounded,
-                      size: 20,
-                      color: isDark ? Colors.white60 : Colors.black54,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Vibrate',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : kDark0,
-                      ),
-                    ),
-                    const Spacer(),
-                    Switch.adaptive(
-                      value: s.notificationVibrateEnabled,
-                      activeThumbColor: kCyan,
-                      onChanged: (v) =>
-                          ctrl.updateNotificationVibrateEnabled(v),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        _SwitchTile(
+          icon: s.notificationSoundEnabled
+              ? Icons.volume_up_rounded
+              : Icons.volume_off_rounded,
+          title: 'Notification sound',
+          subtitle: 'Play audio chime when reminders trigger',
+          value: s.notificationSoundEnabled,
+          onChanged: (v) => ctrl.updateNotificationSoundEnabled(v),
+        ),
+        const _GlassDivider(),
+        _SwitchTile(
+          icon: Icons.vibration_rounded,
+          title: 'Notification vibration',
+          subtitle: 'Vibrate device when reminders trigger',
+          value: s.notificationVibrateEnabled,
+          onChanged: (v) => ctrl.updateNotificationVibrateEnabled(v),
         ),
       ],
     );
@@ -1873,38 +1688,7 @@ class _ProductivityPersonaCard extends StatelessWidget {
   }
 }
 
-// ── Sensory & Haptics Card ──────────────────────────────────────────────────
 
-class _SensoryPreferencesCard extends StatelessWidget {
-  final AppSettings settings;
-  final SettingsController ctrl;
-
-  const _SensoryPreferencesCard({required this.settings, required this.ctrl});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _SwitchTile(
-          icon: Icons.vibration_rounded,
-          title: 'Haptic feedback',
-          subtitle:
-              'Subtle micro-vibrations on taps, level-ups & task completions',
-          value: settings.hapticsEnabled,
-          onChanged: (v) => ctrl.updateHapticsEnabled(v),
-        ),
-        const _GlassDivider(),
-        _SwitchTile(
-          icon: Icons.celebration_rounded,
-          title: 'Achievement confetti',
-          subtitle: 'Visual celebration fireworks when hitting streak and level milestones',
-          value: settings.confettiCelebrationsEnabled,
-          onChanged: (v) => ctrl.updateConfettiCelebrationsEnabled(v),
-        ),
-      ],
-    );
-  }
-}
 
 // ── Google Calendar tile ───────────────────────────────────────────
 
@@ -1948,11 +1732,16 @@ class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
           const SnackBar(content: Text('Google sign-in cancelled.')),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Google sign-in failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Google sign-in could not be completed. Please check your network connection and try again.',
+          ),
+        ),
+      );
     }
   }
 

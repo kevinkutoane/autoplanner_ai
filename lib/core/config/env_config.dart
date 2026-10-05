@@ -14,6 +14,7 @@ class EnvConfig {
   final String appName;
   final String sentryDsn;
   final String aiGatewayUrl;
+  final String googleServerClientId;
 
   /// Whether to print each AI prompt/response to the debug console.
   final bool enableAILogging;
@@ -34,6 +35,7 @@ class EnvConfig {
     this.appName = 'AutoPlanner AI [DEV]',
     this.sentryDsn = '',
     this.aiGatewayUrl = '',
+    this.googleServerClientId = '',
     this.enableAILogging = true,
     this.enableTokenTracking = true,
     this.maxTokensPerDay = 100000,
@@ -46,6 +48,7 @@ class EnvConfig {
     required this.appName,
     required this.sentryDsn,
     required this.aiGatewayUrl,
+    required this.googleServerClientId,
     required this.enableAILogging,
     required this.enableTokenTracking,
     required this.maxTokensPerDay,
@@ -78,6 +81,8 @@ class EnvConfig {
       appName: appName,
       sentryDsn: dotenv.get('SENTRY_DSN', fallback: ''),
       aiGatewayUrl: dotenv.get('AI_GATEWAY_URL', fallback: ''),
+      googleServerClientId:
+          dotenv.get('GOOGLE_SERVER_CLIENT_ID', fallback: ''),
       enableAILogging:
           dotenv.get('ENABLE_AI_LOGGING', fallback: 'true') == 'true',
       enableTokenTracking:

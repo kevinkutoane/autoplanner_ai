@@ -95,9 +95,9 @@ class HelpScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'AutoPlanner AI is an autonomous personal productivity and '
-                            'planning system that turns unstructured thoughts and to-do lists '
-                            'into an optimized, conflict-free daily schedule — automatically.',
+                            'AutoPlanner AI is your personal smart day planner. It takes your '
+                            'thoughts, voice notes, and to-do lists and turns them into an '
+                            'organized, stress-free daily schedule — automatically.',
                             style: TextStyle(
                               fontSize: 14.5,
                               height: 1.6,
@@ -108,11 +108,10 @@ class HelpScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Powered by Google Gemini and a deterministic constraint solver, '
-                            'AutoPlanner handles the cognitive burden of organizing your day: '
-                            'extracting tasks, goals, notes, and memories from voice or text, '
-                            'ordering tasks with prerequisite DAG dependencies, and matching '
-                            'demanding deep work to your biological circadian energy peaks.',
+                            'Whether you speak into the microphone or type a quick note, '
+                            'AutoPlanner automatically organizes tasks, fits them around your '
+                            'calendar meetings, and schedules demanding work during your best '
+                            'focus hours so you make consistent progress every day.',
                             style: TextStyle(
                               fontSize: 14.5,
                               height: 1.6,
@@ -123,12 +122,11 @@ class HelpScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
                           _HighlightBox(
-                            icon: Icons.lightbulb_outline_rounded,
-                            color: kAmber,
+                            icon: Icons.shield_rounded,
+                            color: kCyan,
                             text:
-                                'Everything runs locally on your device with hardware-backed encryption. '
-                                'AutoPlanner learns your patterns across sessions without your data ever '
-                                'touching external application servers.',
+                                'Everything stays 100% private on your device with bank-grade encryption. '
+                                'AutoPlanner works completely offline whenever you need it with zero tracking.',
                             isDark: isDark,
                           ),
                         ],
@@ -155,8 +153,7 @@ class HelpScreen extends StatelessWidget {
                             color: kAmber,
                             title: 'Morning Kickoff & Big 3',
                             body:
-                                'Start with an intentional morning triage. Review calendar commitments, '
-                                'align tasks with your circadian energy peaks, and lock in your "Big 3" focus items.',
+                                'Start with clarity. Review today\'s schedule and lock in your "Big 3" daily focus commitments.',
                             isDark: isDark,
                           ),
                           _FlowArrow(),
@@ -164,10 +161,9 @@ class HelpScreen extends StatelessWidget {
                             step: '2',
                             icon: Icons.record_voice_over_rounded,
                             color: kIndigo,
-                            title: 'Brain Dump 2.0 Studio',
+                            title: 'Brain Dump Studio',
                             body:
-                                'Speak or type stream-of-consciousness thoughts with reactive audio waveforms. '
-                                'AI extracts Tasks, Goals, Notes, and Memories with one-tap calendar gap auto-packing.',
+                                'Speak or type thoughts freely. AutoPlanner automatically sorts them into tasks, goals, and notes.',
                             isDark: isDark,
                           ),
                           _FlowArrow(),
@@ -175,10 +171,9 @@ class HelpScreen extends StatelessWidget {
                             step: '3',
                             icon: Icons.calendar_today_rounded,
                             color: kCyan,
-                            title: 'Autonomous Scheduling',
+                            title: 'Conflict-Free Scheduling',
                             body:
-                                'A deterministic constraint solver packs tasks into free slots in your work window, '
-                                'strictly honoring prerequisite DAG dependencies, buffer times, and calendar events.',
+                                'Your schedule is packed automatically with zero overlaps, leaving generous buffers between tasks.',
                             isDark: isDark,
                           ),
                           _FlowArrow(),
@@ -186,10 +181,9 @@ class HelpScreen extends StatelessWidget {
                             step: '4',
                             icon: Icons.timer_rounded,
                             color: kCoral,
-                            title: 'Immersive Focus & Micro-Wins',
+                            title: 'Deep Focus & Timers',
                             body:
-                                'Execute deep work in flow state with radial focus timers, ambient soundscapes, '
-                                'a distraction scratchpad, and micro-break reminders while earning XP multipliers.',
+                                'Work distraction-free with customizable timers, relaxing ambient soundscapes, and break prompts.',
                             isDark: isDark,
                           ),
                           _FlowArrow(),
@@ -197,10 +191,9 @@ class HelpScreen extends StatelessWidget {
                             step: '5',
                             icon: Icons.nightlight_round,
                             color: const Color(0xFF7C4DFF),
-                            title: 'Evening Shutdown & Memory',
+                            title: 'Evening Shutdown & Reflection',
                             body:
-                                'Conclude your workday mindfully. Celebrate completed micro-wins, reschedule rollover '
-                                'tasks, and commit synthesized reflections into your encrypted Living Memory.',
+                                'Wrap up your workday with peace of mind. Celebrate completed wins and prepare for tomorrow.',
                             isDark: isDark,
                           ),
                         ],
@@ -352,40 +345,36 @@ class HelpScreen extends StatelessWidget {
                         _FeatureTile(
                           icon: Icons.record_voice_over_rounded,
                           color: kIndigo,
-                          title: 'Brain Dump 2.0 Studio',
-                          summary: 'Voice wave recording & 4-pillar extraction into Tasks, Goals, Notes & Memories',
+                          title: 'Brain Dump Studio',
+                          summary: 'Voice wave recording & automatic sorting into Tasks, Goals, Notes & Ideas',
                           detail:
-                              'Tap the floating "+" button from anywhere. Speak naturally while a 32-band reactive '
-                              'audio waveform tracks your voice, or type freeform thought streams. Google Gemini parses '
-                              'your thoughts into 4 distinct pillars: actionable Tasks (with duration, priority, and time), '
-                              'high-level Goals, reference Notes, and lasting Memories. In the Triage Studio, review and '
-                              'fine-tune items before one-tap auto-packing them directly into today\'s calendar gaps.',
+                              'Tap the floating "+" button from anywhere. Speak naturally into the voice recorder or '
+                              'type freeform thoughts. AutoPlanner automatically organizes everything into actionable '
+                              'Tasks, high-level Goals, reference Notes, and lasting Memories. In the Triage view, review '
+                              'and fine-tune items before adding them directly into today\'s schedule with a single tap.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),
                         _FeatureTile(
                           icon: Icons.calendar_today_rounded,
                           color: kCyan,
-                          title: 'Autonomous Scheduling & DAG Solver',
-                          summary: 'Deterministic constraint solver respecting task prerequisites & buffers',
+                          title: 'Smart Daily Planning',
+                          summary: 'Conflict-free schedule builder respecting your work hours and breaks',
                           detail:
-                              'AutoPlanner\'s scheduling engine packs tasks inside your configured work window without '
-                              'double-booking. It honors task prerequisites (DAG dependencies) so preparatory steps '
-                              'are always scheduled before dependent ones. It automatically reserves 10-minute buffers, '
-                              'handles splittable subtasks, and locks around external Google Calendar meetings.',
+                              'AutoPlanner\'s smart scheduling engine packs tasks inside your chosen work window '
+                              'without double-booking. It honors task prerequisites so preparatory steps are scheduled '
+                              'first, automatically reserves buffer times between tasks, and keeps your calendar meetings locked in place.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),
                         _FeatureTile(
                           icon: Icons.auto_fix_high_rounded,
                           color: kCoral,
-                          title: 'Proactive Rescheduling & Overflow',
-                          summary: 'Detects missed tasks automatically and suggests intelligent slots',
+                          title: 'Automatic Schedule Catch-Up',
+                          summary: 'Detects running late automatically and gently shifts tasks forward',
                           detail:
-                              'Whenever you open the planner or bring the app to the foreground, the engine scans '
-                              'for overdue uncompleted tasks. If detected, it calculates free gaps in your remaining '
-                              'work window, consults Gemini for the optimal slot, and presents an actionable amber banner. '
-                              'Tap Accept to move the task, or Dismiss to defer it.',
+                              'Whenever tasks run over time or appointments run long, AutoPlanner automatically recalculates '
+                              'your remaining work window and shifts pending tasks forward into open gaps without overlapping fixed meetings.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),
@@ -405,40 +394,35 @@ class HelpScreen extends StatelessWidget {
                         _FeatureTile(
                           icon: Icons.timer_rounded,
                           color: const Color(0xFF00E5FF),
-                          title: 'Focus Mode & Circadian Chronotypes',
-                          summary: 'Chronotype energy alignment, radial timer, soundscapes & scratchpad',
+                          title: 'Focus Hub & Ambient Sounds',
+                          summary: 'Pomodoro timers, relaxing soundscapes, and distraction scratchpad',
                           detail:
-                              'Match demanding cognitive tasks to your natural peak energy windows (Deep Work, '
-                              'Collaborative, Light Admin, Creative Flow, Recharge). Enter Focus Mode with a distraction-free '
-                              'radial timer that automatically resumes paused sessions, quick +5m and +15m flow extensions, ambient '
-                              'soundscapes (Binaural Beats, Rain, White Noise, Cafe), a distraction scratchpad to offload random '
-                              'thoughts without breaking flow, and micro-break alerts.',
+                              'Match demanding cognitive tasks to your personal focus hours. Enter Focus Mode with a '
+                              'distraction-free radial timer, relaxing soundscapes (Rain, White Noise, Cafe, Binaural Beats), '
+                              'and a distraction scratchpad to offload random thoughts without breaking your flow.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),
                         _FeatureTile(
                           icon: Icons.military_tech_rounded,
                           color: const Color(0xFFFFB300),
-                          title: 'Gamification, Streaks & Mastery Tiers',
-                          summary: '10 progression ranks, streak multipliers & 20+ achievement badges',
+                          title: 'Milestones, Streaks & Badges',
+                          summary: '10 progression levels, streak multipliers & 20+ achievement badges',
                           detail:
-                              'Turn consistency into an engaging progression. Earn XP for completed tasks, on-time '
-                              'finishes, and focused work sessions. Climb 10 mastery tiers from Novice to Grandmaster '
-                              'Architect. Keep your daily streak alive to earn XP multipliers, and rest easy knowing '
-                              'Streak Shield alerts you before your streak is at risk.',
+                              'Turn consistency into an engaging habit. Earn XP for completed tasks and focused sessions. '
+                              'Climb 10 progression tiers from Beginner to Master Architect, and keep your daily streak alive '
+                              'with built-in Streak Shield protection.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),
                         _FeatureTile(
                           icon: Icons.psychology_alt_rounded,
                           color: const Color(0xFF7C4DFF),
-                          title: 'Living Memory & AI Coach',
-                          summary: 'Cross-session personal intelligence & conversational coaching',
+                          title: 'AI Coach & Productivity Tutor',
+                          summary: 'Personal productivity mentor for advice, day planning, and motivation',
                           detail:
-                              'As you plan, complete tasks, and reflect, AutoPlanner synthesizes personal memory facts '
-                              '(work habits, peak energy windows, recurring commitments). When you talk to the AI Coach '
-                              'or trigger planning features, this context is woven in to deliver deeply tailored advice '
-                              'and schedule optimization.',
+                              'Chat with your AI Coach anytime to structure your day, break down complex goals into bite-sized '
+                              'action items, overcome procrastination, or get instant advice on mastering your schedule.',
                           isDark: isDark,
                         ),
                         _FeatureDivider(isDark: isDark),

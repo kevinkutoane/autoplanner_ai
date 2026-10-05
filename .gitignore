@@ -35,7 +35,8 @@ migrate_working_dir/
 .env
 .env.prod
 .env.local
-
+.env.*.tmp
+.env.example
 # Android release signing
 android/key.properties
 *.jks

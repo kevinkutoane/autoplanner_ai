@@ -17,6 +17,27 @@ enum ScheduleCommandType {
   /// Launch an immersive focus session on a specified or recommended task.
   startFocus,
 
+  /// Protect/reserve an uninterrupted focus window against meetings or shallow tasks.
+  protectFocus,
+
+  /// Trigger autonomous schedule drift healing and circadian peak re-alignment.
+  autoReschedule,
+
+  /// Automatically resolve anticipated schedule conflicts.
+  resolveConflicts,
+
+  /// Link a task to a goal, project, or note.
+  linkContext,
+
+  /// Multi-day weekly capacity planning across 5-7 days.
+  planWeek,
+
+  /// Mid-week adaptive recovery pass for slipped tasks.
+  replanWeek,
+
+  /// Backlog planning debt diagnostics and zombie task detection.
+  planningDebt,
+
   /// Unrecognized or conversational query.
   unknown,
 }
@@ -112,6 +133,40 @@ class ScheduleCommand {
       case 'focus':
         type = ScheduleCommandType.startFocus;
         break;
+      case 'protect':
+      case 'protect_focus':
+      case 'protect_window':
+        type = ScheduleCommandType.protectFocus;
+        break;
+      case 'reschedule':
+      case 'auto_reschedule':
+      case 'rebalance':
+      case 'ripple':
+        type = ScheduleCommandType.autoReschedule;
+        break;
+      case 'resolve':
+      case 'resolve_conflicts':
+      case 'fix_conflicts':
+        type = ScheduleCommandType.resolveConflicts;
+        break;
+      case 'link':
+      case 'link_context':
+        type = ScheduleCommandType.linkContext;
+        break;
+      case 'plan_week':
+      case 'weekly_plan':
+      case 'planweek':
+        type = ScheduleCommandType.planWeek;
+        break;
+      case 'replan_week':
+      case 'midweek_recovery':
+      case 'replanweek':
+        type = ScheduleCommandType.replanWeek;
+        break;
+      case 'debt':
+      case 'planning_debt':
+        type = ScheduleCommandType.planningDebt;
+        break;
       default:
         type = ScheduleCommandType.unknown;
     }
@@ -133,12 +188,106 @@ class ScheduleCommand {
     );
   }
 
+  /// Parses client-side slash commands or plain shortcuts directly without round-trips.
+  factory ScheduleCommand.fromRawText(String text, {DateTime? referenceTime}) {
+    final now = referenceTime ?? DateTime.now();
+    final trimmed = text.trim();
+    final lower = trimmed.toLowerCase();
+
+    if (lower == '/plan-week' || lower == 'plan week' || lower == '/planweek' || lower == 'plan-week') {
+      return ScheduleCommand(
+        type: ScheduleCommandType.planWeek,
+        explanation: 'Balance weekly capacity and distribute tasks across 7 days.',
+        targetDate: now,
+      );
+    }
+
+    if (lower == '/replan-week' || lower == 'replan week' || lower == '/replanweek' || lower == 'replan-week') {
+      return ScheduleCommand(
+        type: ScheduleCommandType.replanWeek,
+        explanation: 'Mid-week adaptive recovery: roll uncompleted slipped tasks into open capacity.',
+        targetDate: now,
+      );
+    }
+
+    if (lower == '/debt' || lower == 'planning debt' || lower == '/planning-debt' || lower == 'debt') {
+      return ScheduleCommand(
+        type: ScheduleCommandType.planningDebt,
+        explanation: 'Audit planning debt, overdue commitments, and stale tasks.',
+        targetDate: now,
+      );
+    }
+
+    if (lower == '/reschedule' || lower == 'reschedule' || lower == '/rebalance' || lower == 'rebalance') {
+      return ScheduleCommand(
+        type: ScheduleCommandType.autoReschedule,
+        explanation: 'Autonomous schedule drift healing and circadian peak alignment.',
+        targetDate: now,
+      );
+    }
+
+    if (lower == '/resolve' || lower == 'resolve' || lower == '/resolve-conflicts' || lower == 'fix conflicts') {
+      return ScheduleCommand(
+        type: ScheduleCommandType.resolveConflicts,
+        explanation: 'Proactively resolve anticipated schedule collisions, transit shortages, and deadline risks.',
+        targetDate: now,
+      );
+    }
+
+    if (lower.startsWith('/protect') || lower.startsWith('protect ')) {
+      // e.g. /protect afternoon, /protect morning
+      if (lower.contains('morning')) {
+        final from = DateTime(now.year, now.month, now.day, 9, 0);
+        final to = DateTime(now.year, now.month, now.day, 12, 0);
+        return ScheduleCommand(
+          type: ScheduleCommandType.protectFocus,
+          fromTime: from,
+          toTime: to,
+          minutes: 180,
+          targetDate: now,
+          explanation: 'Protect morning focus window (09:00 - 12:00) against shallow work and drift.',
+        );
+      } else if (lower.contains('afternoon')) {
+        final from = DateTime(now.year, now.month, now.day, 13, 0);
+        final to = DateTime(now.year, now.month, now.day, 17, 0);
+        return ScheduleCommand(
+          type: ScheduleCommandType.protectFocus,
+          fromTime: from,
+          toTime: to,
+          minutes: 240,
+          targetDate: now,
+          explanation: 'Protect afternoon deep work window (13:00 - 17:00).',
+        );
+      } else {
+        // default 2-hour protection starting now or next round hour
+        final from = DateTime(now.year, now.month, now.day, now.hour + 1, 0);
+        final to = from.add(const Duration(hours: 2));
+        return ScheduleCommand(
+          type: ScheduleCommandType.protectFocus,
+          fromTime: from,
+          toTime: to,
+          minutes: 120,
+          targetDate: now,
+          explanation: 'Protect 2-hour uninterrupted focus block from ${from.hour}:00 to ${to.hour}:00.',
+        );
+      }
+    }
+
+    return ScheduleCommand.unknown(explanation: 'Command not recognized: $text');
+  }
+
   static String _defaultExplanation(
     ScheduleCommandType type,
     int? minutes,
     String? title,
   ) {
     switch (type) {
+      case ScheduleCommandType.planWeek:
+        return 'Balance multi-day task capacity across 7 days.';
+      case ScheduleCommandType.replanWeek:
+        return 'Mid-week recovery: rebalance slipped tasks into open capacity.';
+      case ScheduleCommandType.planningDebt:
+        return 'Analyze backlog planning debt index and stale tasks.';
       case ScheduleCommandType.shift:
         return 'Shift upcoming tasks by ${minutes ?? 30} minutes.';
       case ScheduleCommandType.clearWindow:
@@ -149,6 +298,14 @@ class ScheduleCommand {
         return 'Find tasks that fit in ${minutes ?? 30} minutes.';
       case ScheduleCommandType.startFocus:
         return 'Start focus session${title != null ? ' for $title' : ''}.';
+      case ScheduleCommandType.protectFocus:
+        return 'Protect focus window for uninterrupted deep work.';
+      case ScheduleCommandType.autoReschedule:
+        return 'Autonomous schedule drift healing and circadian alignment.';
+      case ScheduleCommandType.resolveConflicts:
+        return 'Resolve anticipated schedule conflicts and transit shortages.';
+      case ScheduleCommandType.linkContext:
+        return 'Link task to associated goal or project.';
       case ScheduleCommandType.unknown:
         return 'Unknown command.';
     }

@@ -86,6 +86,22 @@ void main() {
     test('workDays has exactly 7 elements', () {
       expect(defaults.workDays, hasLength(7));
     });
+
+    test('aiConnectionMode defaults to cloud_gateway', () {
+      expect(defaults.aiConnectionMode, 'cloud_gateway');
+    });
+
+    test('cloudGatewayUrl defaults to local gateway', () {
+      expect(defaults.cloudGatewayUrl, 'http://127.0.0.1:8000');
+    });
+
+    test('autoRippleDrift defaults to true', () {
+      expect(defaults.autoRippleDrift, isTrue);
+    });
+
+    test('driftGraceMinutes defaults to 10', () {
+      expect(defaults.driftGraceMinutes, 10);
+    });
   });
 
   // ── AppSettings.copyWith ─────────────────────────────────────────────────
@@ -196,6 +212,48 @@ void main() {
       final disconnected = connected.copyWith(googleAccountEmail: '');
       expect(disconnected.googleAccountEmail, '');
     });
+
+    test('copyWith can update AI Gateway and drift settings', () {
+      final updated = base.copyWith(
+        aiConnectionMode: 'direct_gemini',
+        cloudGatewayUrl: 'https://gateway.example.com',
+        autoRippleDrift: false,
+        driftGraceMinutes: 20,
+      );
+      expect(updated.aiConnectionMode, 'direct_gemini');
+      expect(updated.cloudGatewayUrl, 'https://gateway.example.com');
+      expect(updated.autoRippleDrift, isFalse);
+      expect(updated.driftGraceMinutes, 20);
+    });
+  });
+
+  // ── Serialization (toMap / fromMap) ───────────────────────────────────────
+  group('AppSettings serialization', () {
+    test('round-trips AI Gateway and drift settings through toMap and fromMap', () {
+      final original = AppSettings.defaults().copyWith(
+        aiConnectionMode: 'offline_mock',
+        cloudGatewayUrl: 'http://custom-host:9000',
+        autoRippleDrift: false,
+        driftGraceMinutes: 15,
+      );
+      final map = original.toMap();
+      final restored = AppSettings.fromMap(map);
+
+      expect(restored.aiConnectionMode, 'offline_mock');
+      expect(restored.cloudGatewayUrl, 'http://custom-host:9000');
+      expect(restored.autoRippleDrift, isFalse);
+      expect(restored.driftGraceMinutes, 15);
+    });
+
+    test('serializes and deserializes hasDismissedStarterPlan', () {
+      final custom = AppSettings.defaults().copyWith(
+        hasDismissedStarterPlan: true,
+      );
+      final map = custom.toMap();
+      final restored = AppSettings.fromMap(map);
+
+      expect(restored.hasDismissedStarterPlan, isTrue);
+    });
   });
 
   // ── Hive box key constants ────────────────────────────────────────────────
@@ -230,6 +288,17 @@ void main() {
 
     test('kIsGoogleCalendarConnected is non-empty', () {
       expect(AppSettings.kIsGoogleCalendarConnected, isNotEmpty);
+    });
+
+    test('AI Gateway and Drift constants are non-empty', () {
+      expect(AppSettings.kAiConnectionMode, 'aiConnectionMode');
+      expect(AppSettings.kCloudGatewayUrl, 'cloudGatewayUrl');
+      expect(AppSettings.kAutoRippleDrift, 'autoRippleDrift');
+      expect(AppSettings.kDriftGraceMinutes, 'driftGraceMinutes');
+    });
+
+    test('kHasDismissedStarterPlan constant is non-empty', () {
+      expect(AppSettings.kHasDismissedStarterPlan, 'hasDismissedStarterPlan');
     });
   });
 }

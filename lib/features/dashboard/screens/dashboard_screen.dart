@@ -22,6 +22,8 @@ import '../../focus/widgets/micro_wins_card.dart';
 import '../../../services/gamification_service.dart';
 import '../widgets/daily_ritual_card.dart';
 import '../widgets/level_up_dialog.dart';
+import '../widgets/schedule_drift_card.dart';
+import '../../planner/widgets/conflict_anticipation_card.dart';
 import '../../coach/widgets/achievements_sheet.dart';
 
 // ── Daily insight provider ───────────────────────────────────────────────────
@@ -405,6 +407,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                     ),
                   ),
+                ),
+              ),
+
+              // ── Schedule Drift Alert & Autonomous Healing Card ────────────
+              const SliverPadding(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+                sliver: SliverToBoxAdapter(
+                  child: Stagger(index: 1, child: ScheduleDriftCard()),
+                ),
+              ),
+
+              // ── Proactive Conflict Anticipation Card ──────────────────────
+              const SliverPadding(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+                sliver: SliverToBoxAdapter(
+                  child: Stagger(index: 1, child: ConflictAnticipationCard()),
                 ),
               ),
 

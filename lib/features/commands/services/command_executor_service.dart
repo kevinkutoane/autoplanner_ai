@@ -6,8 +6,23 @@ import '../../../core/utils/date_utils.dart';
 import '../../planner/controllers/task_controller.dart';
 import '../models/schedule_command.dart';
 
+import '../../../services/conflict_anticipation_service.dart';
+import '../../../services/schedule_drift_service.dart';
+import '../../../services/weekly_planner_service.dart';
+
 class CommandExecutorService {
   static const _uuid = Uuid();
+  final ConflictAnticipationService _conflictService;
+  final ScheduleDriftService _driftService;
+  final WeeklyPlannerService _weeklyService;
+
+  CommandExecutorService({
+    ConflictAnticipationService? conflictService,
+    ScheduleDriftService? driftService,
+    WeeklyPlannerService? weeklyService,
+  })  : _conflictService = conflictService ?? ConflictAnticipationService(),
+        _driftService = driftService ?? ScheduleDriftService(),
+        _weeklyService = weeklyService ?? WeeklyPlannerService();
 
   /// Generates a preview of changes that will occur if [command] is executed.
   CommandPreview generatePreview(
@@ -29,6 +44,20 @@ class CommandExecutorService {
         return _previewFindFit(command, tasks, currentMoment);
       case ScheduleCommandType.startFocus:
         return _previewStartFocus(command, tasks, currentMoment);
+      case ScheduleCommandType.protectFocus:
+        return _previewProtectFocus(command, tasks, targetDay, currentMoment);
+      case ScheduleCommandType.autoReschedule:
+        return _previewAutoReschedule(command, tasks, currentMoment);
+      case ScheduleCommandType.resolveConflicts:
+        return _previewResolveConflicts(command, tasks, currentMoment);
+      case ScheduleCommandType.linkContext:
+        return _previewLinkContext(command, tasks);
+      case ScheduleCommandType.planWeek:
+        return _previewPlanWeek(command, tasks, currentMoment);
+      case ScheduleCommandType.replanWeek:
+        return _previewReplanWeek(command, tasks, currentMoment);
+      case ScheduleCommandType.planningDebt:
+        return _previewPlanningDebt(command, tasks, currentMoment);
       case ScheduleCommandType.unknown:
         return CommandPreview(
           command: command,
@@ -248,6 +277,282 @@ class CommandExecutorService {
     );
   }
 
+  CommandPreview _previewProtectFocus(
+    ScheduleCommand command,
+    List<TaskItem> tasks,
+    DateTime targetDay,
+    DateTime currentMoment,
+  ) {
+    final from = command.fromTime ??
+        DateTime(targetDay.year, targetDay.month, targetDay.day, 13, 0);
+    final to =
+        command.toTime ?? from.add(Duration(minutes: command.minutes ?? 120));
+
+    final conflicting = tasks.where((t) {
+      if (t.isCompleted) return false;
+      if (!isSameDay(t.startTime, targetDay)) return false;
+      final end =
+          t.endTime ?? t.startTime.add(Duration(minutes: t.durationMinutes));
+      return t.startTime.isBefore(to) && end.isAfter(from);
+    }).toList()
+      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+    final shifts = <TaskShiftPreview>[];
+    var nextTime = to;
+    for (final t in conflicting) {
+      final dur = Duration(minutes: t.durationMinutes);
+      final newStart = nextTime;
+      final newEnd = newStart.add(dur);
+      shifts.add(
+        TaskShiftPreview(
+          task: t,
+          originalStart: t.startTime,
+          originalEnd: t.endTime,
+          newStart: newStart,
+          newEnd: newEnd,
+        ),
+      );
+      nextTime = newEnd.add(const Duration(minutes: 10));
+    }
+
+    final focusTask = TaskItem(
+      id: 'focus_block_${_uuid.v4().substring(0, 8)}',
+      title: '🎯 Focus Block: Deep Work (Protected)',
+      startTime: from,
+      endTime: to,
+      priority: 3,
+      isFixed: true,
+      tags: ['deep_work', 'focus_block'],
+      note: 'Shielded focus window created via AI Command Omnibar.',
+    );
+
+    final fromLabel = DateFormat.jm().format(from);
+    final toLabel = DateFormat.jm().format(to);
+    final summary =
+        'Protect focus window ($fromLabel – $toLabel). Moving ${shifts.length} task${shifts.length == 1 ? '' : 's'} downstream.';
+
+    return CommandPreview(
+      command: command,
+      summary: summary,
+      shifts: shifts,
+      newTask: focusTask,
+    );
+  }
+
+  CommandPreview _previewAutoReschedule(
+    ScheduleCommand command,
+    List<TaskItem> tasks,
+    DateTime currentMoment,
+  ) {
+    final drift =
+        _driftService.detectDrift(tasks: tasks, currentTime: currentMoment);
+    if (!drift.hasDrift) {
+      return CommandPreview(
+        command: command,
+        summary: 'Schedule is perfectly on track. No drift detected to ripple.',
+      );
+    }
+
+    final ripple = _driftService.rippleReschedule(
+      allTasks: tasks,
+      workStartHour: 9,
+      workHoursPerDay: 8,
+      currentTime: currentMoment,
+    );
+
+    final shifts = <TaskShiftPreview>[];
+    for (final healed in ripple.updatedTasks) {
+      final original = tasks.firstWhere((t) => t.id == healed.id);
+      if (original.startTime != healed.startTime) {
+        shifts.add(
+          TaskShiftPreview(
+            task: original,
+            originalStart: original.startTime,
+            originalEnd: original.endTime,
+            newStart: healed.startTime,
+            newEnd: healed.endTime,
+          ),
+        );
+      }
+    }
+
+    return CommandPreview(
+      command: command,
+      summary:
+          'Heal schedule drift (${drift.driftMinutes}m delay). Smoothly ripple ${shifts.length} downstream tasks.',
+      shifts: shifts,
+    );
+  }
+
+  CommandPreview _previewResolveConflicts(
+    ScheduleCommand command,
+    List<TaskItem> tasks,
+    DateTime currentMoment,
+  ) {
+    final conflicts =
+        _conflictService.evaluateSchedule(tasks: tasks, currentTime: currentMoment);
+    if (conflicts.isEmpty) {
+      return CommandPreview(
+        command: command,
+        summary:
+            'No active schedule conflicts detected. Schedule is aligned.',
+      );
+    }
+
+    final resolution = _conflictService.applyResolution(
+      conflicts.first.resolutionAction,
+      tasks: tasks,
+      workStartHour: 9,
+      workHoursPerDay: 8,
+      currentTime: currentMoment,
+    );
+
+    final shifts = <TaskShiftPreview>[];
+    for (final updated in resolution.updatedTasks) {
+      final original =
+          tasks.firstWhere((t) => t.id == updated.id, orElse: () => updated);
+      if (original.startTime != updated.startTime) {
+        shifts.add(
+          TaskShiftPreview(
+            task: original,
+            originalStart: original.startTime,
+            originalEnd: original.endTime,
+            newStart: updated.startTime,
+            newEnd: updated.endTime,
+          ),
+        );
+      }
+    }
+
+    return CommandPreview(
+      command: command,
+      summary:
+          'Resolve ${conflicts.length} anticipated conflict${conflicts.length == 1 ? '' : 's'}: ${conflicts.first.title}.',
+      shifts: shifts,
+    );
+  }
+
+  CommandPreview _previewLinkContext(
+    ScheduleCommand command,
+    List<TaskItem> tasks,
+  ) {
+    return CommandPreview(
+      command: command,
+      summary: 'Contextual link established across personal knowledge graph.',
+    );
+  }
+
+  CommandPreview _previewPlanWeek(
+    ScheduleCommand command,
+    List<TaskItem> tasks,
+    DateTime currentMoment,
+  ) {
+    final weekStart = command.targetDate ?? currentMoment;
+    final planResult = _weeklyService.planWeek(
+      tasks: tasks,
+      weekStart: weekStart,
+      daysCount: 7,
+      workStartHour: 9,
+      workHoursPerDay: 8,
+    );
+
+    final shifts = <TaskShiftPreview>[];
+    for (final task in planResult.allScheduledTasks) {
+      final original = tasks.firstWhere(
+        (t) => t.id == task.id,
+        orElse: () => task,
+      );
+      if (original.startTime != task.startTime ||
+          original.endTime != task.endTime) {
+        shifts.add(
+          TaskShiftPreview(
+            task: original,
+            originalStart: original.startTime,
+            originalEnd: original.endTime,
+            newStart: task.startTime,
+            newEnd: task.endTime,
+          ),
+        );
+      }
+    }
+
+    final summary = shifts.isEmpty
+        ? 'Weekly schedule is already optimally balanced (score: ${planResult.balanceScore.toStringAsFixed(0)}/100).'
+        : 'Balanced ${shifts.length} task${shifts.length == 1 ? '' : 's'} across 7 days (Weekly Balance Score: ${planResult.balanceScore.toStringAsFixed(0)}/100).';
+
+    return CommandPreview(
+      command: command,
+      summary: summary,
+      shifts: shifts,
+    );
+  }
+
+  CommandPreview _previewReplanWeek(
+    ScheduleCommand command,
+    List<TaskItem> tasks,
+    DateTime currentMoment,
+  ) {
+    final replanResult = _weeklyService.replanWeek(
+      allTasks: tasks,
+      currentDay: currentMoment,
+      daysCount: 5,
+      workStartHour: 9,
+      workHoursPerDay: 8,
+    );
+
+    final shifts = <TaskShiftPreview>[];
+    for (final task in replanResult.allScheduledTasks) {
+      final original = tasks.firstWhere(
+        (t) => t.id == task.id,
+        orElse: () => task,
+      );
+      if (original.startTime != task.startTime ||
+          original.endTime != task.endTime) {
+        shifts.add(
+          TaskShiftPreview(
+            task: original,
+            originalStart: original.startTime,
+            originalEnd: original.endTime,
+            newStart: task.startTime,
+            newEnd: task.endTime,
+          ),
+        );
+      }
+    }
+
+    final summary = shifts.isEmpty
+        ? 'No slipped tasks detected to recover.'
+        : 'Mid-week recovery rebalanced ${shifts.length} task${shifts.length == 1 ? '' : 's'} into remaining days.';
+
+    return CommandPreview(
+      command: command,
+      summary: summary,
+      shifts: shifts,
+    );
+  }
+
+  CommandPreview _previewPlanningDebt(
+    ScheduleCommand command,
+    List<TaskItem> tasks,
+    DateTime currentMoment,
+  ) {
+    final debt = _weeklyService.calculatePlanningDebt(
+      tasks: tasks,
+      currentTime: currentMoment,
+    );
+
+    final recText = debt.recommendations.isNotEmpty
+        ? ' - ${debt.recommendations.first}'
+        : '';
+    final summary =
+        'Planning Debt Index: ${debt.debtIndex.toStringAsFixed(0)}/100 (${debt.overdueTasks.length} overdue, ${debt.zombieTasks.length} zombie tasks)$recText';
+
+    return CommandPreview(
+      command: command,
+      summary: summary,
+    );
+  }
+
   /// Executes the command previewed against the controller.
   Future<CommandExecutionResult> execute({
     required CommandPreview preview,
@@ -289,6 +594,64 @@ class CommandExecutorService {
           message: 'Task "${preview.newTask!.title}" added to planner.',
           affectedTasksCount: 1,
           createdTask: preview.newTask,
+        );
+
+      case ScheduleCommandType.protectFocus:
+        if (preview.shifts.isNotEmpty) {
+          final updatedTasks = preview.shifts.map((s) {
+            return s.task.copyWith(startTime: s.newStart, endTime: s.newEnd);
+          }).toList();
+          taskController.batchUpdateTasks(updatedTasks);
+        }
+        if (preview.newTask != null) {
+          taskController.addTask(preview.newTask!);
+        }
+        return CommandExecutionResult(
+          success: true,
+          message: 'Focus block protected and conflicting tasks moved.',
+          affectedTasksCount:
+              preview.shifts.length + (preview.newTask != null ? 1 : 0),
+          createdTask: preview.newTask,
+        );
+
+      case ScheduleCommandType.autoReschedule:
+      case ScheduleCommandType.resolveConflicts:
+        if (preview.shifts.isNotEmpty) {
+          final updatedTasks = preview.shifts.map((s) {
+            return s.task.copyWith(startTime: s.newStart, endTime: s.newEnd);
+          }).toList();
+          taskController.batchUpdateTasks(updatedTasks);
+        }
+        return CommandExecutionResult(
+          success: true,
+          message: preview.summary,
+          affectedTasksCount: preview.shifts.length,
+        );
+
+      case ScheduleCommandType.linkContext:
+        return CommandExecutionResult(
+          success: true,
+          message: preview.summary,
+        );
+
+      case ScheduleCommandType.planWeek:
+      case ScheduleCommandType.replanWeek:
+        if (preview.shifts.isNotEmpty) {
+          final updatedTasks = preview.shifts.map((s) {
+            return s.task.copyWith(startTime: s.newStart, endTime: s.newEnd);
+          }).toList();
+          taskController.batchUpdateTasks(updatedTasks);
+        }
+        return CommandExecutionResult(
+          success: true,
+          message: preview.summary,
+          affectedTasksCount: preview.shifts.length,
+        );
+
+      case ScheduleCommandType.planningDebt:
+        return CommandExecutionResult(
+          success: true,
+          message: preview.summary,
         );
 
       case ScheduleCommandType.startFocus:

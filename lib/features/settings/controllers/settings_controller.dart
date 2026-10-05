@@ -278,6 +278,29 @@ class SettingsController extends Notifier<AppSettings> {
     }
   }
 
+  // ── AI Engine & Gateway Settings ───────────────────────────────────
+
+  Future<void> updateAIConnectionMode(String mode) async {
+    await _box.put(AppSettings.kAiConnectionMode, mode);
+    state = state.copyWith(aiConnectionMode: mode);
+  }
+
+  Future<void> updateCloudGatewayUrl(String url) async {
+    final trimmed = url.trim();
+    await _box.put(AppSettings.kCloudGatewayUrl, trimmed);
+    state = state.copyWith(cloudGatewayUrl: trimmed);
+  }
+
+  Future<void> updateAutoRippleDrift(bool v) async {
+    await _box.put(AppSettings.kAutoRippleDrift, v);
+    state = state.copyWith(autoRippleDrift: v);
+  }
+
+  Future<void> updateDriftGraceMinutes(int v) async {
+    await _box.put(AppSettings.kDriftGraceMinutes, v);
+    state = state.copyWith(driftGraceMinutes: v);
+  }
+
   // ── Bulk profile update (edit dialog) ────────────────────────────
 
   Future<void> saveProfile({
@@ -311,6 +334,11 @@ class SettingsController extends Notifier<AppSettings> {
   Future<void> completeOnboarding() async {
     await _box.put(AppSettings.kOnboardingSeen, true);
     state = state.copyWith(isOnboardingDone: true);
+  }
+
+  Future<void> dismissStarterPlan() async {
+    await _box.put(AppSettings.kHasDismissedStarterPlan, true);
+    state = state.copyWith(hasDismissedStarterPlan: true);
   }
 
   // ── Calendar integrations ────────────────────────────────────────

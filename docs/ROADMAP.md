@@ -75,7 +75,7 @@
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Phase 2.4 — Weekly Intelligence & Capacity Planning [DEFERRED / POST-RC]    │
+│ Phase 2.4 — Weekly Intelligence & Capacity Planning [COMPLETED]             │
 │ • "Plan My Week" Multi-Day Capacity Allocation                              │
 │ • "Replan My Week" Mid-Week Recovery & Workload Balancing                   │
 │ • Planning Debt Burn-Down & Habit Adherence                                 │
@@ -83,10 +83,39 @@
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Phase 3.0 — Cloud AI Gateway & Cross-Device Sync [PLANNED]                  │
-│ • Authenticated Cloud AI Gateway (Model Agnostic: Gemini, Claude, Local)    │
-│ • Multi-Device Sync Engine (Relational Repository Abstraction)              │
-│ • Knowledge Graph Queries across Goals, Projects, Tasks, and Memories       │
+│ Phase 3.0 Milestone 1 — Cloud AI Gateway & Self-Healing Schedule Drift [COMPLETED] │
+│ • Cloud AI Gateway (FastAPI, Python 3.12, Cloud Run deployment scripts, CI) │
+│ • In-App AI Gateway Switcher & Dynamic Provider (Cloud, BYOK, Offline Mock)  │
+│ • Live Gateway Health Ping & Real-Time Latency Telemetry                    │
+│ • ScheduleDriftService: Temporal sensing & ripple cascade engine            │
+│ • ScheduleDriftCard: 1-Tap Auto-Ripple Schedule on Dashboard                │
+│ • Fixed Anchor & Immovable Calendar Event Protection                        │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Phase 3.0 Milestone 2 — Circadian & Chronotype-Aware Intelligent Scheduling [COMPLETED] │
+│ • Biological Circadian Rhythm Curves (Lion/Lark, Bear, Wolf Chronotypes)    │
+│ • Cognitive Load Matching (Deep Work & Complex Tasks placed in focus peaks) │
+│ • Circadian Dip Absorption (Low-energy admin/chores scheduled post-lunch)   │
+│ • Energy Rhythm Visualizer on Planner and Dashboard                         │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Phase 3.0 Milestone 3 — Autonomous Context-Aware Personal Planning OS [COMPLETED] │
+│ • Proactive Conflict Anticipation & Real-Time Auto-Resolution               │
+│ • Natural Language Omnibar Multi-Action Commands (/reschedule, /cascade)    │
+│ • Bi-directional Personal Intelligence & Contextual Memory Synthesis        │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Phase 4.0 — Production Release Certification & Shipping Readiness (v3.0.0 GA) [COMPLETED] │
+│ • Release Packaging & ProGuard/R8 Native Background Hardening                │
+│ • Day-0 Cold Start Experience (Interactive Starter Plan Card)                │
+│ • Settings UX Streamlining & RenderFlex Elimination                          │
+│ • Full Quality Gate & General Availability Store Certification               │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -175,18 +204,91 @@
 
 ---
 
-### Phase 2.4: Weekly Intelligence & Capacity Planning `[DEFERRED / POST-RC]`
-- **Goal**: Multi-day capacity planning, mid-week recovery, and workload balancing (frozen during Phase 2.3.1 stabilisation).
-- **Key Capabilities**:
-  1. **"Plan My Week"**: Balances workloads across 5–7 days, protecting goal-aligned deep work blocks against meeting overload.
-  2. **"Replan My Week"**: Autonomous Thursday/Friday recovery pass moving low-priority tasks, splitting blockers, and protecting upcoming hard deadlines.
-  3. **Planning Debt Burn-Down**: Actionable recommendations to clear accumulated scheduling debt without burning out.
+### Phase 2.4: Weekly Intelligence & Capacity Planning `[COMPLETED]`
+- **Goal**: Elevate AutoPlanner AI from a single-day scheduler to an autonomous multi-day capacity balancing operating system across 5–7 day horizons.
+- **Delivered**:
+  1. **Multi-Day Bin-Packing Engine (`WeeklyPlannerService`)**: Solves 5–7 day capacity constraints; respects daily work hour limits, external Google Calendar meeting loads, hard deadlines, and DAG task dependency constraints.
+  2. **Cognitive Routing & Meeting-Aware Balancing**: Routes deep work to meeting-light days and absorbs shallow admin tasks on meeting-dense days.
+  3. **Mid-Week Adaptive Recovery (`replanWeek`)**: Autonomous recovery pass rolling uncompleted slipped tasks from past days into remaining open capacity with automated notices.
+  4. **Planning Debt Diagnostics (`calculatePlanningDebt`)**: Evaluates overdue commitments and stale zombie tasks into a unified 0-100 Debt Index with actionable burn-down recommendations.
+  5. **Interactive 7-Day Capacity Visualizer (`WeeklyCapacityHeatmap`)**: Glassmorphic visualizer card mounted on `PlannerScreen` showing daily capacity load bars, meeting vs task ratios, status indicators (optimal, near capacity, overloaded, underloaded), and 1-tap day selection.
+  6. **Interactive "Plan My Week" Studio (`PlanMyWeekSheet`)**: Modal sheet with 5-day work week vs 7-day full week modes, mid-week recovery toggle, daily workload distribution bars, AI balancing insights, and 1-tap batch application.
+  7. **AI Omnibar Weekly Slash Commands**: Global `/plan-week`, `/replan-week`, and `/debt` commands with action previews and direct execution via `CommandExecutorService`.
+  8. **Automated Verification**: 10 unit and widget tests passing across `weekly_planner_service_test.dart` and `weekly_capacity_heatmap_test.dart` (100% pass rate).
 
 ---
 
-### Phase 3.0: Cloud AI Gateway & Cross-Device Sync `[PLANNED]`
-- **Goal**: Production-grade multi-platform architecture and commercial backend.
-- **Key Capabilities**:
-  1. **AI Gateway**: Authenticated cloud proxy for centralized rate limits, cost control, prompt versioning, and seamless provider switching (Gemini, Claude, GPT, local LLMs).
-  2. **Relational Repository Abstraction**: Seamless sync layer abstracting Hive or SQLite for cross-device synchronization (Mobile, Tablet, Desktop, Web).
-  3. **Personal Knowledge Graph**: Unified query graph connecting Goals → Projects → Tasks → Notes → Memories → Calendar.
+### Phase 3.0 Milestone 1: Cloud AI Gateway & Self-Healing Schedule Drift Engine `[COMPLETED]`
+- **Goal**: Offload AI prompt engineering and routing to an enterprise-grade gateway while embedding autonomous schedule self-healing into the Flutter client.
+- **Delivered**:
+  1. **Independent Gateway Service (`autoplanner-ai-gateway`)**: Python 3.12 + FastAPI gateway supporting 13 semantic operations, request IDs, client versioning, rate limiting, and 63 automated pytest test cases passing. Pushed to GitHub with automated CI/CD and Cloud Run deployment scripts.
+  2. **In-App Gateway Architecture Switcher**: 3-way dynamic provider switching (`Cloud Gateway`, `Direct BYOK`, `Offline Mock`) in Settings with live `/health` latency ping and zero-restart provider re-binding.
+  3. **Self-Healing Schedule Drift Engine (`ScheduleDriftService`)**: Temporal sensing detects overdue tasks past grace thresholds (5m, 10m, 15m, 30m); topological ripple cascade rebalances downstream tasks forward while strictly protecting immovable fixed tasks and Google Calendar blocks.
+  4. **Interactive Dashboard Drift Card (`ScheduleDriftCard`)**: Prominent glass card alerting on schedule drift with a 1-tap `[⚡ Auto-Ripple Schedule]` healing action with haptic feedback.
+  5. **Android 16 Stability & UI Refinement**: Resolved native `serverClientId` crash on Android Credential Manager, resolved `BiometricPromptCompat` lifecycle collisions on app resume, and eliminated RenderFlex overflows on narrow viewports.
+  6. **Verification**: 64 integration tests passing across AI Gateway, SettingsController, and ScheduleDriftService (570+ total test suite).
+
+---
+
+### Phase 3.0 Milestone 2: Circadian & Chronotype-Aware Intelligent Scheduling `[COMPLETED]`
+- **Goal**: Elevate deterministic task scheduling into a biological personal intelligence system that matches cognitive task loads to user chronotype focus peaks.
+- **Delivered**:
+  1. **Biological Circadian Curves (`CircadianRhythm`)**: Implemented mathematical continuous Gaussian and dip curves for all 3 major chronotypes: Early Bird (Lion, zenith ~09:00, dip 13:00-15:00), Balanced (Bear, prime focus 09:30-13:00, afternoon resurgence 16:00-18:30), and Night Owl (Wolf, morning inertia, golden evening flow 19:00-23:30).
+  2. **Cognitive Demand Classification**: Automated inference of `CognitiveDemand` (`deepWork`, `moderate`, `shallow`) using semantic tags (`coding`, `architecture`, `strategy`, `analysis`, `admin`, `email`, `errands`), explicit `energyLevel`, and priority weights.
+  3. **Circadian Scheduling Optimization in `SchedulerService`**: Multi-factor candidate slot evaluation now factors in biological capacity and phase fit, placing high-cognitive tasks in zenith windows and protecting prime hours by routing shallow admin tasks into post-lunch dips.
+  4. **Explainability & Biological Rationale**: Extended `TaskPlacementRationale` with detailed biological capacity percentages (e.g., *"Deep work aligned to 09:00 Early Bird (Lion) peak focus (98% capacity, +13.7)"*).
+  5. **Ambient Circadian Rhythm Visualizer (`CircadianEnergyCurveCard`)**: Beautiful interactive 24-hour sinusoidal energy curve widget on `PlannerScreen` featuring real-time "NOW" indicator needle, dynamic phase glow gradients, horizontal drag inspection, and actionable cognitive recommendations.
+  6. **Automated Verification**: Added 16 unit and behavioral integration tests in `test/circadian_rhythm_test.dart` and `test/scheduler_circadian_test.dart`; certified 100% pass rate across the full 65-test scheduler suite without breaching temporal invariants.
+
+---
+
+### Phase 3.0 Milestone 3: Autonomous Context-Aware Personal Planning OS `[COMPLETED]`
+- **Goal**: Elevate the app from a passive schedule viewer into an autonomous personal planning OS with proactive conflict anticipation, zero-latency multi-action natural language commands, and cross-domain knowledge graph synthesis.
+- **Delivered**:
+  1. **Proactive Conflict Anticipation Engine (`ConflictAnticipationService`)**:
+     - Evaluates active schedules and Google Calendar events across 4 distinct friction dimensions: Direct Overlaps (critical), Transit Buffer Compression (< 15 min travel/switch gaps, warning), Deadline Compression (< 30 min margin or breach, critical), and Circadian Focus Mismatches (deep work scheduled in recovery dips, advisory).
+     - Emits structured `AnticipatedConflict` diagnostics paired with 1-tap executable `ConflictResolutionAction` objects (`auto_ripple`, `insert_buffer`, `reschedule_task`, `realign_circadian`).
+  2. **Proactive Conflict Card (`ConflictAnticipationCard`)**:
+     - High-vibrancy glassmorphic card mounted on both `PlannerScreen` and `DashboardScreen`.
+     - Displays real-time friction count, highest severity accenting (coral/amber/indigo), 1-tap individual resolution actions, and expandable full-schedule audit with an `[Auto-Resolve All]` batch healing button.
+  3. **Multi-Action Omnibar Commands (`CommandExecutorService` & `ScheduleCommand`)**:
+     - Expanded Omnibar grammar with zero-latency slash commands:
+       - `/protect [minutes] [title]`: creates immovable high-priority focus blocks (`isFixed: true`).
+       - `/reschedule [task] to [time]`: shifts specific commitments without AI latency.
+       - `/resolve`: triggers autonomous conflict resolution across active schedule friction points.
+       - `/link [task] to [goal/project]`: associates tasks into goals or projects.
+     - Added client-side fast-path parser in `ScheduleCommand.fromRawText` for zero-latency execution.
+  4. **Cross-Domain Knowledge Graph & Contextual Synthesis (`ContextualSynthesisService`)**:
+     - Traverses relationships across Tasks ↔ Goals ↔ Projects ↔ Notes ↔ Memories.
+     - Resolves direct goal and project bindings, transitive goal associations via `ProjectItem.parentGoalId`, linked notes by ID and backlink references, and semantic AI memory context.
+     - Computes quantitative alignment scores and reactive `taskContextSynthesisProvider(task)`.
+  5. **Micro-Context Badge Strip**:
+     - Mounted on `_TaskRow` in `PlannerScreen`, dynamically displaying linked goal emojis, project folders, related note tallies, and synthesized contextual memory counts.
+  6. **Automated Verification**:
+     - 20 unit and widget tests covering `ConflictAnticipationService`, `ConflictAnticipationCard`, `CommandExecutorService`, and `ContextualSynthesisService` with 100% pass rate.
+     - Zero static analysis warnings on `flutter analyze`.
+
+
+
+---
+
+### Phase 4.0: Production Release Certification & Shipping Readiness (v3.0.0 GA) `[COMPLETED]`
+- **Goal**: Full production release hardening, ProGuard / R8 native background plugin preservation, day-0 cold start onboarding, settings UX streamlining, and store certification.
+- **Delivered**:
+  1. **Release Packaging & ProGuard/R8 Hardening**:
+     - Configured explicit ProGuard / R8 keep rules in `android/app/proguard-rules.pro` for `androidx.work.**`, `com.dexterous.flutterlocalnotifications.**`, `es.antonborri.home_widget.**`, `androidx.biometric.**`, and Hive TypeAdapters.
+     - Created `android/key.properties.example` for secure production keystore setup.
+     - Bumped version to `3.0.0+1` in `pubspec.yaml` and across release manifests.
+  2. **Day-0 Cold Start Experience (`SampleStarterPlanCard`)**:
+     - Interactive starter pack card on empty planner days demonstrating circadian peak alignment, fixed anchor protection, and dip absorption.
+     - 1-tap "Load Sample Plan" to populate a realistic workday or "Start Fresh" to dismiss.
+     - Hive-persisted `hasDismissedStarterPlan` preference with serialization roundtrips.
+  3. **Settings Panel UX Streamlining & De-cluttering**:
+     - Resolved visual congestion and RenderFlex overflow issues on narrow viewports and accessibility font scales.
+     - Streamlined sound & vibration controls into responsive `_SwitchTile`s.
+     - Corrected versioning display to `3.0.0+1` and gateway version telemetry to `3.0.0`.
+  4. **Release Notes & GA Certification**:
+     - Created `docs/RELEASE_NOTES_v3.0.0.md` detailing all architectural capabilities.
+     - Updated `docs/PRODUCTION_READINESS.md` certifying General Availability (GA).
+  5. **Verification**:
+     - Added comprehensive unit and widget tests in `test/sample_starter_plan_test.dart` and `test/app_settings_model_test.dart` with 100% pass rate.

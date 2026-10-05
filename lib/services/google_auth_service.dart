@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../core/config/env_config.dart';
 import 'secure_key_service.dart';
 
 /// Manages Google Sign-In and persists OAuth tokens to the secure keychain.
@@ -14,6 +15,7 @@ class GoogleAuthService {
   static const _calendarScope = 'https://www.googleapis.com/auth/calendar';
 
   final _googleSignIn = GoogleSignIn.instance;
+  bool _isInitialized = false;
 
   /// Emits the connected account email (or null when signed out).
   final ValueNotifier<String?> connectedEmail = ValueNotifier(null);
@@ -21,15 +23,29 @@ class GoogleAuthService {
   /// True when an access token is available and not expired.
   bool get isConnected => connectedEmail.value != null;
 
-  GoogleAuthService() {
-    _initGoogleSignIn();
-  }
+  GoogleAuthService();
 
-  Future<void> _initGoogleSignIn() async {
+  Future<bool> _ensureInitialized() async {
+    if (_isInitialized) return true;
     try {
-      await _googleSignIn.initialize();
+      final serverClientId = appConfig.googleServerClientId;
+      if (defaultTargetPlatform == TargetPlatform.android &&
+          serverClientId.isEmpty) {
+        if (kDebugMode) {
+          debugPrint(
+            'GoogleAuth: Skipping GoogleSignIn initialization on Android because GOOGLE_SERVER_CLIENT_ID is not configured in .env',
+          );
+        }
+        return false;
+      }
+      await _googleSignIn.initialize(
+        serverClientId: serverClientId.isNotEmpty ? serverClientId : null,
+      );
+      _isInitialized = true;
+      return true;
     } catch (e) {
       if (kDebugMode) debugPrint('GoogleAuth: init failed — $e');
+      return false;
     }
   }
 
@@ -39,6 +55,8 @@ class GoogleAuthService {
     try {
       final stored = await SecureKeyService.getGoogleTokens();
       if (stored == null) return;
+      final ok = await _ensureInitialized();
+      if (!ok) return;
       final account = await _googleSignIn.attemptLightweightAuthentication();
       if (account != null) {
         connectedEmail.value = account.email;
@@ -60,6 +78,12 @@ class GoogleAuthService {
       }
       return null;
     }
+    final ok = await _ensureInitialized();
+    if (!ok) {
+      throw Exception(
+        'Google Sign-In requires GOOGLE_SERVER_CLIENT_ID to be configured in .env on Android.',
+      );
+    }
     try {
       final account = await _googleSignIn.authenticate(
         scopeHint: ['email', 'profile', _calendarScope],
@@ -76,7 +100,9 @@ class GoogleAuthService {
   /// Signs out and clears all persisted tokens.
   Future<void> signOut() async {
     try {
-      await _googleSignIn.signOut();
+      if (_isInitialized) {
+        await _googleSignIn.signOut();
+      }
     } catch (e) {
       if (kDebugMode) debugPrint('GoogleAuth: signOut failed — $e');
     }
@@ -99,6 +125,8 @@ class GoogleAuthService {
           return token;
         }
       }
+      final ok = await _ensureInitialized();
+      if (!ok) return null;
       // Token missing or near expiry — refresh silently.
       final account = await _googleSignIn.attemptLightweightAuthentication();
       if (account == null) return null;

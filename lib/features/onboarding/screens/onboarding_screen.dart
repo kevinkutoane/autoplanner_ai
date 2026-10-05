@@ -33,12 +33,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       ),
       icon: Icons.record_voice_over_rounded,
       iconGradient: kGradientMain,
-      title: 'Brain Dump 2.0 Studio',
-      subtitle: 'Speak freely with real-time reactive audio waveforms or type chaotic thought streams. AutoPlanner structures everything.',
+      title: 'Effortless Brain Dump',
+      subtitle: 'Speak or type your thoughts freely. AutoPlanner automatically organizes them into clear tasks, notes, and goals.',
       bullets: [
-        '32-band reactive audio waveform visualizer',
-        '4-pillar parsing: Tasks, Goals, Notes & Memories',
-        'Triage review & one-tap calendar gap auto-packing',
+        'Speak naturally with voice notes or type quickly',
+        'Automatically sorts tasks, goals, and ideas for you',
+        'Add items to your schedule with a single tap',
       ],
     ),
     _PageData(
@@ -49,12 +49,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       ),
       icon: Icons.auto_awesome_rounded,
       iconGradient: kGradientTeal,
-      title: 'Autonomous Scheduling',
-      subtitle: 'A deterministic constraint solver that packs your day with zero overlap, honoring buffer times and task prerequisites.',
+      title: 'Smart Daily Planning',
+      subtitle: 'Your day, organized automatically without double-booking, rush, or stress.',
       bullets: [
-        'Dependency DAG ordering & split subtasks',
-        'Smart buffer times & work window boundaries',
-        'Proactive reschedule suggestions when plans shift',
+        'Intelligent schedules that respect your breaks and meetings',
+        'Automatic schedule catch-up when tasks run over',
+        'Built-in buffers so you always have breathing room',
       ],
     ),
     _PageData(
@@ -66,11 +66,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       icon: Icons.wb_sunny_rounded,
       iconGradient: kGradientWarm,
       title: 'Daily Rituals & Routines',
-      subtitle: 'Bookend your day with science-backed rituals. Lock in your Big 3 in the morning, and reflect & triage at evening shutdown.',
+      subtitle: 'Start your morning with clear intentions, and close your evening with peace of mind.',
       bullets: [
-        'Morning Kickoff with daily "The Big 3" focus commitments',
-        'Evening Shutdown to triage rollovers & celebrate wins',
-        'Automated ritual reminders synced to your schedule',
+        'Morning kickoff to choose your Top 3 daily priorities',
+        'Evening shutdown to celebrate wins and prepare tomorrow',
+        'Gentle, automated reminders synced to your schedule',
       ],
     ),
     _PageData(
@@ -83,12 +83,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       iconGradient: LinearGradient(
         colors: [Color(0xFF00E5FF), Color(0xFF00B0FF), Color(0xFF1DE9B6)],
       ),
-      title: 'Circadian Focus & Micro-Wins',
-      subtitle: 'Align complex work to your peak chronotype energy windows. Stay locked in with immersive radial timers and soundscapes.',
+      title: 'Peak Energy Focus',
+      subtitle: 'Tackle your hardest work when your energy is highest, and stay in the zone.',
       bullets: [
-        'Circadian energy curve task recommendations',
-        'Ambient soundscapes & distraction scratchpad',
-        'Flow state tracking with micro-break prompts',
+        'Matches demanding tasks to your personal focus hours',
+        'Distraction-free focus timer with relaxing ambient sounds',
+        'Helpful break reminders to keep you energized',
       ],
     ),
     _PageData(
@@ -101,11 +101,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       iconGradient: LinearGradient(
         colors: [Color(0xFFFFB300), Color(0xFFFF6D00), Color(0xFFFFD54F)],
       ),
-      title: 'Mastery Ranks & Streaks',
-      subtitle: 'Turn consistency into an engaging game. Level up across 10 mastery tiers, unlock badges, and protect your streak.',
+      title: 'Streaks & Milestones',
+      subtitle: 'Turn daily consistency into a fun habit. Level up, earn badges, and watch yourself grow.',
       bullets: [
-        '10 progression tiers from Novice to Grandmaster',
-        'Streak multipliers & automated Streak Shield alerts',
+        '10 progression levels from Beginner to Master',
+        'Streak multipliers and automatic Streak Shield alerts',
         'Over 20+ unlockable productivity achievements',
       ],
     ),
@@ -119,12 +119,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       iconGradient: LinearGradient(
         colors: [Color(0xFF7C4DFF), Color(0xFF651FFF), Color(0xFF00E5FF)],
       ),
-      title: 'Living Memory & Privacy',
-      subtitle: 'AutoPlanner remembers your evolving habits across sessions while keeping 100% of your data encrypted on your device.',
+      title: '100% Private & Secure',
+      subtitle: 'AutoPlanner learns your working preferences while keeping your data private on your device.',
       bullets: [
-        'Cross-session contextual memory auto-synthesis',
-        'AES-256 encrypted local storage with zero cloud leaks',
-        'Google Gemini API key kept in hardware Secure Enclave',
+        'Learns your work rhythm to give smarter suggestions',
+        'Bank-grade encryption keeps your schedule secure',
+        'Works completely offline whenever you need it',
       ],
     ),
   ];
@@ -388,7 +388,7 @@ class _ApiKeyPageState extends ConsumerState<_ApiKeyPage>
                 ),
                 const SizedBox(height: 14),
                 const Text(
-                  'AutoPlanner\'s AI features — Brain Dump, smart scheduling, daily insights, and proactive rescheduling — run on Google\'s Gemini AI. Gemini is a cloud service (not on-device), so the app needs a key to call the API on your behalf.\n\nThe free tier is genuinely free: no credit card, no expiry. Your key is stored only on this device and never shared.',
+                  'AutoPlanner uses Google Gemini AI to organize your thoughts and build smart schedules.\n\nYou can connect your free Google Gemini key now, or tap Skip to use AutoPlanner\'s built-in offline smart planner anytime.\n\nFree tier: No credit card needed. Your key never leaves your phone.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white60,

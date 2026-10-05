@@ -22,13 +22,21 @@ import '../../services/conflict_detector.dart';
 import '../../services/app_monitor_service.dart';
 import '../../services/reschedule_service.dart';
 import '../../services/offline_ai_queue.dart';
+import '../../services/schedule_drift_service.dart';
 import '../../services/duration_learning_service.dart';
+import '../../services/conflict_anticipation_service.dart';
+import '../../services/contextual_synthesis_service.dart';
+import '../../services/weekly_planner_service.dart';
 import '../../features/commands/services/command_executor_service.dart';
 import '../../features/settings/models/app_settings_model.dart';
 import '../models/memory_entry_model.dart';
+import '../models/task_model.dart';
 import '../../features/memory/controllers/memory_controller.dart';
 import '../../features/settings/controllers/settings_controller.dart';
 import '../../features/planner/controllers/task_controller.dart';
+import '../../features/calendar/controllers/calendar_controller.dart';
+import '../../features/goals/controllers/goal_controller.dart';
+import '../../features/notes/controllers/note_controller.dart';
 
 import 'package:clock/clock.dart';
 
@@ -36,6 +44,10 @@ import 'package:clock/clock.dart';
 export '../ai/ai_invocation.dart';
 export '../ai/ai_provider.dart';
 export '../ai/cloud_ai_provider.dart';
+export '../../services/schedule_drift_service.dart';
+export '../../services/conflict_anticipation_service.dart';
+export '../../services/contextual_synthesis_service.dart';
+export '../../services/weekly_planner_service.dart';
 
 // Re-export note controller provider so screens can import from providers.dart
 export '../../features/notes/controllers/note_controller.dart'
@@ -65,13 +77,25 @@ final settingsProvider = NotifierProvider<SettingsController, AppSettings>(
 
 final aiProviderProvider = Provider<AIProvider>((ref) {
   final settings = ref.watch(settingsProvider);
-  if (settings.useMockAI) return MockAIProvider();
-
-  // If a cloud AI Gateway URL is configured, route through CloudAIProvider
-  if (appConfig.aiGatewayUrl.isNotEmpty) {
-    return CloudAIProvider(gatewayBaseUrl: Uri.parse(appConfig.aiGatewayUrl));
+  if (settings.useMockAI || settings.aiConnectionMode == 'offline_mock') {
+    return MockAIProvider();
   }
 
+  // 1. Cloud AI Gateway mode
+  if (settings.aiConnectionMode == 'cloud_gateway') {
+    final gatewayUrl = settings.cloudGatewayUrl.isNotEmpty
+        ? settings.cloudGatewayUrl
+        : (appConfig.aiGatewayUrl.isNotEmpty
+            ? appConfig.aiGatewayUrl
+            : 'http://127.0.0.1:8000');
+    final parsed = Uri.tryParse(gatewayUrl);
+    if (parsed != null && parsed.hasScheme) {
+      return CloudAIProvider(gatewayBaseUrl: parsed);
+    }
+    return MockAIProvider();
+  }
+
+  // 2. Direct Gemini BYOK mode
   // Prefer the user-supplied key from secure storage; fall back to .env.
   final key = settings.geminiApiKey.isNotEmpty
       ? settings.geminiApiKey
@@ -81,6 +105,23 @@ final aiProviderProvider = Provider<AIProvider>((ref) {
     return MockAIProvider();
   }
   return GeminiProvider(apiKey: key);
+});
+
+/// Autonomous schedule drift detection and ripple engine provider.
+final scheduleDriftServiceProvider = Provider<ScheduleDriftService>(
+  (_) => ScheduleDriftService(),
+);
+
+/// Live autonomous schedule drift state computed against active tasks and clock.
+final scheduleDriftProvider = Provider<ScheduleDrift>((ref) {
+  final tasks = ref.watch(taskControllerProvider);
+  final driftService = ref.watch(scheduleDriftServiceProvider);
+  final settings = ref.watch(settingsProvider);
+  return driftService.detectDrift(
+    tasks: tasks,
+    currentTime: clock.now(),
+    graceMinutes: settings.driftGraceMinutes,
+  );
 });
 
 /// Overridden in main() with an already-initialized TokenTracker instance.
@@ -175,6 +216,54 @@ final calendarSyncServiceProvider = Provider<CalendarSyncService>(
 final conflictDetectorProvider = Provider<ConflictDetector>(
   (_) => ConflictDetector(),
 );
+
+/// Singleton provider for [ConflictAnticipationService].
+final conflictAnticipationServiceProvider =
+    Provider<ConflictAnticipationService>((ref) {
+  return ConflictAnticipationService(
+    scheduler: ref.watch(schedulerServiceProvider),
+    driftService: ref.watch(scheduleDriftServiceProvider),
+  );
+});
+
+/// Evaluates active schedule and calendar commitments to anticipate conflicts proactively.
+final anticipatedConflictsProvider =
+    Provider<List<AnticipatedConflict>>((ref) {
+  final tasks = ref.watch(taskControllerProvider);
+  final calendarEvents = ref.watch(calendarControllerProvider);
+  final settings = ref.watch(settingsProvider);
+  final service = ref.watch(conflictAnticipationServiceProvider);
+
+  return service.evaluateSchedule(
+    tasks: tasks,
+    calendarEvents: calendarEvents,
+    chronotypeId: settings.chronotype,
+  );
+});
+
+/// Singleton provider for [ContextualSynthesisService].
+final contextualSynthesisServiceProvider =
+    Provider<ContextualSynthesisService>((ref) {
+  return ContextualSynthesisService();
+});
+
+/// Synthesizes cross-domain knowledge graph context for a specific [TaskItem].
+final taskContextSynthesisProvider =
+    Provider.family<TaskContextSynthesis, TaskItem>((ref, task) {
+  final service = ref.watch(contextualSynthesisServiceProvider);
+  final goals = ref.watch(goalControllerProvider);
+  final projects = ref.watch(projectControllerProvider);
+  final notes = ref.watch(noteControllerProvider);
+  final memories = ref.watch(memoryControllerProvider);
+
+  return service.synthesizeContext(
+    task: task,
+    allGoals: goals,
+    allProjects: projects,
+    allNotes: notes,
+    allMemories: memories,
+  );
+});
 
 /// Overridden in main() with the initialized AppMonitorService instance.
 final appMonitorServiceProvider = Provider<AppMonitorService>(
@@ -322,3 +411,43 @@ final scheduleRationaleProvider =
 final commandExecutorServiceProvider = Provider<CommandExecutorService>((ref) {
   return CommandExecutorService();
 });
+
+// ── Weekly Planner & Multi-Day Capacity Providers ────────────────────────────────
+
+/// Singleton provider for [WeeklyPlannerService]
+final weeklyPlannerServiceProvider = Provider<WeeklyPlannerService>((ref) {
+  return WeeklyPlannerService(
+    scheduler: ref.watch(schedulerServiceProvider),
+  );
+});
+
+/// Multi-day capacity summary computed for a 7-day period starting at [weekStart].
+final weeklyCapacitySummaryProvider =
+    Provider.family<List<DailyCapacitySummary>, DateTime>((ref, weekStart) {
+  final tasks = ref.watch(taskControllerProvider);
+  final calendarEvents = ref.watch(calendarControllerProvider);
+  final settings = ref.watch(settingsProvider);
+  final weeklyService = ref.watch(weeklyPlannerServiceProvider);
+
+  return weeklyService.getWeeklyCapacitySummaries(
+    tasks: tasks,
+    weekStart: weekStart,
+    daysCount: 7,
+    workStartHour: settings.workStartHour,
+    workHoursPerDay: settings.workHoursPerDay,
+    calendarEvents: calendarEvents,
+  );
+});
+
+/// Comprehensive weekly planning debt diagnostics across current task backlog.
+final weeklyPlanningDebtReportProvider = Provider<PlanningDebtReport>((ref) {
+  final tasks = ref.watch(taskControllerProvider);
+  final weeklyService = ref.watch(weeklyPlannerServiceProvider);
+  return weeklyService.calculatePlanningDebt(
+    tasks: tasks,
+    currentTime: clock.now(),
+  );
+});
+
+
+

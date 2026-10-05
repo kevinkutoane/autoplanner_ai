@@ -51,6 +51,9 @@ class _CommandPaletteModalState extends ConsumerState<CommandPaletteModal>
   String? _successMessage;
 
   final List<String> _quickSuggestions = const [
+    '🗓️ /plan-week',
+    '🔄 /replan-week',
+    '📊 /debt',
     '⏩ Push afternoon by 30m',
     '⏱️ What fits in 20m?',
     '🧹 Clear 2pm - 4pm',
@@ -85,11 +88,30 @@ class _CommandPaletteModalState extends ConsumerState<CommandPaletteModal>
 
     try {
       final tasks = ref.read(taskControllerProvider);
-      final ai = ref.read(aiServiceProvider);
-      final command = await ai.parseScheduleCommand(
-        query: trimmed,
-        currentTasks: tasks,
-      );
+      ScheduleCommand command;
+
+      // Fast-path client slash command matching
+      if (trimmed.startsWith('/') ||
+          trimmed == 'reschedule' ||
+          trimmed == 'rebalance' ||
+          trimmed.startsWith('protect ')) {
+        final localCmd = ScheduleCommand.fromRawText(trimmed);
+        if (localCmd.type != ScheduleCommandType.unknown) {
+          command = localCmd;
+        } else {
+          final ai = ref.read(aiServiceProvider);
+          command = await ai.parseScheduleCommand(
+            query: trimmed,
+            currentTasks: tasks,
+          );
+        }
+      } else {
+        final ai = ref.read(aiServiceProvider);
+        command = await ai.parseScheduleCommand(
+          query: trimmed,
+          currentTasks: tasks,
+        );
+      }
 
       final executor = ref.read(commandExecutorServiceProvider);
       final preview = executor.generatePreview(command, tasks);
@@ -468,6 +490,41 @@ class _CommandPaletteModalState extends ConsumerState<CommandPaletteModal>
         accentColor = kIndigo;
         badgeTitle = 'FOCUS SESSION';
         badgeIcon = Icons.self_improvement_rounded;
+        break;
+      case ScheduleCommandType.protectFocus:
+        accentColor = kIndigo;
+        badgeTitle = 'PROTECT FOCUS';
+        badgeIcon = Icons.shield_rounded;
+        break;
+      case ScheduleCommandType.autoReschedule:
+        accentColor = kCyan;
+        badgeTitle = 'AUTO-RESCHEDULE';
+        badgeIcon = Icons.auto_mode_rounded;
+        break;
+      case ScheduleCommandType.resolveConflicts:
+        accentColor = kCoral;
+        badgeTitle = 'RESOLVE CONFLICTS';
+        badgeIcon = Icons.radar_rounded;
+        break;
+      case ScheduleCommandType.linkContext:
+        accentColor = const Color(0xFF9C27B0);
+        badgeTitle = 'LINK CONTEXT';
+        badgeIcon = Icons.hub_rounded;
+        break;
+      case ScheduleCommandType.planWeek:
+        accentColor = kIndigo;
+        badgeTitle = 'PLAN WEEK';
+        badgeIcon = Icons.date_range_rounded;
+        break;
+      case ScheduleCommandType.replanWeek:
+        accentColor = const Color(0xFFF39C12);
+        badgeTitle = 'MID-WEEK RECOVERY';
+        badgeIcon = Icons.restore_page_rounded;
+        break;
+      case ScheduleCommandType.planningDebt:
+        accentColor = kCoral;
+        badgeTitle = 'PLANNING DEBT AUDIT';
+        badgeIcon = Icons.analytics_rounded;
         break;
       case ScheduleCommandType.unknown:
         accentColor = Colors.grey;

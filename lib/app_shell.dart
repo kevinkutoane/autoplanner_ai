@@ -181,14 +181,15 @@ class _AppShellState extends ConsumerState<AppShell>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final requireBiometrics = ref.read(settingsProvider).requireBiometrics;
 
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      // App going to background — arm the lock and end the session.
+    if (state == AppLifecycleState.paused) {
+      // App actually went to background — arm the lock and end the session.
       ref.read(appMonitorServiceProvider).logSessionEnd();
       if (requireBiometrics && mounted) setState(() => _locked = true);
     } else if (state == AppLifecycleState.resumed) {
       ref.read(appMonitorServiceProvider).logSessionStart();
-      if (requireBiometrics && _locked) _triggerUnlock();
+      if (requireBiometrics && _locked && !_authenticating) {
+        _triggerUnlock();
+      }
       // Check for overdue tasks whenever the user returns to the app.
       _checkReschedule();
     }
@@ -222,16 +223,21 @@ class _AppShellState extends ConsumerState<AppShell>
   }
 
   Future<void> _triggerUnlock() async {
-    if (_authenticating) return;
+    if (_authenticating || !_locked || !mounted) return;
     setState(() => _authenticating = true);
-    final biometric = ref.read(biometricServiceProvider);
-    final ok = await biometric.authenticate();
-    if (!mounted) return;
-    setState(() {
-      _authenticating = false;
-      if (ok) _locked = false;
-      // If authentication failed/cancelled, keep locked.
-    });
+    try {
+      // Allow window transition and fragment state to settle before invoking BiometricPrompt
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted || !_locked) return;
+      final biometric = ref.read(biometricServiceProvider);
+      final ok = await biometric.authenticate();
+      if (!mounted) return;
+      setState(() {
+        if (ok) _locked = false;
+      });
+    } finally {
+      if (mounted) setState(() => _authenticating = false);
+    }
   }
 
   void _showMoreSheet() {

@@ -26,6 +26,18 @@ class AppSettings {
   final int maxTokensPerDay;
   final bool isOnboardingDone;
 
+  /// AI connection mode: 'cloud_gateway' | 'direct_gemini' | 'offline_mock'.
+  final String aiConnectionMode;
+
+  /// Custom or local AI Gateway base URL.
+  final String cloudGatewayUrl;
+
+  /// Whether schedule drift is autonomously healed via ripple rescheduling.
+  final bool autoRippleDrift;
+
+  /// Grace period in minutes before schedule drift alerts or triggers ripple.
+  final int driftGraceMinutes;
+
   /// The Gemini API key entered by the user.
   /// Loaded from secure storage at startup; never persisted to Hive.
   final String geminiApiKey;
@@ -135,7 +147,15 @@ class AppSettings {
     this.userMotto = '',
     this.hapticsEnabled = true,
     this.confettiCelebrationsEnabled = true,
+    this.aiConnectionMode = 'cloud_gateway',
+    this.cloudGatewayUrl = 'http://127.0.0.1:8000',
+    this.autoRippleDrift = true,
+    this.driftGraceMinutes = 10,
+    this.hasDismissedStarterPlan = false,
   });
+
+  /// Whether user has dismissed the starter pack on cold start.
+  final bool hasDismissedStarterPlan;
 
   factory AppSettings.defaults() => AppSettings(
     userName: '',
@@ -173,6 +193,10 @@ class AppSettings {
     userMotto: '',
     hapticsEnabled: true,
     confettiCelebrationsEnabled: true,
+    aiConnectionMode: 'cloud_gateway',
+    cloudGatewayUrl: 'http://127.0.0.1:8000',
+    autoRippleDrift: true,
+    driftGraceMinutes: 10,
   );
 
   AppSettings copyWith({
@@ -211,6 +235,11 @@ class AppSettings {
     String? userMotto,
     bool? hapticsEnabled,
     bool? confettiCelebrationsEnabled,
+    String? aiConnectionMode,
+    String? cloudGatewayUrl,
+    bool? autoRippleDrift,
+    int? driftGraceMinutes,
+    bool? hasDismissedStarterPlan,
   }) {
     return AppSettings(
       userName: userName ?? this.userName,
@@ -261,6 +290,12 @@ class AppSettings {
       hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
       confettiCelebrationsEnabled:
           confettiCelebrationsEnabled ?? this.confettiCelebrationsEnabled,
+      aiConnectionMode: aiConnectionMode ?? this.aiConnectionMode,
+      cloudGatewayUrl: cloudGatewayUrl ?? this.cloudGatewayUrl,
+      autoRippleDrift: autoRippleDrift ?? this.autoRippleDrift,
+      driftGraceMinutes: driftGraceMinutes ?? this.driftGraceMinutes,
+      hasDismissedStarterPlan:
+          hasDismissedStarterPlan ?? this.hasDismissedStarterPlan,
     );
   }
 
@@ -307,6 +342,13 @@ class AppSettings {
   static const String kHapticsEnabled = 'hapticsEnabled';
   static const String kConfettiCelebrationsEnabled =
       'confettiCelebrationsEnabled';
+
+  // ── AI Gateway & Autonomous Drift constants ──
+  static const String kAiConnectionMode = 'aiConnectionMode';
+  static const String kCloudGatewayUrl = 'cloudGatewayUrl';
+  static const String kAutoRippleDrift = 'autoRippleDrift';
+  static const String kDriftGraceMinutes = 'driftGraceMinutes';
+  static const String kHasDismissedStarterPlan = 'hasDismissedStarterPlan';
 
   // ── Serialization helpers ──────────────────────────────────────────
   static ThemeMode _parseThemeMode(String? v) => switch (v) {
@@ -363,6 +405,11 @@ class AppSettings {
     kUserMotto: userMotto,
     kHapticsEnabled: hapticsEnabled,
     kConfettiCelebrationsEnabled: confettiCelebrationsEnabled,
+    kAiConnectionMode: aiConnectionMode,
+    kCloudGatewayUrl: cloudGatewayUrl,
+    kAutoRippleDrift: autoRippleDrift,
+    kDriftGraceMinutes: driftGraceMinutes,
+    kHasDismissedStarterPlan: hasDismissedStarterPlan,
   };
 
   factory AppSettings.fromMap(Map<dynamic, dynamic> map) => AppSettings(
@@ -405,6 +452,12 @@ class AppSettings {
     hapticsEnabled: (map[kHapticsEnabled] as bool?) ?? true,
     confettiCelebrationsEnabled:
         (map[kConfettiCelebrationsEnabled] as bool?) ?? true,
+    aiConnectionMode: (map[kAiConnectionMode] as String?) ?? 'cloud_gateway',
+    cloudGatewayUrl: (map[kCloudGatewayUrl] as String?) ?? 'http://127.0.0.1:8000',
+    autoRippleDrift: (map[kAutoRippleDrift] as bool?) ?? true,
+    driftGraceMinutes: (map[kDriftGraceMinutes] as int?) ?? 10,
+    hasDismissedStarterPlan:
+        (map[kHasDismissedStarterPlan] as bool?) ?? false,
   );
 
   /// Convenience: human-friendly display name (falls back to 'You').

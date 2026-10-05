@@ -2,6 +2,7 @@ import 'package:clock/clock.dart';
 
 import '../core/models/task_model.dart';
 import '../core/models/calendar_event_model.dart';
+import '../core/models/circadian_rhythm.dart';
 import '../core/models/schedule_result.dart';
 import 'dependency_graph_service.dart';
 import 'duration_learning_service.dart';
@@ -11,7 +12,8 @@ import 'duration_learning_service.dart';
 /// Features:
 /// - Directed Acyclic Graph (DAG) task dependency resolution with cycle safety.
 /// - Task splitting: decomposes long splittable tasks across focus sessions with restorative breaks.
-/// - Multi-factor planning score: optimizes priority, deadlines, energy levels, preferred time of day, and context switching.
+/// - Circadian & Chronotype-Aware Matching: aligns cognitive demand with biological energy peaks.
+/// - Multi-factor planning score: optimizes priority, deadlines, circadian energy, preferences, and context switching.
 /// - Adaptive Personal Intelligence: auto-calibrates durations based on learned execution history.
 /// - Immovable anchors: completed tasks and fixed tasks ([TaskItem.isFixed]) schedule around existing times.
 /// - Explainability: outputs [TaskPlacementRationale] per task explaining slot assignment.
@@ -42,6 +44,7 @@ class SchedulerService {
     required int workHoursPerDay,
     List<CalendarEvent> calendarBlocks = const [],
     Map<String, CategoryCalibration>? calibrations,
+    String? chronotype,
   }) {
     return scheduleDayWithDetails(
       tasks: tasks,
@@ -50,6 +53,7 @@ class SchedulerService {
       workHoursPerDay: workHoursPerDay,
       calendarBlocks: calendarBlocks,
       calibrations: calibrations,
+      chronotype: chronotype,
     ).scheduledTasks;
   }
 
@@ -62,6 +66,7 @@ class SchedulerService {
     required int workHoursPerDay,
     List<CalendarEvent> calendarBlocks = const [],
     Map<String, CategoryCalibration>? calibrations,
+    String? chronotype,
   }) {
     final workStart = DateTime(day.year, day.month, day.day, workStartHour);
     var workEnd = workStart.add(Duration(hours: workHoursPerDay));
@@ -190,7 +195,7 @@ class SchedulerService {
         occupied: occupied,
         workEnd: workEnd,
         latestFinish: task.latestFinish,
-        maxCandidates: 4,
+        maxCandidates: 6,
       );
 
       if (candidates.isEmpty) {
@@ -218,6 +223,7 @@ class SchedulerService {
           lastScheduled: lastScheduled,
           prereqTime: prereqTime,
           calibrations: calibrations,
+          chronotype: chronotype ?? 'early_bird',
         );
 
         if (bestCandidate == null || eval.score > bestCandidate.score) {
@@ -326,6 +332,7 @@ class SchedulerService {
     required TaskItem? lastScheduled,
     required DateTime? prereqTime,
     Map<String, CategoryCalibration>? calibrations,
+    String chronotype = 'early_bird',
   }) {
     var score = 0.0;
     final factors = <String>[];
@@ -352,37 +359,25 @@ class SchedulerService {
       factors.add('Aligned with active goal (+5)');
     }
 
-    // 4. Energy & Time of Day Matching
-    final slotHour = slot.start.hour;
-    if (slotHour < 12) {
-      // Morning
-      if (task.energyLevel == 'high') {
+    // 4. Circadian Chronotype Biological Alignment
+    final fit = CircadianRhythm.evaluateFit(
+      task: task,
+      slotStart: slot.start,
+      slotEnd: slot.end,
+      chronotypeId: chronotype,
+    );
+    score += fit.score;
+    factors.add(fit.rationale);
+
+    // 4b. Explicit user preference bonus
+    if (task.preferredTimeOfDay != null) {
+      final slotHour = slot.start.hour;
+      final pref = task.preferredTimeOfDay!.toLowerCase();
+      if ((pref == 'morning' && slotHour < 12) ||
+          (pref == 'afternoon' && slotHour >= 12 && slotHour < 17) ||
+          (pref == 'evening' && slotHour >= 17)) {
         score += 8.0;
-        factors.add('High energy task in morning focus block (+8)');
-      }
-      if (task.preferredTimeOfDay == 'morning') {
-        score += 10.0;
-        factors.add('Matched morning preference (+10)');
-      }
-    } else if (slotHour < 17) {
-      // Afternoon
-      if (task.energyLevel == 'medium') {
-        score += 5.0;
-        factors.add('Medium energy task in afternoon (+5)');
-      }
-      if (task.preferredTimeOfDay == 'afternoon') {
-        score += 10.0;
-        factors.add('Matched afternoon preference (+10)');
-      }
-    } else {
-      // Evening
-      if (task.energyLevel == 'low') {
-        score += 6.0;
-        factors.add('Low energy task in evening (+6)');
-      }
-      if (task.preferredTimeOfDay == 'evening') {
-        score += 10.0;
-        factors.add('Matched evening preference (+10)');
+        factors.add('Matched user preferred time of day ($pref, +8.0)');
       }
     }
 

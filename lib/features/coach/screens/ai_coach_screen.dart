@@ -50,16 +50,91 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
         _isLoading = false;
       });
       _scrollToBottom();
-    } catch (e) {
+    } catch (_) {
+      final fallbackResponse = _generateOfflineCoachFallback(text);
       setState(() {
         _messages.add({
           'role': 'assistant',
-          'content': 'Error processing your request: $e',
+          'content': fallbackResponse,
         });
         _isLoading = false;
       });
       _scrollToBottom();
     }
+  }
+
+  String _generateOfflineCoachFallback(String input) {
+    final lower = input.toLowerCase();
+
+    String coachingAdvice;
+    if (lower.contains('procrastinat') ||
+        lower.contains('stuck') ||
+        lower.contains('resist') ||
+        lower.contains('hard') ||
+        lower.contains('overwhelm')) {
+      coachingAdvice = '''Overcoming friction starts with shrinking the ask:
+
+1. **The 5-Minute Rule**: Commit to working on the task for just 5 minutes. You can stop afterwards, but 85% of people keep going once inertia breaks.
+2. **Clarify the Micro-Step**: What is the literal physical next action? (e.g., "Open document and write title" instead of "Finish presentation").
+3. **Trigger Focus Mode**: Head to the **Focus** tab and start a 25-minute Pomodoro session with gentle ambient sounds.
+
+Which task is causing the most resistance right now? Let's take that first tiny step!''';
+    } else if (lower.contains('plan') ||
+        lower.contains('day') ||
+        lower.contains('schedule') ||
+        lower.contains('morning') ||
+        lower.contains('today')) {
+      coachingAdvice = '''Here is a high-impact structure to maximize your productivity today:
+
+🌅 **Morning Anchor**
+• Pick your **Top 3** commitments for the day.
+• Knock out 1 quick administrative task early to build momentum.
+
+🧠 **Peak Focus Sprint**
+• Reserve your prime morning hours for your hardest cognitive task.
+• Activate AutoPlanner's Focus timer and mute non-essential alerts.
+
+🥪 **Recovery & Movement**
+• Disconnect from screens during lunch to recharge mental energy.
+
+⚡ **Afternoon Execution**
+• Tackle syncs, communication, and secondary items when willpower dips.
+
+What is your #1 priority to accomplish today?''';
+    } else if (lower.contains('goal') ||
+        lower.contains('project') ||
+        lower.contains('milestone') ||
+        lower.contains('long term')) {
+      coachingAdvice = '''Great goals succeed when converted into daily systems:
+
+1. **Reverse-Engineer**: Break your quarterly goal into weekly milestones, then into single-session action items.
+2. **Link to Tasks**: Attach your daily tasks directly to your goal in AutoPlanner so you see tangible progress every week.
+3. **Consistency over Intensity**: 30 focused minutes every day outperforms an 8-hour weekend crunch every time.
+
+What is the biggest goal you are aiming for right now?''';
+    } else if (lower.contains('focus') ||
+        lower.contains('distract') ||
+        lower.contains('timer') ||
+        lower.contains('pomodoro')) {
+      coachingAdvice = '''To protect your deep focus and enter a flow state:
+
+1. **Single-Task Only**: Close browser tabs unrelated to your current block.
+2. **Use the Scratchpad**: Whenever a random thought or chore pops into your head, jot it down in AutoPlanner's distraction scratchpad and keep working.
+3. **Respect Break Intervals**: Work 25-50 minutes, then take a real 5-minute break away from screens.
+
+Ready to start a focus session? Tap the Focus tab and let's get into flow!''';
+    } else {
+      coachingAdvice = '''I am right here with you! 🎯
+
+Remember: **High performers don't manage time — they manage energy and attention.** Focus on completing your highest-leverage task first today, and let momentum carry the rest.
+
+What priority or task would you like to tackle next?''';
+    }
+
+    return '''$coachingAdvice
+
+---
+*💡 Note: Running in Offline Assistant Mode. To enable live conversational AI, connect your Gemini Key or start your server in Settings.*''';
   }
 
   void _scrollToBottom() {

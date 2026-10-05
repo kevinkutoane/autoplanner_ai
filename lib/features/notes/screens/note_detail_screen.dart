@@ -118,10 +118,15 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
           ),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Summary failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not generate summary right now. Please check your AI connection in Settings.',
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _summarising = false);

@@ -1,4 +1,11 @@
-storeFile=../upload-keystore.jks
-storePassword=your_store_password
-keyAlias=upload
+# AutoPlanner AI — Android Release Keystore Configuration Example
+# Copy this file to `android/key.properties` and populate with your production keystore values.
+# DO NOT commit `android/key.properties` to version control.
+#
+# Generate a new production keystore with:
+# keytool -genkey -v -keystore release.keystore -alias autoplanner -keyalg RSA -keysize 2048 -validity 10000
+
+storePassword=your_keystore_password
 keyPassword=your_key_password
+keyAlias=autoplanner
+storeFile=../release.keystore

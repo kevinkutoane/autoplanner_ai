@@ -90,8 +90,8 @@ void main() {
       expect(find.text('WHAT IS AUTOPLANNER AI?'), findsOneWidget);
       expect(find.text('THE DAILY LIFECYCLE'), findsOneWidget);
       expect(find.text('FEATURE GUIDE'), findsOneWidget);
-      expect(find.text('Brain Dump 2.0 Studio'), findsNWidgets(2));
-      expect(find.text('Autonomous Scheduling & DAG Solver'), findsOneWidget);
+      expect(find.text('Brain Dump Studio'), findsNWidgets(2));
+      expect(find.text('Smart Daily Planning'), findsOneWidget);
       expect(
         find.text('Daily Rituals: Morning Kickoff & Shutdown'),
         findsOneWidget,
@@ -109,7 +109,7 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: HelpScreen()));
       await tester.pump(const Duration(milliseconds: 100));
 
-      final brainDumpTiles = find.text('Brain Dump 2.0 Studio');
+      final brainDumpTiles = find.text('Brain Dump Studio');
       expect(brainDumpTiles, findsNWidgets(2));
 
       // Tap the Feature Guide tile (second occurrence) to expand
@@ -117,7 +117,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       expect(
-        find.textContaining('32-band reactive audio waveform'),
+        find.textContaining('Voice wave recording'),
         findsOneWidget,
       );
     });

@@ -446,12 +446,12 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
         );
         Navigator.pop(context);
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save key: $e'),
+          const SnackBar(
+            content: Text('Unable to save API key. Please check your entry and try again.'),
             backgroundColor: kCoral,
           ),
         );
@@ -472,12 +472,12 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
         );
         Navigator.pop(context);
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to clear key: $e'),
+          const SnackBar(
+            content: Text('Unable to clear API key. Please try again.'),
             backgroundColor: kCoral,
           ),
         );

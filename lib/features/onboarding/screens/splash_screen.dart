@@ -88,19 +88,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final settings = ref.read(settingsProvider);
     if (!mounted) return;
 
-    var startLocked = false;
-
-    // If biometric lock is enabled and onboarding is done, authenticate first.
-    if (settings.isOnboardingDone && settings.requireBiometrics) {
-      final biometric = ref.read(biometricServiceProvider);
-      final ok = await biometric.authenticate();
-      if (!mounted) return;
-      if (!ok) {
-        // Keep the shell locked if the user cancels or fails the prompt during
-        // a cold start. This avoids bypassing biometric protection.
-        startLocked = true;
-      }
-    }
+    final startLocked = settings.isOnboardingDone && settings.requireBiometrics;
 
     final target = settings.isOnboardingDone
         ? AppShell(startLocked: startLocked)

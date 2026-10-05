@@ -17,6 +17,10 @@ import '../../../services/reschedule_service.dart';
 import '../../../core/models/memory_entry_model.dart';
 import '../../memory/controllers/memory_controller.dart';
 import '../../focus/screens/focus_mode_screen.dart';
+import '../widgets/circadian_energy_curve.dart';
+import '../widgets/conflict_anticipation_card.dart';
+import '../widgets/weekly_capacity_heatmap.dart';
+import '../widgets/sample_starter_plan_card.dart';
 
 class PlannerScreen extends ConsumerWidget {
   const PlannerScreen({super.key});
@@ -164,7 +168,7 @@ class PlannerScreen extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: SizedBox(
-                    height: 80,
+                    height: 86,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       itemCount: 14, // 7 days past, 7 days future
@@ -286,6 +290,16 @@ class PlannerScreen extends ConsumerWidget {
                 ),
               ),
 
+              // ── Circadian Energy Curve Ambient Visualizer ─────────
+              const SliverToBoxAdapter(
+                child: CircadianEnergyCurveCard(),
+              ),
+
+              // ── 7-Day Weekly Capacity Intelligence Heatmap ─────────
+              const SliverToBoxAdapter(
+                child: WeeklyCapacityHeatmap(),
+              ),
+
               // ── Search bar ───────────────────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
@@ -318,7 +332,7 @@ class PlannerScreen extends ConsumerWidget {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                     child: SizedBox(
-                      height: 34,
+                      height: 38,
                       child: ListView(
                         scrollDirection: Axis.horizontal,
                         children: [
@@ -363,7 +377,14 @@ class PlannerScreen extends ConsumerWidget {
                   ),
                 ),
 
-              if (tasks.isEmpty)
+              if (tasks.isEmpty) ...[
+                if (!settings.hasDismissedStarterPlan)
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+                      child: SampleStarterPlanCard(),
+                    ),
+                  ),
                 // Plan My Day banner is always visible so users can kick off
                 // AI planning even when no tasks exist yet.
                 SliverToBoxAdapter(
@@ -372,15 +393,21 @@ class PlannerScreen extends ConsumerWidget {
                     onTap: () => _showPlanMyDaySheet(context, ref),
                   ),
                 ),
-
-              if (tasks.isEmpty)
                 // AI-powered suggestions for an empty day
-                const SliverToBoxAdapter(child: _TaskSuggestionsPanel())
+                const SliverToBoxAdapter(child: _TaskSuggestionsPanel()),
+              ]
               else ...[
                 SliverToBoxAdapter(
                   child: _PlanMyDayBanner(
                     pendingCount: tasks.where((t) => !t.isCompleted).length,
                     onTap: () => _showPlanMyDaySheet(context, ref),
+                  ),
+                ),
+                // ── Proactive Conflict Anticipation Card ────────────────────
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(16, 4, 16, 8),
+                    child: ConflictAnticipationCard(),
                   ),
                 ),
                 // ── Proactive reschedule banner ────────────────────────────
@@ -506,18 +533,8 @@ class _TaskRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final pColors = _priorityGradient(task.priority);
-    // Resolve linked goal (if any) for the badge
-    final linkedGoal = task.linkedGoalId != null
-        ? ref.watch(
-            goalControllerProvider.select((goals) {
-              try {
-                return goals.firstWhere((g) => g.id == task.linkedGoalId);
-              } catch (_) {
-                return null;
-              }
-            }),
-          )
-        : null;
+    // Resolve synthesized knowledge graph context
+    final contextSynthesis = ref.watch(taskContextSynthesisProvider(task));
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -699,50 +716,59 @@ class _TaskRow extends ConsumerWidget {
                                     .toList(),
                               ),
                             ],
-                            // ── Linked goal badge ──────────────
-                            if (linkedGoal != null) ...[
+                            // ── Synthesized Knowledge Graph context badges ───
+                            if (contextSynthesis.hasContext) ...[
                               const SizedBox(height: 6),
-                              Row(
+                              Wrap(
+                                spacing: 4,
+                                runSpacing: 4,
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: kCoral.withAlpha(25),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: kCoral.withAlpha(60),
-                                        width: 0.5,
+                                  if (contextSynthesis.goal != null)
+                                    _ContextBadge(
+                                      icon: Text(
+                                        contextSynthesis.goal!.emoji,
+                                        style: const TextStyle(fontSize: 10),
                                       ),
+                                      label: contextSynthesis.goal!.title,
+                                      color: kCoral,
+                                      isDark: isDark,
                                     ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          linkedGoal.emoji,
-                                          style: const TextStyle(fontSize: 11),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        ConstrainedBox(
-                                          constraints: const BoxConstraints(
-                                            maxWidth: 100,
-                                          ),
-                                          child: Text(
-                                            linkedGoal.title,
-                                            style: const TextStyle(
-                                              fontSize: 10,
-                                              color: kCoral,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
+                                  if (contextSynthesis.project != null)
+                                    _ContextBadge(
+                                      icon: const Icon(
+                                        Icons.folder_outlined,
+                                        size: 11,
+                                        color: kIndigo,
+                                      ),
+                                      label:
+                                          contextSynthesis.project!.title,
+                                      color: kIndigo,
+                                      isDark: isDark,
                                     ),
-                                  ),
+                                  if (contextSynthesis.relatedNotes.isNotEmpty)
+                                    _ContextBadge(
+                                      icon: const Icon(
+                                        Icons.description_outlined,
+                                        size: 11,
+                                        color: kCyan,
+                                      ),
+                                      label:
+                                          "${contextSynthesis.relatedNotes.length} ${contextSynthesis.relatedNotes.length > 1 ? 'Notes' : 'Note'}",
+                                      color: kCyan,
+                                      isDark: isDark,
+                                    ),
+                                  if (contextSynthesis.relevantMemories.isNotEmpty)
+                                    _ContextBadge(
+                                      icon: const Icon(
+                                        Icons.psychology_outlined,
+                                        size: 11,
+                                        color: kNeonViolet,
+                                      ),
+                                      label:
+                                          "${contextSynthesis.relevantMemories.length} Context",
+                                      color: kNeonViolet,
+                                      isDark: isDark,
+                                    ),
                                 ],
                               ),
                             ],
@@ -983,6 +1009,56 @@ class _TaskRow extends ConsumerWidget {
       default:
         return [Colors.grey.shade400, Colors.grey.shade600];
     }
+  }
+}
+
+// ── Micro Context Badge ──────────────────────────────────────────────────────
+class _ContextBadge extends StatelessWidget {
+  final Widget icon;
+  final String label;
+  final Color color;
+  final bool isDark;
+
+  const _ContextBadge({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withAlpha(isDark ? 30 : 20),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: color.withAlpha(isDark ? 80 : 50),
+          width: 0.5,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          icon,
+          const SizedBox(width: 4),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 110),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1666,6 +1742,7 @@ class _PlanMyDaySheetState extends ConsumerState<_PlanMyDaySheet> {
         workStartHour: settings.workStartHour,
         workHoursPerDay: settings.workHoursPerDay,
         calibrations: calibrations,
+        chronotype: settings.chronotype,
       );
       final scheduled = scheduleResult.scheduledTasks;
 
