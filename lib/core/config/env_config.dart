@@ -61,8 +61,21 @@ class EnvConfig {
 
   // Reads all values from .env loaded by flutter_dotenv.
   // Call after dotenv.load() completes in main().
+  // Compile-time values (flutter build --dart-define=KEY=value). These win
+  // over .env, which is not bundled into release builds.
+  static const _defEnv = String.fromEnvironment('ENV');
+  static const _defGemini = String.fromEnvironment('GEMINI_API_KEY');
+  static const _defSentry = String.fromEnvironment('SENTRY_DSN');
+  static const _defGateway = String.fromEnvironment('AI_GATEWAY_URL');
+  static const _defGoogle = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
+
+  static String _pick(String compileTime, String key, String fallback) {
+    if (compileTime.isNotEmpty) return compileTime;
+    return dotenv.get(key, fallback: fallback);
+  }
+
   static EnvConfig fromDotEnv() {
-    final envName = dotenv.get('ENV', fallback: 'dev');
+    final envName = _pick(_defEnv, 'ENV', 'dev');
     final env = switch (envName) {
       'prod' => Environment.prod,
       'staging' => Environment.staging,
@@ -77,12 +90,12 @@ class EnvConfig {
 
     return EnvConfig._(
       environment: env,
-      geminiApiKey: dotenv.get('GEMINI_API_KEY', fallback: ''),
+      geminiApiKey: _pick(_defGemini, 'GEMINI_API_KEY', ''),
       appName: appName,
-      sentryDsn: dotenv.get('SENTRY_DSN', fallback: ''),
-      aiGatewayUrl: dotenv.get('AI_GATEWAY_URL', fallback: ''),
+      sentryDsn: _pick(_defSentry, 'SENTRY_DSN', ''),
+      aiGatewayUrl: _pick(_defGateway, 'AI_GATEWAY_URL', ''),
       googleServerClientId:
-          dotenv.get('GOOGLE_SERVER_CLIENT_ID', fallback: ''),
+          _pick(_defGoogle, 'GOOGLE_SERVER_CLIENT_ID', ''),
       enableAILogging:
           dotenv.get('ENABLE_AI_LOGGING', fallback: 'true') == 'true',
       enableTokenTracking:

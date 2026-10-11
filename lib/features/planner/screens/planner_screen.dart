@@ -305,6 +305,9 @@ class PlannerScreen extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                   child: TextField(
+                    inputFormatters: [
+                      LengthLimitingTextInputFormatter(300),
+                    ],
                     decoration: InputDecoration(
                       hintText: 'Search tasks...',
                       prefixIcon: const Icon(Icons.search, size: 20),
@@ -3336,6 +3339,10 @@ class _AdvancedSchedulingSectionState
                           child: TextField(
                             controller: widget.blockSizeCtrl,
                             keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(4),
+                            ],
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,

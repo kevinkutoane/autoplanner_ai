@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -74,6 +75,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen>
                     child: TextField(
                       controller: titleCtrl,
                       autofocus: true,
+                      inputFormatters: [LengthLimitingTextInputFormatter(300)],
                       decoration: const InputDecoration(
                         hintText: 'Goal title',
                         border: OutlineInputBorder(),
@@ -85,6 +87,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen>
               const SizedBox(height: 12),
               TextField(
                 controller: descCtrl,
+                inputFormatters: [LengthLimitingTextInputFormatter(3000)],
                 minLines: 2,
                 maxLines: 4,
                 decoration: const InputDecoration(
@@ -143,6 +146,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen>
               TextField(
                 controller: titleCtrl,
                 autofocus: true,
+                inputFormatters: [LengthLimitingTextInputFormatter(300)],
                 decoration: const InputDecoration(
                   hintText: 'Project title',
                   border: OutlineInputBorder(),
@@ -151,6 +155,7 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen>
               const SizedBox(height: 12),
               TextField(
                 controller: descCtrl,
+                inputFormatters: [LengthLimitingTextInputFormatter(3000)],
                 minLines: 2,
                 maxLines: 4,
                 decoration: const InputDecoration(

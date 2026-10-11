@@ -229,6 +229,9 @@ class _EveningShutdownSheetState extends ConsumerState<EveningShutdownSheet> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: TextField(
                       controller: _reflectionCtrl,
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(3000),
+                      ],
                       style: TextStyle(
                         color: isDark ? Colors.white : kDark0,
                         fontSize: 14,

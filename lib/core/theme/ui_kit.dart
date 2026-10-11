@@ -795,8 +795,8 @@ class _GradBtnState extends State<GradBtn> with SingleTickerProviderStateMixin {
           builder: (_, child) =>
               Transform.scale(scale: 1 - 0.02 * _c.value, child: child),
           child: Container(
-            height: widget.height,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            constraints: BoxConstraints(minHeight: widget.height),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               gradient: widget.gradient,
               borderRadius: BorderRadius.circular(16),
@@ -818,6 +818,9 @@ class _GradBtnState extends State<GradBtn> with SingleTickerProviderStateMixin {
                 Flexible(
                   child: Text(
                     widget.label,
+                    maxLines: 2,
+                    softWrap: true,
+                    textAlign: TextAlign.center,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
@@ -863,8 +866,8 @@ class GhostBtn extends StatelessWidget {
           onTap?.call();
         },
         child: Container(
-          height: height,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          constraints: BoxConstraints(minHeight: height),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
@@ -885,6 +888,9 @@ class GhostBtn extends StatelessWidget {
               Flexible(
                 child: Text(
                   label,
+                  maxLines: 2,
+                  softWrap: true,
+                  textAlign: TextAlign.center,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 14,
@@ -965,16 +971,21 @@ class GlassChip extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
               ],
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                  color: selected
-                      ? Colors.white
-                      : (d
-                            ? Colors.white.withAlpha(160)
-                            : const Color(0xFF7C7C8A)),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  softWrap: true,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    color: selected
+                        ? Colors.white
+                        : (d
+                              ? Colors.white.withAlpha(160)
+                              : const Color(0xFF7C7C8A)),
+                  ),
                 ),
               ),
               if (trailing != null) ...[
@@ -1206,6 +1217,7 @@ class GlassField extends StatelessWidget {
         textCapitalization: capitalization,
         onChanged: onChanged,
         maxLines: maxLines,
+        inputFormatters: [LengthLimitingTextInputFormatter(10000)],
         readOnly: readOnly,
         autofocus: autofocus,
         style: TextStyle(color: d ? Colors.white : kDark0, fontSize: 15),

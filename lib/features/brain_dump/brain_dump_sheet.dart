@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -900,6 +901,7 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
           child: TextField(
             controller: _ctrl,
             focusNode: _focus,
+            inputFormatters: [LengthLimitingTextInputFormatter(10000)],
             minLines: 5,
             maxLines: 9,
             autofocus: true,
@@ -1022,7 +1024,8 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
         child: GestureDetector(
           onTap: _process,
           child: Container(
-            height: 56,
+            constraints: const BoxConstraints(minHeight: 56),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [kNeonViolet, kNeonCyan],
@@ -1043,13 +1046,19 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
               children: [
                 Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 22),
                 SizedBox(width: 10),
-                Text(
-                  'Clarify & Organize with AI',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.3,
+                Flexible(
+                  child: Text(
+                    'Clarify & Organize with AI',
+                    maxLines: 2,
+                    softWrap: true,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.3,
+                    ),
                   ),
                 ),
               ],

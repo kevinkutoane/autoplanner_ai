@@ -1214,6 +1214,29 @@ class _NotificationCenterCardState
           },
         ),
 
+        _GlassDivider(),
+        ListTile(
+          leading: const Icon(Icons.notifications_active_rounded),
+          title: const Text('Send test notification'),
+          subtitle: const Text('Verify alerts reach this device'),
+          onTap: () async {
+            final messenger = ScaffoldMessenger.of(context);
+            final notifService = ref.read(notificationServiceProvider);
+            final ok = await _ensurePermission();
+            if (!ok) return;
+            final sent = await notifService.showTestNotification();
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  sent
+                      ? 'Test notification sent.'
+                      : 'Could not send. Check system notification settings.',
+                ),
+              ),
+            );
+          },
+        ),
+
         if (s.taskRemindersEnabled) ...[
           _GlassDivider(),
           _SwitchTile(
@@ -1732,16 +1755,14 @@ class _GoogleCalendarTileState extends ConsumerState<_GoogleCalendarTile> {
           const SnackBar(content: Text('Google sign-in cancelled.')),
         );
       }
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Google sign-in could not be completed. Please check your network connection and try again.',
-          ),
-        ),
-      );
+      final raw = e.toString().replaceFirst('Exception: ', '');
+      final msg = raw.contains('GOOGLE_SERVER_CLIENT_ID')
+          ? 'Google Calendar is not configured in this build (missing GOOGLE_SERVER_CLIENT_ID).'
+          : 'Google sign-in failed: $raw';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 

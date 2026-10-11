@@ -21,6 +21,12 @@ class NotificationService {
 
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _ready = false;
+  bool _exactAllowed = true;
+
+  /// Exact alarms when the OS permits them, otherwise inexact (still delivered).
+  AndroidScheduleMode get _mode => _exactAllowed
+      ? AndroidScheduleMode.exactAllowWhileIdle
+      : AndroidScheduleMode.inexactAllowWhileIdle;
 
   // ── Channel IDs ──────────────────────────────────────────────────────────
 
@@ -111,6 +117,13 @@ class NotificationService {
     );
     await androidImpl?.createNotificationChannel(shutdownChannel);
 
+    try {
+      _exactAllowed =
+          await androidImpl?.canScheduleExactNotifications() ?? true;
+    } catch (_) {
+      _exactAllowed = true;
+    }
+
     _ready = true;
   }
 
@@ -150,37 +163,71 @@ class NotificationService {
     final importance = isUrgent ? Importance.max : Importance.high;
     final priority = isUrgent ? Priority.max : Priority.high;
 
-    try {
-      await _plugin.zonedSchedule(
-        id: id,
-        title: isUrgent ? '🚨  ${task.title}' : '⏰  ${task.title}',
-        body:
-            'Starting in $leadMinutes minutes${isUrgent ? " • High Priority" : ""}',
-        scheduledDate: tzTime,
-        notificationDetails: NotificationDetails(
-          android: AndroidNotificationDetails(
-            channelId,
-            channelName,
-            channelDescription: channelDesc,
-            importance: importance,
-            priority: priority,
-            icon: '@mipmap/ic_launcher',
-            playSound: settings?.notificationSoundEnabled ?? true,
-            enableVibration: settings?.notificationVibrateEnabled ?? true,
-          ),
-          iOS: DarwinNotificationDetails(
-            interruptionLevel: isUrgent
-                ? InterruptionLevel.timeSensitive
-                : InterruptionLevel.active,
-            presentSound: settings?.notificationSoundEnabled ?? true,
-          ),
+    Future<void> schedule(AndroidScheduleMode mode) => _plugin.zonedSchedule(
+      id: id,
+      title: isUrgent ? '🚨  ${task.title}' : '⏰  ${task.title}',
+      body:
+          'Starting in $leadMinutes minutes${isUrgent ? " • High Priority" : ""}',
+      scheduledDate: tzTime,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelId,
+          channelName,
+          channelDescription: channelDesc,
+          importance: importance,
+          priority: priority,
+          icon: '@mipmap/ic_launcher',
+          playSound: settings?.notificationSoundEnabled ?? true,
+          enableVibration: settings?.notificationVibrateEnabled ?? true,
         ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      );
+        iOS: DarwinNotificationDetails(
+          interruptionLevel: isUrgent
+              ? InterruptionLevel.timeSensitive
+              : InterruptionLevel.active,
+          presentSound: settings?.notificationSoundEnabled ?? true,
+        ),
+      ),
+      androidScheduleMode: mode,
+    );
+
+    try {
+      try {
+        await schedule(AndroidScheduleMode.exactAllowWhileIdle);
+      } catch (_) {
+        // Exact alarms denied — fall back so the reminder still fires.
+        await schedule(AndroidScheduleMode.inexactAllowWhileIdle);
+      }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('NotificationService.scheduleTaskReminder: $e');
       }
+    }
+  }
+
+  /// Immediately shows a test notification so users can verify delivery.
+  Future<bool> showTestNotification() async {
+    if (!_ready) return false;
+    try {
+      await _plugin.show(
+        id: 9099,
+        title: '✅  Notifications are working',
+        body: 'AutoPlanner AI reminders will appear like this.',
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _channelId,
+            _channelName,
+            channelDescription: _channelDesc,
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+      );
+      return true;
+    } catch (e) {
+      if (kDebugMode) debugPrint('NotificationService.showTest: $e');
+      return false;
     }
   }
 
@@ -258,7 +305,7 @@ class NotificationService {
           ),
           iOS: DarwinNotificationDetails(),
         ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: _mode,
       );
     } catch (e) {
       if (kDebugMode) {
@@ -304,7 +351,7 @@ class NotificationService {
           ),
           iOS: DarwinNotificationDetails(),
         ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: _mode,
       );
     } catch (e) {
       if (kDebugMode) {
@@ -329,6 +376,9 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >();
     final granted = await android?.requestNotificationsPermission();
+    try {
+      await android?.requestExactAlarmsPermission();
+    } catch (_) {}
     return granted ?? true;
   }
 
@@ -376,7 +426,7 @@ class NotificationService {
           ),
           iOS: DarwinNotificationDetails(),
         ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: _mode,
         matchDateTimeComponents: DateTimeComponents.time,
       );
     } catch (e) {
@@ -429,7 +479,7 @@ class NotificationService {
           ),
           iOS: DarwinNotificationDetails(),
         ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: _mode,
         matchDateTimeComponents: DateTimeComponents.time,
       );
     } catch (e) {
@@ -485,7 +535,7 @@ class NotificationService {
             interruptionLevel: InterruptionLevel.timeSensitive,
           ),
         ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: _mode,
         matchDateTimeComponents: DateTimeComponents.time,
       );
     } catch (e) {

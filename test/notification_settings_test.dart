@@ -10,7 +10,7 @@ void main() {
     test('defaults have correct flagship settings', () {
       final s = AppSettings.defaults();
       expect(s.taskRemindersEnabled, isTrue);
-      expect(s.remindCrucialTasksOnly, isTrue);
+      expect(s.remindCrucialTasksOnly, isFalse);
       expect(s.reminderLeadTimeMinutes, equals(10));
       expect(s.eveningShutdownReminderEnabled, isTrue);
       expect(s.eveningShutdownHour, equals(17));

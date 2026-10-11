@@ -85,16 +85,25 @@ class ConflictResolutionResult {
 /// deadline risks, and circadian mismatches before they cause schedule breakdown.
 class ConflictAnticipationService {
   final SchedulerService _scheduler;
+  // ignore: unused_field
   final ScheduleDriftService _driftService;
 
   static const int minTransitBufferMinutes = 15;
   static const int deadlineWarningThresholdMinutes = 30;
+
+  final Set<String> _dismissedConflictIds = {};
 
   ConflictAnticipationService({
     SchedulerService? scheduler,
     ScheduleDriftService? driftService,
   })  : _scheduler = scheduler ?? SchedulerService(),
         _driftService = driftService ?? ScheduleDriftService(scheduler: scheduler);
+
+  /// Manually dismisses an anticipated conflict so it will not reappear.
+  void dismissConflict(String conflictId) => _dismissedConflictIds.add(conflictId);
+
+  /// Clears all dismissed conflicts, re-enabling them on evaluation.
+  void resetDismissedConflicts() => _dismissedConflictIds.clear();
 
   /// Evaluates current schedule and external events, returning all anticipated conflicts
   /// sorted by severity (critical first, then warning, then advisory).
@@ -136,6 +145,9 @@ class ConflictAnticipationService {
     // 4. Detect Circadian Energy Mismatches (Deep work in recovery dip)
     _detectCircadianMismatches(activeTasks, chronotypeId, conflicts);
 
+    // Filter out user-acknowledged / dismissed conflicts
+    conflicts.removeWhere((c) => _dismissedConflictIds.contains(c.id));
+
     // Sort: Critical -> Warning -> Advisory
     conflicts.sort((a, b) => a.severity.index.compareTo(b.severity.index));
     return conflicts;
@@ -152,28 +164,192 @@ class ConflictAnticipationService {
     DateTime? currentTime,
   }) {
     final now = currentTime ?? clock.now();
+    final conflictId = action.params['conflictId'] as String?;
+    if (conflictId != null) {
+      _dismissedConflictIds.add(conflictId);
+    }
 
     switch (action.actionType) {
       case 'ripple_schedule':
       case 'auto_ripple':
-        final ripple = _driftService.rippleReschedule(
-          allTasks: tasks,
-          workStartHour: workStartHour,
-          workHoursPerDay: workHoursPerDay,
-          calendarBlocks: calendarEvents,
-          currentTime: now,
-          chronotype: chronotypeId,
+        final targetTaskId = action.params['taskId'] as String?;
+        final conflictTaskId = action.params['conflictTaskId'] as String?;
+        final conflictEventId = action.params['conflictEventId'] as String?;
+
+        // 1. Identify target task to shift
+        TaskItem? targetTask;
+        if (targetTaskId != null) {
+          for (final t in tasks) {
+            if (t.id == targetTaskId) {
+              targetTask = t;
+              break;
+            }
+          }
+        }
+
+        // Fallback: search for any clashing task
+        if (targetTask == null) {
+          for (var i = 0; i < tasks.length; i++) {
+            final a = tasks[i];
+            if (a.isCompleted) continue;
+            final aEnd = a.endTime ?? a.startTime.add(Duration(minutes: a.durationMinutes > 0 ? a.durationMinutes : 60));
+            // Check clash with another task
+            for (var j = i + 1; j < tasks.length; j++) {
+              final b = tasks[j];
+              if (b.isCompleted) continue;
+              final bEnd = b.endTime ?? b.startTime.add(Duration(minutes: b.durationMinutes > 0 ? b.durationMinutes : 60));
+              if (a.startTime.isBefore(bEnd) && b.startTime.isBefore(aEnd)) {
+                targetTask = b;
+                break;
+              }
+            }
+            if (targetTask != null) break;
+            // Check clash with calendar event
+            for (final ev in calendarEvents) {
+              if (ev.isAllDay) continue;
+              if (a.startTime.isBefore(ev.endTime) && ev.startTime.isBefore(aEnd)) {
+                targetTask = a;
+                break;
+              }
+            }
+            if (targetTask != null) break;
+          }
+        }
+
+        if (targetTask == null) {
+          return const ConflictResolutionResult(
+            updatedTasks: [],
+            summary: 'No overlapping tasks to ripple.',
+            isSuccess: false,
+          );
+        }
+
+        // 2. Determine target start boundary past the colliding block
+        DateTime targetStart = targetTask.startTime;
+        if (conflictTaskId != null) {
+          for (final t in tasks) {
+            if (t.id == conflictTaskId) {
+              final cEnd = t.endTime ?? t.startTime.add(Duration(minutes: t.durationMinutes > 0 ? t.durationMinutes : 60));
+              if (cEnd.isAfter(targetStart)) targetStart = cEnd;
+              break;
+            }
+          }
+        } else if (conflictEventId != null) {
+          for (final ev in calendarEvents) {
+            if (ev.id == conflictEventId) {
+              if (ev.endTime.isAfter(targetStart)) targetStart = ev.endTime;
+              break;
+            }
+          }
+        } else {
+          // Find any collision with targetTask
+          final curEnd = targetTask.endTime ?? targetTask.startTime.add(Duration(minutes: targetTask.durationMinutes > 0 ? targetTask.durationMinutes : 60));
+          for (final t in tasks) {
+            if (t.id == targetTask.id || t.isCompleted) continue;
+            final tEnd = t.endTime ?? t.startTime.add(Duration(minutes: t.durationMinutes > 0 ? t.durationMinutes : 60));
+            if (targetTask.startTime.isBefore(tEnd) && t.startTime.isBefore(curEnd)) {
+              if (tEnd.isAfter(targetStart)) targetStart = tEnd;
+            }
+          }
+          for (final ev in calendarEvents) {
+            if (ev.isAllDay) continue;
+            if (targetTask.startTime.isBefore(ev.endTime) && ev.startTime.isBefore(curEnd)) {
+              if (ev.endTime.isAfter(targetStart)) targetStart = ev.endTime;
+            }
+          }
+        }
+
+        if (targetStart == targetTask.startTime) {
+          targetStart = targetTask.startTime.add(const Duration(minutes: 30));
+        }
+
+        // 3. Find same-day active tasks and events
+        final taskDay = targetTask.startTime;
+        final sameDayTasks = tasks
+            .where((t) =>
+                !t.isCompleted &&
+                t.startTime.year == taskDay.year &&
+                t.startTime.month == taskDay.month &&
+                t.startTime.day == taskDay.day)
+            .toList()
+          ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+        final sameDayEvents = calendarEvents
+            .where((e) =>
+                !e.isAllDay &&
+                e.startTime.year == taskDay.year &&
+                e.startTime.month == taskDay.month &&
+                e.startTime.day == taskDay.day)
+            .toList()
+          ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+        DateTime avoidEvents(DateTime start, Duration dur) {
+          var cur = start;
+          var hasShifted = true;
+          while (hasShifted) {
+            hasShifted = false;
+            final end = cur.add(dur);
+            for (final ev in sameDayEvents) {
+              if (cur.isBefore(ev.endTime) && ev.startTime.isBefore(end)) {
+                cur = ev.endTime;
+                hasShifted = true;
+              }
+            }
+          }
+          return cur;
+        }
+
+        final targetDur = targetTask.endTime != null
+            ? targetTask.endTime!.difference(targetTask.startTime)
+            : Duration(minutes: targetTask.durationMinutes > 0 ? targetTask.durationMinutes : 60);
+
+        final adjustedStart = avoidEvents(targetStart, targetDur);
+        final adjustedEnd = adjustedStart.add(targetDur);
+
+        final updatedMap = <String, TaskItem>{};
+        final updatedTarget = targetTask.copyWith(
+          startTime: adjustedStart,
+          endTime: adjustedEnd,
         );
+        updatedMap[updatedTarget.id] = updatedTarget;
+
+        // 4. Ripple all subsequent downstream tasks on that day
+        var cursor = adjustedEnd;
+        for (final t in sameDayTasks) {
+          if (t.id == targetTask.id || t.isFixed) continue;
+          if (t.startTime.isBefore(cursor)) {
+            final tDur = t.endTime != null
+                ? t.endTime!.difference(t.startTime)
+                : Duration(minutes: t.durationMinutes > 0 ? t.durationMinutes : 60);
+            final newStart = avoidEvents(cursor, tDur);
+            final newEnd = newStart.add(tDur);
+            final moved = t.copyWith(startTime: newStart, endTime: newEnd);
+            updatedMap[moved.id] = moved;
+            cursor = newEnd;
+          } else {
+            final tEnd = t.endTime ?? t.startTime.add(Duration(minutes: t.durationMinutes > 0 ? t.durationMinutes : 60));
+            if (tEnd.isAfter(cursor)) cursor = tEnd;
+          }
+        }
+
+        final changedTasks = updatedMap.values.toList();
         return ConflictResolutionResult(
-          updatedTasks: ripple.updatedTasks,
-          summary: 'Schedule autonomously rippled. ${ripple.shiftedCount} task${ripple.shiftedCount == 1 ? '' : 's'} smoothly repositioned.',
+          updatedTasks: changedTasks,
+          summary: 'Schedule autonomously rippled. ${changedTasks.length} task${changedTasks.length == 1 ? '' : 's'} smoothly repositioned.',
+          isSuccess: changedTasks.isNotEmpty,
         );
 
       case 'insert_buffer':
-        final taskId = action.params['taskId'] as String? ?? (tasks.isNotEmpty ? tasks.first.id : null);
+        final taskId = action.params['taskId'] as String?;
         final bufferMins = action.params['bufferMinutes'] as int? ?? minTransitBufferMinutes;
+
+        // If no task specified (e.g. buffer warning between two calendar events), acknowledge and dismiss
         if (taskId == null) {
-          return const ConflictResolutionResult(updatedTasks: [], summary: 'No task specified for buffer insertion.', isSuccess: false);
+          return ConflictResolutionResult(
+            updatedTasks: const [],
+            summary: 'Transit buffer alert acknowledged ($bufferMins min travel buffer recommended).',
+            isSuccess: true,
+          );
         }
 
         final updated = <TaskItem>[];
@@ -193,6 +369,7 @@ class ConflictAnticipationService {
         return ConflictResolutionResult(
           updatedTasks: updated,
           summary: 'Inserted $bufferMins min buffer and adjusted downstream tasks.',
+          isSuccess: updated.isNotEmpty,
         );
 
       case 'reschedule_task':
@@ -212,6 +389,7 @@ class ConflictAnticipationService {
           return ConflictResolutionResult(
             updatedTasks: updated,
             summary: 'Task rescheduled to $newStart.',
+            isSuccess: updated.isNotEmpty,
           );
         }
         return const ConflictResolutionResult(
@@ -222,17 +400,55 @@ class ConflictAnticipationService {
 
       case 'realign_circadian':
       case 'reschedule_day':
+        final taskId = action.params['taskId'] as String?;
+        TaskItem? targetTask;
+        if (taskId != null) {
+          for (final t in tasks) {
+            if (t.id == taskId) {
+              targetTask = t;
+              break;
+            }
+          }
+        }
+        final targetDay = targetTask != null
+            ? DateTime(targetTask.startTime.year, targetTask.startTime.month, targetTask.startTime.day)
+            : DateTime(now.year, now.month, now.day);
+
+        final dayTasks = tasks
+            .where((t) =>
+                t.startTime.year == targetDay.year &&
+                t.startTime.month == targetDay.month &&
+                t.startTime.day == targetDay.day)
+            .toList();
+
         final scheduleResult = _scheduler.scheduleDayWithDetails(
-          tasks: tasks,
-          day: now,
+          tasks: dayTasks.isNotEmpty ? dayTasks : tasks,
+          day: targetDay,
           workStartHour: workStartHour,
           workHoursPerDay: workHoursPerDay,
           calendarBlocks: calendarEvents,
           chronotype: chronotypeId,
         );
+        final originals = {for (final t in tasks) t.id: t};
+        final changed = scheduleResult.scheduledTasks.where((t) {
+          final o = originals[t.id];
+          return o != null &&
+              (o.startTime != t.startTime || o.endTime != t.endTime);
+        }).toList();
+
         return ConflictResolutionResult(
-          updatedTasks: scheduleResult.scheduledTasks,
-          summary: 'Schedule realigned to your ${Chronotype.fromId(chronotypeId).label} circadian peak focus windows.',
+          updatedTasks: changed,
+          summary: changed.isNotEmpty
+              ? 'Schedule realigned to your ${Chronotype.fromId(chronotypeId).label} circadian peak focus windows.'
+              : 'Tasks already aligned with your circadian peak windows.',
+          isSuccess: true,
+        );
+
+      case 'dismiss_conflict':
+        return const ConflictResolutionResult(
+          updatedTasks: [],
+          summary: 'Conflict notification acknowledged.',
+          isSuccess: true,
         );
 
       default:
@@ -273,7 +489,11 @@ class ConflictAnticipationService {
                 actionType: 'auto_ripple',
                 label: 'Auto-Ripple Downstream',
                 description: 'Smoothly ripple overlapping tasks forward into adjacent available slots.',
-                params: {'taskId': b.id},
+                params: {
+                  'taskId': b.id,
+                  'conflictTaskId': a.id,
+                  'conflictId': 'overlap_task_${a.id}_${b.id}',
+                },
               ),
             ),
           );
@@ -299,7 +519,11 @@ class ConflictAnticipationService {
                 actionType: 'auto_ripple',
                 label: 'Shift Around Meeting',
                 description: 'Preserve fixed calendar meeting and ripple task to next open opening.',
-                params: {'taskId': a.id},
+                params: {
+                  'taskId': a.id,
+                  'conflictEventId': event.id,
+                  'conflictId': 'overlap_event_${a.id}_${event.id}',
+                },
               ),
             ),
           );
@@ -333,7 +557,10 @@ class ConflictAnticipationService {
               actionType: 'insert_buffer',
               label: 'Guard 15m Travel Buffer',
               description: 'Shield travel and decompression buffer before "${second.title}".',
-              params: {'bufferMinutes': minTransitBufferMinutes},
+              params: {
+                'bufferMinutes': minTransitBufferMinutes,
+                'conflictId': 'transit_${first.id}_${second.id}',
+              },
             ),
           ),
         );
@@ -357,9 +584,15 @@ class ConflictAnticipationService {
               affectedEventIds: [event.id],
               anticipatedAt: taskEnd,
               resolutionAction: ConflictResolutionAction(
-                actionType: 'auto_ripple',
+                actionType: 'insert_buffer',
                 label: 'Re-Schedule Before Meeting',
                 description: 'Allocate restorative break before meeting starts.',
+                params: {
+                  'taskId': task.id,
+                  'conflictEventId': event.id,
+                  'bufferMinutes': minTransitBufferMinutes,
+                  'conflictId': 'transit_task_event_${task.id}_${event.id}',
+                },
               ),
             ),
           );
@@ -392,7 +625,10 @@ class ConflictAnticipationService {
               actionType: 'realign_circadian',
               label: 'Priority Emergency Reschedule',
               description: 'Re-prioritize and slot task into the earliest available morning/focus block.',
-              params: {'taskId': task.id},
+              params: {
+                'taskId': task.id,
+                'conflictId': 'deadline_breach_${task.id}',
+              },
             ),
           ),
         );
@@ -411,7 +647,10 @@ class ConflictAnticipationService {
               actionType: 'realign_circadian',
               label: 'Advance Task Earlier',
               description: 'Advance task earlier in the schedule to safeguard against overrun.',
-              params: {'taskId': task.id},
+              params: {
+                'taskId': task.id,
+                'conflictId': 'deadline_tight_${task.id}',
+              },
             ),
           ),
         );
@@ -450,7 +689,10 @@ class ConflictAnticipationService {
               actionType: 'realign_circadian',
               label: 'Align to Focus Zenith',
               description: 'Move "${task.title}" into your peak biological focus window.',
-              params: {'taskId': task.id},
+              params: {
+                'taskId': task.id,
+                'conflictId': 'circadian_mismatch_${task.id}',
+              },
             ),
           ),
         );

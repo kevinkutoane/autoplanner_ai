@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/ui_kit.dart';
@@ -61,6 +62,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
               TextField(
                 controller: titleCtrl,
                 autofocus: true,
+                inputFormatters: [LengthLimitingTextInputFormatter(300)],
                 decoration: const InputDecoration(
                   hintText: 'Project title',
                   border: OutlineInputBorder(),
@@ -69,6 +71,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
               const SizedBox(height: 12),
               TextField(
                 controller: descCtrl,
+                inputFormatters: [LengthLimitingTextInputFormatter(3000)],
                 minLines: 2,
                 maxLines: 4,
                 decoration: const InputDecoration(
@@ -139,6 +142,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
             TextField(
               controller: titleCtrl,
               autofocus: true,
+              inputFormatters: [LengthLimitingTextInputFormatter(300)],
               decoration: const InputDecoration(
                 hintText: 'Project title',
                 border: OutlineInputBorder(),
@@ -147,6 +151,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen>
             const SizedBox(height: 12),
             TextField(
               controller: descCtrl,
+              inputFormatters: [LengthLimitingTextInputFormatter(3000)],
               minLines: 2,
               maxLines: 4,
               decoration: const InputDecoration(

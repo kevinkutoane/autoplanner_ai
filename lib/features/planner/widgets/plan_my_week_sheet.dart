@@ -39,12 +39,19 @@ class _PlanMyWeekSheetState extends ConsumerState<PlanMyWeekSheet> {
     });
   }
 
+  bool get _isWeekend =>
+      DateTime.now().weekday == DateTime.saturday ||
+      DateTime.now().weekday == DateTime.sunday;
+
   DateTime _getWeekStart() {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (_isWeekend) {
+      // Plan the coming week, not the one that is already over.
+      return today.add(Duration(days: DateTime.sunday + 1 - now.weekday));
+    }
     final mondayOffset = (now.weekday - DateTime.monday) % 7;
-    return DateTime(now.year, now.month, now.day).subtract(
-      Duration(days: mondayOffset),
-    );
+    return today.subtract(Duration(days: mondayOffset));
   }
 
   void _computePreview() {
@@ -56,11 +63,16 @@ class _PlanMyWeekSheetState extends ConsumerState<PlanMyWeekSheet> {
     final weekStart = _getWeekStart();
 
     WeeklyScheduleResult result;
-    if (_includeMidweekRecovery && DateTime.now().weekday > DateTime.monday) {
+    if (!_isWeekend &&
+        _includeMidweekRecovery &&
+        DateTime.now().weekday > DateTime.monday) {
+      // Only the days left in the work week (today .. end of window).
+      final remaining = (_daysCount - (DateTime.now().weekday - 1))
+          .clamp(1, _daysCount);
       result = weeklyService.replanWeek(
         allTasks: allTasks,
         currentDay: DateTime.now(),
-        daysCount: _daysCount,
+        daysCount: remaining,
         workStartHour: settings.workStartHour,
         workHoursPerDay: settings.workHoursPerDay,
         calendarEvents: calendarEvents,
@@ -115,7 +127,8 @@ class _PlanMyWeekSheetState extends ConsumerState<PlanMyWeekSheet> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Week planned! Balanced ${tasksToUpdate.length} tasks across $_daysCount days.',
+                    'Week planned! Balanced ${tasksToUpdate.length} tasks'
+                    '${_previewResult!.unplacedTasks.isEmpty ? '' : ', ${_previewResult!.unplacedTasks.length} could not fit'}.',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,
@@ -359,47 +372,54 @@ class _PlanMyWeekSheetState extends ConsumerState<PlanMyWeekSheet> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Workload Balance Score',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Workload Balance Score',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Text(
-                                      '${_previewResult!.balanceScore.toStringAsFixed(0)}/100',
-                                      style: const TextStyle(
-                                        fontSize: 22,
-                                        fontWeight: FontWeight.w900,
-                                        color: kCyan,
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        '${_previewResult!.balanceScore.toStringAsFixed(0)}/100',
+                                        style: const TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w900,
+                                          color: kCyan,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      _previewResult!.balanceScore >= 80
-                                          ? '✨ Harmonious'
-                                          : (_previewResult!.balanceScore >= 60
-                                              ? '⚖️ Balanced'
-                                              : '⚠️ High Variance'),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: isDark ? Colors.white70 : Colors.black54,
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          _previewResult!.balanceScore >= 80
+                                              ? '✨ Harmonious'
+                                              : (_previewResult!.balanceScore >= 60
+                                                  ? '⚖️ Balanced'
+                                                  : '⚠️ High Variance'),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDark ? Colors.white70 : Colors.black54,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
+                                horizontal: 10,
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
@@ -409,7 +429,7 @@ class _PlanMyWeekSheetState extends ConsumerState<PlanMyWeekSheet> {
                               child: Text(
                                 '${_previewResult!.allScheduledTasks.length} Tasks Scheduled',
                                 style: const TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 11.5,
                                   fontWeight: FontWeight.w700,
                                   color: kIndigo,
                                 ),
@@ -431,18 +451,20 @@ class _PlanMyWeekSheetState extends ConsumerState<PlanMyWeekSheet> {
                         // Day by day distribution bars
                         ..._previewResult!.dailySummaries.map((daySummary) {
                           final dayTasks = _previewResult!.dayAllocations[daySummary.date] ?? [];
-                          final dayName = DateFormat('EEEE, MMM d').format(daySummary.date);
+                          final dayName = DateFormat('EEE, MMM d').format(daySummary.date);
 
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4),
                             child: Row(
                               children: [
                                 SizedBox(
-                                  width: 100,
+                                  width: 80,
                                   child: Text(
                                     dayName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 11.5,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -465,9 +487,9 @@ class _PlanMyWeekSheetState extends ConsumerState<PlanMyWeekSheet> {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 8),
                                 Text(
-                                  '${dayTasks.length} tasks (${(daySummary.scheduledTasksMinutes / 60).toStringAsFixed(1)}h)',
+                                  '${dayTasks.length} (${(daySummary.scheduledTasksMinutes / 60).toStringAsFixed(1)}h)',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,

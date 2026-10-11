@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 
@@ -191,6 +192,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       child: TextField(
                         controller: _ctrl,
                         autofocus: true,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(500),
+                        ],
                         onChanged: (_) => setState(() {}),
                         style: TextStyle(
                           color: isDark ? Colors.white : kDark0,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/ui_kit.dart';
@@ -132,6 +133,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                 child: TextField(
                   controller: titleCtrl,
                   autofocus: true,
+                  inputFormatters: [LengthLimitingTextInputFormatter(300)],
                   decoration: const InputDecoration(
                     hintText: 'Goal title',
                     border: OutlineInputBorder(),
@@ -326,6 +328,9 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                               children: [
                                 TextField(
                                   controller: _descCtrl,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(3000),
+                                  ],
                                   minLines: 3,
                                   maxLines: 10,
                                   autofocus: true,

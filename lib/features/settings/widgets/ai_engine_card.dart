@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../core/theme/ui_kit.dart';
@@ -581,6 +582,7 @@ class _AIEngineCardState extends State<AIEngineCard> {
                   height: 38,
                   child: TextField(
                     controller: _urlController,
+                    inputFormatters: [LengthLimitingTextInputFormatter(500)],
                     style: TextStyle(
                       fontSize: 12,
                       color: isDark ? Colors.white : kDark0,

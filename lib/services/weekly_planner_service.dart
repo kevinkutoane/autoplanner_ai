@@ -249,6 +249,7 @@ class WeeklyPlannerService {
     }
 
     // Identify fixed / already completed tasks that must remain on their assigned day
+    final windowEnd = days.last.add(const Duration(days: 1));
     final floatingTasks = <TaskItem>[];
     for (final task in tasks) {
       final taskDay = DateTime(
@@ -258,6 +259,12 @@ class WeeklyPlannerService {
       );
       if (dayAllocations.containsKey(taskDay) && (task.isFixed || task.isCompleted)) {
         dayAllocations[taskDay]!.add(task);
+      } else if (task.isCompleted || task.isFixed) {
+        // Completed/fixed tasks outside the window are not ours to move.
+        continue;
+      } else if (!task.startTime.isBefore(windowEnd)) {
+        // Already scheduled beyond this window; leave as is.
+        continue;
       } else {
         floatingTasks.add(task);
       }
@@ -432,6 +439,32 @@ class WeeklyPlannerService {
       allScheduledTasks.addAll(scheduleResult.scheduledTasks);
       unplacedTasks.addAll(scheduleResult.unplacedTasks);
     }
+
+    // Collapse split chunks back into their parent so applying the plan
+    // updates the original task instead of creating duplicates.
+    final originalsById = {for (final t in tasks) t.id: t};
+    final collapsed = <TaskItem>[];
+    final chunkGroups = <String, List<TaskItem>>{};
+    for (final t in allScheduledTasks) {
+      final parentId = t.parentTaskId;
+      if (parentId != null && originalsById.containsKey(parentId)) {
+        chunkGroups.putIfAbsent(parentId, () => []).add(t);
+      } else {
+        collapsed.add(t);
+      }
+    }
+    for (final entry in chunkGroups.entries) {
+      final parts = entry.value
+        ..sort((a, b) => a.startTime.compareTo(b.startTime));
+      final end = parts
+          .map((p) => p.endTime ?? p.startTime)
+          .reduce((a, b) => a.isAfter(b) ? a : b);
+      collapsed.add(originalsById[entry.key]!
+          .copyWith(startTime: parts.first.startTime, endTime: end));
+    }
+    allScheduledTasks
+      ..clear()
+      ..addAll(collapsed);
 
     // 5. Generate Daily Capacity Summaries
     final dailySummaries = getWeeklyCapacitySummaries(

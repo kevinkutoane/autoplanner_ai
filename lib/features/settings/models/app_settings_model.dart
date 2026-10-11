@@ -133,7 +133,7 @@ class AppSettings {
     this.googleAccountEmail = '',
     this.syncTasksToGoogleCalendar = true,
     this.taskRemindersEnabled = true,
-    this.remindCrucialTasksOnly = true,
+    this.remindCrucialTasksOnly = false,
     this.reminderLeadTimeMinutes = 10,
     this.eveningShutdownReminderEnabled = true,
     this.eveningShutdownHour = 17,
@@ -179,7 +179,7 @@ class AppSettings {
     googleAccountEmail: '',
     syncTasksToGoogleCalendar: true,
     taskRemindersEnabled: true,
-    remindCrucialTasksOnly: true,
+    remindCrucialTasksOnly: false,
     reminderLeadTimeMinutes: 10,
     eveningShutdownReminderEnabled: true,
     eveningShutdownHour: 17,
@@ -435,7 +435,7 @@ class AppSettings {
     syncTasksToGoogleCalendar:
         (map[kSyncTasksToGoogleCalendar] as bool?) ?? true,
     taskRemindersEnabled: (map[kTaskRemindersEnabled] as bool?) ?? true,
-    remindCrucialTasksOnly: (map[kRemindCrucialTasksOnly] as bool?) ?? true,
+    remindCrucialTasksOnly: (map[kRemindCrucialTasksOnly] as bool?) ?? false,
     reminderLeadTimeMinutes: (map[kReminderLeadTimeMinutes] as int?) ?? 10,
     eveningShutdownReminderEnabled:
         (map[kEveningShutdownReminderEnabled] as bool?) ?? true,

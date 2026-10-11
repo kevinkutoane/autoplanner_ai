@@ -122,6 +122,16 @@ class AIService {
     for (final p in injectionPatterns) {
       s = s.replaceAll(p, '');
     }
+    // Role markers at the start of any line, any case, with optional spaces.
+    s = s.replaceAllMapped(
+      RegExp(
+        r'(^|\n)[ \t]*(system|human|assistant|user|model|developer)[ \t]*:',
+        caseSensitive: false,
+      ),
+      (m) => m.group(1) ?? '',
+    );
+    // Strip control characters (keep tab/newline/carriage return).
+    s = s.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '');
     return s.trim();
   }
 

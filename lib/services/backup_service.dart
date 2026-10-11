@@ -113,6 +113,9 @@ class BackupService {
 
     final bytes = await File(result.first.path!).readAsBytes();
     if (bytes.isEmpty) throw const FormatException('Could not read file data');
+    if (bytes.length > 25 * 1024 * 1024) {
+      throw const FormatException('Backup file is too large (max 25 MB)');
+    }
 
     final jsonStr = utf8.decode(bytes);
     final Map<String, dynamic> data;
@@ -127,12 +130,21 @@ class BackupService {
       throw FormatException('Unsupported backup version: $version');
     }
 
-    final rawTasks = (data['tasks'] as List?) ?? [];
-    final rawGoals = (data['goals'] as List?) ?? [];
-    final rawProjects = (data['projects'] as List?) ?? [];
-    final rawMemories = (data['memories'] as List?) ?? [];
-    final rawEvents = (data['calendarEvents'] as List?) ?? [];
-    final rawNotes = (data['notes'] as List?) ?? [];
+    const maxRecords = 50000;
+    List<dynamic> capped(String key) {
+      final l = (data[key] as List?) ?? [];
+      if (l.length > maxRecords) {
+        throw FormatException('Backup contains too many $key');
+      }
+      return l;
+    }
+
+    final rawTasks = capped('tasks');
+    final rawGoals = capped('goals');
+    final rawProjects = capped('projects');
+    final rawMemories = capped('memories');
+    final rawEvents = capped('calendarEvents');
+    final rawNotes = capped('notes');
 
     final tasksBox = Hive.box<TaskItem>('tasksBox');
     for (final t in rawTasks) {

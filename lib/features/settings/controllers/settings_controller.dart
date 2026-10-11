@@ -285,8 +285,27 @@ class SettingsController extends Notifier<AppSettings> {
     state = state.copyWith(aiConnectionMode: mode);
   }
 
+  /// Returns true when [url] is empty or an acceptable gateway address.
+  /// Release builds strictly require https; debug builds permit http only for local dev hosts.
+  static bool isValidGatewayUrl(String url) {
+    if (url.isEmpty) return true;
+    final uri = Uri.tryParse(url);
+    if (uri == null || !uri.hasAuthority || uri.host.isEmpty) return false;
+    if (uri.scheme == 'https') return true;
+    if (uri.scheme != 'http') return false;
+    final host = uri.host.toLowerCase();
+    final isLocal = host == '127.0.0.1' ||
+        host == 'localhost' ||
+        host == '10.0.2.2' ||
+        host.startsWith('192.168.') ||
+        host.startsWith('10.') ||
+        host.startsWith('172.');
+    return kDebugMode && isLocal;
+  }
+
   Future<void> updateCloudGatewayUrl(String url) async {
     final trimmed = url.trim();
+    if (!isValidGatewayUrl(trimmed)) return;
     await _box.put(AppSettings.kCloudGatewayUrl, trimmed);
     state = state.copyWith(cloudGatewayUrl: trimmed);
   }

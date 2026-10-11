@@ -416,6 +416,9 @@ class _ApiKeyPageState extends ConsumerState<_ApiKeyPage>
                               Expanded(
                                 child: TextField(
                                   controller: _keyCtrl,
+                                  inputFormatters: [
+                                    LengthLimitingTextInputFormatter(250),
+                                  ],
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 14,

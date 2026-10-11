@@ -145,12 +145,16 @@ class _ScheduleDriftCardState extends ConsumerState<ScheduleDriftCard> {
                       children: [
                         Row(
                           children: [
-                            Text(
-                              'Schedule Drift Detected',
-                              style: TextStyle(
-                                color: isDark ? Colors.white : kDark0,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
+                            Flexible(
+                              child: Text(
+                                'Schedule Drift Detected',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: isDark ? Colors.white : kDark0,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -287,11 +291,15 @@ class _ScheduleDriftCardState extends ConsumerState<ScheduleDriftCard> {
                                 children: [
                                   Icon(Icons.bolt_rounded, size: 18),
                                   SizedBox(width: 6),
-                                  Text(
-                                    'Auto-Ripple Schedule',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
+                                  Flexible(
+                                    child: Text(
+                                      'Auto-Ripple Schedule',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ),
                                 ],

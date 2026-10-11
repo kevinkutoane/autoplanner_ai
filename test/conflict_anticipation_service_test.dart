@@ -176,18 +176,18 @@ void main() {
       expect(shifted.endTime, DateTime(2099, 6, 15, 12, 15));
     });
 
-    test('applies auto_ripple resolution with ScheduleDriftService', () {
+    test('applies auto_ripple resolution to a future overlap', () {
       final task1 = TaskItem(
         id: 't1',
-        title: 'Overdue Task',
+        title: 'First Task',
         startTime: DateTime(2099, 6, 15, 9, 0),
         endTime: DateTime(2099, 6, 15, 10, 0),
       );
       final task2 = TaskItem(
         id: 't2',
-        title: 'Downstream Task',
-        startTime: DateTime(2099, 6, 15, 10, 10),
-        endTime: DateTime(2099, 6, 15, 11, 10),
+        title: 'Overlapping Task',
+        startTime: DateTime(2099, 6, 15, 9, 30),
+        endTime: DateTime(2099, 6, 15, 10, 30),
       );
 
       final action = const ConflictResolutionAction(
@@ -201,11 +201,174 @@ void main() {
         tasks: [task1, task2],
         workStartHour: 9,
         workHoursPerDay: 8,
-        currentTime: DateTime(2099, 6, 15, 9, 30), // 30m drift
+        currentTime: DateTime(2099, 6, 15, 8, 0),
       );
 
       expect(result.isSuccess, isTrue);
+      expect(result.updatedTasks, isNotEmpty);
       expect(result.summary, contains('rippled'));
+
+      final byId = {
+        for (final t in [task1, task2]) t.id: t,
+        for (final t in result.updatedTasks) t.id: t,
+      };
+      final a = byId['t1']!;
+      final b = byId['t2']!;
+      final noOverlap = !a.startTime.isBefore(b.endTime!) ||
+          !b.startTime.isBefore(a.endTime!);
+      expect(noOverlap, isTrue);
+    });
+
+    test('auto_ripple reports no change when nothing overlaps', () {
+      final task1 = TaskItem(
+        id: 't1',
+        title: 'Only Task',
+        startTime: DateTime(2099, 6, 15, 9, 0),
+        endTime: DateTime(2099, 6, 15, 10, 0),
+      );
+      final result = service.applyResolution(
+        const ConflictResolutionAction(
+          actionType: 'auto_ripple',
+          label: 'Auto-Ripple',
+          description: 'Ripple schedule',
+        ),
+        tasks: [task1],
+        workStartHour: 9,
+        workHoursPerDay: 8,
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+      expect(result.updatedTasks, isEmpty);
+    });
+
+    test('auto_ripple shifts target task past colliding task and cascades downstream tasks', () {
+      final taskA = TaskItem(
+        id: 'task_a',
+        title: 'Team Sync',
+        startTime: DateTime(2099, 6, 15, 10, 0),
+        endTime: DateTime(2099, 6, 15, 11, 0),
+      );
+      final taskB = TaskItem(
+        id: 'task_b',
+        title: 'Design Review',
+        startTime: DateTime(2099, 6, 15, 10, 30),
+        endTime: DateTime(2099, 6, 15, 11, 30),
+      );
+      final taskC = TaskItem(
+        id: 'task_c',
+        title: 'Deep Focus Coding',
+        startTime: DateTime(2099, 6, 15, 11, 15),
+        endTime: DateTime(2099, 6, 15, 12, 15),
+      );
+
+      final action = const ConflictResolutionAction(
+        actionType: 'auto_ripple',
+        label: 'Auto-Ripple Downstream',
+        description: 'Ripple',
+        params: {
+          'taskId': 'task_b',
+          'conflictTaskId': 'task_a',
+          'conflictId': 'overlap_task_task_a_task_b',
+        },
+      );
+
+      final result = service.applyResolution(
+        action,
+        tasks: [taskA, taskB, taskC],
+        workStartHour: 9,
+        workHoursPerDay: 8,
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      expect(result.isSuccess, isTrue);
+      final updatedB = result.updatedTasks.firstWhere((t) => t.id == 'task_b');
+      final updatedC = result.updatedTasks.firstWhere((t) => t.id == 'task_c');
+
+      // task_b moved after task_a ends (11:00)
+      expect(updatedB.startTime.isBefore(taskA.endTime!), isFalse);
+      // task_c moved after task_b ends
+      expect(updatedC.startTime.isBefore(updatedB.endTime!), isFalse);
+    });
+
+    test('auto_ripple shifts task cleanly around an external calendar event', () {
+      final task = TaskItem(
+        id: 'task_x',
+        title: 'Budget Analysis',
+        startTime: DateTime(2099, 6, 15, 14, 0),
+        endTime: DateTime(2099, 6, 15, 15, 0),
+      );
+      final meeting = CalendarEvent(
+        id: 'cal_meeting',
+        title: 'Client Demo',
+        startTime: DateTime(2099, 6, 15, 14, 0),
+        endTime: DateTime(2099, 6, 15, 15, 30),
+      );
+
+      final action = const ConflictResolutionAction(
+        actionType: 'auto_ripple',
+        label: 'Shift Around Meeting',
+        description: 'Shift around meeting',
+        params: {
+          'taskId': 'task_x',
+          'conflictEventId': 'cal_meeting',
+          'conflictId': 'overlap_event_task_x_cal_meeting',
+        },
+      );
+
+      final result = service.applyResolution(
+        action,
+        tasks: [task],
+        calendarEvents: [meeting],
+        workStartHour: 9,
+        workHoursPerDay: 8,
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      expect(result.isSuccess, isTrue);
+      final updatedX = result.updatedTasks.firstWhere((t) => t.id == 'task_x');
+      expect(updatedX.startTime.isBefore(meeting.endTime), isFalse);
+    });
+
+    test('insert_buffer acknowledges and dismisses calendar-only buffer shortage from evaluateSchedule', () {
+      final event1 = CalendarEvent(
+        id: 'lunch',
+        title: 'Lunch',
+        startTime: DateTime(2099, 6, 15, 12, 0),
+        endTime: DateTime(2099, 6, 15, 13, 0),
+      );
+      final event2 = CalendarEvent(
+        id: 'meeting',
+        title: 'Meeting',
+        startTime: DateTime(2099, 6, 15, 13, 5),
+        endTime: DateTime(2099, 6, 15, 14, 0),
+      );
+
+      final conflictsBefore = service.evaluateSchedule(
+        tasks: [],
+        calendarEvents: [event1, event2],
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+      expect(conflictsBefore.length, 1);
+      final transitConflict = conflictsBefore.first;
+
+      final result = service.applyResolution(
+        transitConflict.resolutionAction,
+        tasks: [],
+        calendarEvents: [event1, event2],
+        workStartHour: 9,
+        workHoursPerDay: 8,
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(result.summary, contains('acknowledged'));
+
+      // Re-evaluating schedule should omit the dismissed conflict
+      final conflictsAfter = service.evaluateSchedule(
+        tasks: [],
+        calendarEvents: [event1, event2],
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+      expect(conflictsAfter, isEmpty);
     });
   });
 }

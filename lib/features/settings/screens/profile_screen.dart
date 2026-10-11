@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -1583,7 +1584,9 @@ class _AIChip extends StatelessWidget {
             Text(
               label,
               textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+              softWrap: true,
+              overflow: TextOverflow.visible,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: active ? FontWeight.w700 : FontWeight.w400,
@@ -2152,6 +2155,9 @@ class _GlassTextField extends StatelessWidget {
       ),
       child: TextField(
         controller: controller,
+        inputFormatters: [
+          LengthLimitingTextInputFormatter(250),
+        ],
         keyboardType: keyboardType,
         textCapitalization: capitalization,
         style: TextStyle(

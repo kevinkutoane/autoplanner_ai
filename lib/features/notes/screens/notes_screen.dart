@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:intl/intl.dart';
@@ -265,6 +266,7 @@ class NotesScreen extends ConsumerWidget {
         content: TextField(
           controller: titleCtrl,
           autofocus: true,
+          inputFormatters: [LengthLimitingTextInputFormatter(300)],
           textCapitalization: TextCapitalization.sentences,
           style: TextStyle(color: isDark ? Colors.white : kDark0),
           decoration: InputDecoration(

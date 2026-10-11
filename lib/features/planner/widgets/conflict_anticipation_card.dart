@@ -48,44 +48,48 @@ class _ConflictAnticipationCardState
         ref
             .read(taskControllerProvider.notifier)
             .batchUpdateTasks(result.updatedTasks);
-
         HapticFeedback.mediumImpact();
+      }
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: const Color(0xFF1E1E2E),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: kNeonViolet.withAlpha(140),
-                  width: 1,
-                ),
-              ),
-              content: Row(
-                children: [
-                  const Icon(
-                    Icons.auto_mode_rounded,
-                    color: kNeonViolet,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Conflict resolved: ${action.label}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+      // Immediately refresh conflict list in UI
+      ref.invalidate(anticipatedConflictsProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF1E1E2E),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: (result.isSuccess ? kNeonViolet : Colors.amber).withAlpha(140),
+                width: 1,
               ),
             ),
-          );
-        }
+            content: Row(
+              children: [
+                Icon(
+                  result.isSuccess ? Icons.auto_mode_rounded : Icons.info_outline_rounded,
+                  color: result.isSuccess ? kNeonViolet : Colors.amber,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    result.isSuccess
+                        ? 'Conflict resolved: ${action.label}'
+                        : result.summary,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -122,44 +126,46 @@ class _ConflictAnticipationCardState
         ref
             .read(taskControllerProvider.notifier)
             .batchUpdateTasks(allUpdated.values.toList());
-
         HapticFeedback.heavyImpact();
+      }
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: const Color(0xFF1A1A2E),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: kCyan.withAlpha(150),
-                  width: 1,
-                ),
-              ),
-              content: Row(
-                children: [
-                  const Icon(
-                    Icons.verified_rounded,
-                    color: kCyan,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'All ${conflicts.length} schedule conflicts proactively resolved!',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+      // Immediately refresh conflict list in UI
+      ref.invalidate(anticipatedConflictsProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF1A1A2E),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+                color: kCyan.withAlpha(150),
+                width: 1,
               ),
             ),
-          );
-        }
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.verified_rounded,
+                  color: kCyan,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'All ${conflicts.length} schedule conflict${conflicts.length == 1 ? '' : 's'} proactively resolved!',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -279,14 +285,19 @@ class _ConflictAnticipationCardState
                           children: [
                             Row(
                               children: [
-                                Text(
-                                  'Conflict Anticipation',
-                                  style: TextStyle(
-                                    color:
-                                        isDark ? Colors.white : Colors.black87,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.2,
+                                Flexible(
+                                  child: Text(
+                                    'Conflict Anticipation',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.2,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -410,15 +421,19 @@ class _ConflictAnticipationCardState
                                     color: typeColor,
                                   ),
                                   const SizedBox(width: 6),
-                                  Text(
-                                    _conflictTypeLabel(conflict.type),
-                                    style: TextStyle(
-                                      color: typeColor,
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w700,
+                                  Expanded(
+                                    child: Text(
+                                      _conflictTypeLabel(conflict.type),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: typeColor,
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                   ),
-                                  const Spacer(),
+                                  const SizedBox(width: 8),
                                   Text(
                                     conflict.severity.name.toUpperCase(),
                                     style: TextStyle(
@@ -441,60 +456,57 @@ class _ConflictAnticipationCardState
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      conflict.resolutionAction.description,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? Colors.white60
-                                            : Colors.black54,
-                                        fontSize: 11,
-                                      ),
+                              Text(
+                                conflict.resolutionAction.description,
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white60
+                                      : Colors.black54,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: OutlinedButton.icon(
+                                  onPressed: _isResolving
+                                      ? null
+                                      : () => _resolveConflict(
+                                            conflict.resolutionAction,
+                                          ),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: typeColor,
+                                    side: BorderSide(
+                                      color: typeColor.withAlpha(120),
+                                      width: 1,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  OutlinedButton.icon(
-                                    onPressed: _isResolving
-                                        ? null
-                                        : () => _resolveConflict(
-                                              conflict.resolutionAction,
-                                            ),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: typeColor,
-                                      side: BorderSide(
-                                        color: typeColor.withAlpha(120),
-                                        width: 1,
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      minimumSize: Size.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                    ),
-                                    icon: const Icon(
-                                      Icons.auto_fix_high_rounded,
-                                      size: 13,
-                                    ),
-                                    label: Text(
-                                      conflict.resolutionAction.label,
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                  icon: const Icon(
+                                    Icons.auto_fix_high_rounded,
+                                    size: 13,
+                                  ),
+                                  label: Text(
+                                    conflict.resolutionAction.label,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
                             ],
                           ),

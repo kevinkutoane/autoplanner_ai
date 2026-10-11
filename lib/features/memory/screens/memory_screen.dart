@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/ui_kit.dart';
@@ -172,6 +173,9 @@ class _MemoryScreenState extends ConsumerState<MemoryScreen> {
                             ),
                             child: TextField(
                               controller: _searchCtrl,
+                              inputFormatters: [
+                                LengthLimitingTextInputFormatter(500),
+                              ],
                               onChanged: (v) => setState(() => _query = v),
                               style: const TextStyle(
                                 color: Colors.white,
