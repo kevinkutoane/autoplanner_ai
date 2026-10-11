@@ -22,11 +22,7 @@ enum ConflictType {
 }
 
 /// Urgency / impact severity of an anticipated conflict.
-enum ConflictSeverity {
-  critical,
-  warning,
-  advisory,
-}
+enum ConflictSeverity { critical, warning, advisory }
 
 /// Automated resolution actions that can be triggered in 1 tap to resolve an anticipated conflict.
 class ConflictResolutionAction {
@@ -96,11 +92,13 @@ class ConflictAnticipationService {
   ConflictAnticipationService({
     SchedulerService? scheduler,
     ScheduleDriftService? driftService,
-  })  : _scheduler = scheduler ?? SchedulerService(),
-        _driftService = driftService ?? ScheduleDriftService(scheduler: scheduler);
+  }) : _scheduler = scheduler ?? SchedulerService(),
+       _driftService =
+           driftService ?? ScheduleDriftService(scheduler: scheduler);
 
   /// Manually dismisses an anticipated conflict so it will not reappear.
-  void dismissConflict(String conflictId) => _dismissedConflictIds.add(conflictId);
+  void dismissConflict(String conflictId) =>
+      _dismissedConflictIds.add(conflictId);
 
   /// Clears all dismissed conflicts, re-enabling them on evaluation.
   void resetDismissedConflicts() => _dismissedConflictIds.clear();
@@ -122,16 +120,14 @@ class ConflictAnticipationService {
       return t.startTime.year == now.year &&
           t.startTime.month == now.month &&
           t.startTime.day == now.day;
-    }).toList()
-      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    }).toList()..sort((a, b) => a.startTime.compareTo(b.startTime));
 
     final timedEvents = calendarEvents.where((e) {
       if (e.isAllDay) return false;
       return e.startTime.year == now.year &&
           e.startTime.month == now.month &&
           e.startTime.day == now.day;
-    }).toList()
-      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    }).toList()..sort((a, b) => a.startTime.compareTo(b.startTime));
 
     // 1. Detect Direct Overlaps between tasks or task-event pairs
     _detectDirectOverlaps(activeTasks, timedEvents, conflicts);
@@ -192,12 +188,24 @@ class ConflictAnticipationService {
           for (var i = 0; i < tasks.length; i++) {
             final a = tasks[i];
             if (a.isCompleted) continue;
-            final aEnd = a.endTime ?? a.startTime.add(Duration(minutes: a.durationMinutes > 0 ? a.durationMinutes : 60));
+            final aEnd =
+                a.endTime ??
+                a.startTime.add(
+                  Duration(
+                    minutes: a.durationMinutes > 0 ? a.durationMinutes : 60,
+                  ),
+                );
             // Check clash with another task
             for (var j = i + 1; j < tasks.length; j++) {
               final b = tasks[j];
               if (b.isCompleted) continue;
-              final bEnd = b.endTime ?? b.startTime.add(Duration(minutes: b.durationMinutes > 0 ? b.durationMinutes : 60));
+              final bEnd =
+                  b.endTime ??
+                  b.startTime.add(
+                    Duration(
+                      minutes: b.durationMinutes > 0 ? b.durationMinutes : 60,
+                    ),
+                  );
               if (a.startTime.isBefore(bEnd) && b.startTime.isBefore(aEnd)) {
                 targetTask = b;
                 break;
@@ -207,7 +215,8 @@ class ConflictAnticipationService {
             // Check clash with calendar event
             for (final ev in calendarEvents) {
               if (ev.isAllDay) continue;
-              if (a.startTime.isBefore(ev.endTime) && ev.startTime.isBefore(aEnd)) {
+              if (a.startTime.isBefore(ev.endTime) &&
+                  ev.startTime.isBefore(aEnd)) {
                 targetTask = a;
                 break;
               }
@@ -229,7 +238,13 @@ class ConflictAnticipationService {
         if (conflictTaskId != null) {
           for (final t in tasks) {
             if (t.id == conflictTaskId) {
-              final cEnd = t.endTime ?? t.startTime.add(Duration(minutes: t.durationMinutes > 0 ? t.durationMinutes : 60));
+              final cEnd =
+                  t.endTime ??
+                  t.startTime.add(
+                    Duration(
+                      minutes: t.durationMinutes > 0 ? t.durationMinutes : 60,
+                    ),
+                  );
               if (cEnd.isAfter(targetStart)) targetStart = cEnd;
               break;
             }
@@ -243,17 +258,33 @@ class ConflictAnticipationService {
           }
         } else {
           // Find any collision with targetTask
-          final curEnd = targetTask.endTime ?? targetTask.startTime.add(Duration(minutes: targetTask.durationMinutes > 0 ? targetTask.durationMinutes : 60));
+          final curEnd =
+              targetTask.endTime ??
+              targetTask.startTime.add(
+                Duration(
+                  minutes: targetTask.durationMinutes > 0
+                      ? targetTask.durationMinutes
+                      : 60,
+                ),
+              );
           for (final t in tasks) {
             if (t.id == targetTask.id || t.isCompleted) continue;
-            final tEnd = t.endTime ?? t.startTime.add(Duration(minutes: t.durationMinutes > 0 ? t.durationMinutes : 60));
-            if (targetTask.startTime.isBefore(tEnd) && t.startTime.isBefore(curEnd)) {
+            final tEnd =
+                t.endTime ??
+                t.startTime.add(
+                  Duration(
+                    minutes: t.durationMinutes > 0 ? t.durationMinutes : 60,
+                  ),
+                );
+            if (targetTask.startTime.isBefore(tEnd) &&
+                t.startTime.isBefore(curEnd)) {
               if (tEnd.isAfter(targetStart)) targetStart = tEnd;
             }
           }
           for (final ev in calendarEvents) {
             if (ev.isAllDay) continue;
-            if (targetTask.startTime.isBefore(ev.endTime) && ev.startTime.isBefore(curEnd)) {
+            if (targetTask.startTime.isBefore(ev.endTime) &&
+                ev.startTime.isBefore(curEnd)) {
               if (ev.endTime.isAfter(targetStart)) targetStart = ev.endTime;
             }
           }
@@ -265,23 +296,29 @@ class ConflictAnticipationService {
 
         // 3. Find same-day active tasks and events
         final taskDay = targetTask.startTime;
-        final sameDayTasks = tasks
-            .where((t) =>
-                !t.isCompleted &&
-                t.startTime.year == taskDay.year &&
-                t.startTime.month == taskDay.month &&
-                t.startTime.day == taskDay.day)
-            .toList()
-          ..sort((a, b) => a.startTime.compareTo(b.startTime));
+        final sameDayTasks =
+            tasks
+                .where(
+                  (t) =>
+                      !t.isCompleted &&
+                      t.startTime.year == taskDay.year &&
+                      t.startTime.month == taskDay.month &&
+                      t.startTime.day == taskDay.day,
+                )
+                .toList()
+              ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
-        final sameDayEvents = calendarEvents
-            .where((e) =>
-                !e.isAllDay &&
-                e.startTime.year == taskDay.year &&
-                e.startTime.month == taskDay.month &&
-                e.startTime.day == taskDay.day)
-            .toList()
-          ..sort((a, b) => a.startTime.compareTo(b.startTime));
+        final sameDayEvents =
+            calendarEvents
+                .where(
+                  (e) =>
+                      !e.isAllDay &&
+                      e.startTime.year == taskDay.year &&
+                      e.startTime.month == taskDay.month &&
+                      e.startTime.day == taskDay.day,
+                )
+                .toList()
+              ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
         DateTime avoidEvents(DateTime start, Duration dur) {
           var cur = start;
@@ -301,7 +338,11 @@ class ConflictAnticipationService {
 
         final targetDur = targetTask.endTime != null
             ? targetTask.endTime!.difference(targetTask.startTime)
-            : Duration(minutes: targetTask.durationMinutes > 0 ? targetTask.durationMinutes : 60);
+            : Duration(
+                minutes: targetTask.durationMinutes > 0
+                    ? targetTask.durationMinutes
+                    : 60,
+              );
 
         final adjustedStart = avoidEvents(targetStart, targetDur);
         final adjustedEnd = adjustedStart.add(targetDur);
@@ -320,14 +361,22 @@ class ConflictAnticipationService {
           if (t.startTime.isBefore(cursor)) {
             final tDur = t.endTime != null
                 ? t.endTime!.difference(t.startTime)
-                : Duration(minutes: t.durationMinutes > 0 ? t.durationMinutes : 60);
+                : Duration(
+                    minutes: t.durationMinutes > 0 ? t.durationMinutes : 60,
+                  );
             final newStart = avoidEvents(cursor, tDur);
             final newEnd = newStart.add(tDur);
             final moved = t.copyWith(startTime: newStart, endTime: newEnd);
             updatedMap[moved.id] = moved;
             cursor = newEnd;
           } else {
-            final tEnd = t.endTime ?? t.startTime.add(Duration(minutes: t.durationMinutes > 0 ? t.durationMinutes : 60));
+            final tEnd =
+                t.endTime ??
+                t.startTime.add(
+                  Duration(
+                    minutes: t.durationMinutes > 0 ? t.durationMinutes : 60,
+                  ),
+                );
             if (tEnd.isAfter(cursor)) cursor = tEnd;
           }
         }
@@ -335,19 +384,22 @@ class ConflictAnticipationService {
         final changedTasks = updatedMap.values.toList();
         return ConflictResolutionResult(
           updatedTasks: changedTasks,
-          summary: 'Schedule autonomously rippled. ${changedTasks.length} task${changedTasks.length == 1 ? '' : 's'} smoothly repositioned.',
+          summary:
+              'Schedule autonomously rippled. ${changedTasks.length} task${changedTasks.length == 1 ? '' : 's'} smoothly repositioned.',
           isSuccess: changedTasks.isNotEmpty,
         );
 
       case 'insert_buffer':
         final taskId = action.params['taskId'] as String?;
-        final bufferMins = action.params['bufferMinutes'] as int? ?? minTransitBufferMinutes;
+        final bufferMins =
+            action.params['bufferMinutes'] as int? ?? minTransitBufferMinutes;
 
         // If no task specified (e.g. buffer warning between two calendar events), acknowledge and dismiss
         if (taskId == null) {
           return ConflictResolutionResult(
             updatedTasks: const [],
-            summary: 'Transit buffer alert acknowledged ($bufferMins min travel buffer recommended).',
+            summary:
+                'Transit buffer alert acknowledged ($bufferMins min travel buffer recommended).',
             isSuccess: true,
           );
         }
@@ -368,7 +420,8 @@ class ConflictAnticipationService {
         }
         return ConflictResolutionResult(
           updatedTasks: updated,
-          summary: 'Inserted $bufferMins min buffer and adjusted downstream tasks.',
+          summary:
+              'Inserted $bufferMins min buffer and adjusted downstream tasks.',
           isSuccess: updated.isNotEmpty,
         );
 
@@ -377,15 +430,25 @@ class ConflictAnticipationService {
         final newStartStr = action.params['newStartTime'] as String?;
         if (taskId != null && newStartStr != null) {
           final newStart = DateTime.parse(newStartStr);
-          final updated = tasks.map((t) {
-            if (t.id == taskId) {
-              final dur = t.endTime != null
-                  ? t.endTime!.difference(t.startTime)
-                  : Duration(minutes: t.durationMinutes > 0 ? t.durationMinutes : 60);
-              return t.copyWith(startTime: newStart, endTime: newStart.add(dur));
-            }
-            return t;
-          }).where((t) => t.id == taskId).toList();
+          final updated = tasks
+              .map((t) {
+                if (t.id == taskId) {
+                  final dur = t.endTime != null
+                      ? t.endTime!.difference(t.startTime)
+                      : Duration(
+                          minutes: t.durationMinutes > 0
+                              ? t.durationMinutes
+                              : 60,
+                        );
+                  return t.copyWith(
+                    startTime: newStart,
+                    endTime: newStart.add(dur),
+                  );
+                }
+                return t;
+              })
+              .where((t) => t.id == taskId)
+              .toList();
           return ConflictResolutionResult(
             updatedTasks: updated,
             summary: 'Task rescheduled to $newStart.',
@@ -411,14 +474,20 @@ class ConflictAnticipationService {
           }
         }
         final targetDay = targetTask != null
-            ? DateTime(targetTask.startTime.year, targetTask.startTime.month, targetTask.startTime.day)
+            ? DateTime(
+                targetTask.startTime.year,
+                targetTask.startTime.month,
+                targetTask.startTime.day,
+              )
             : DateTime(now.year, now.month, now.day);
 
         final dayTasks = tasks
-            .where((t) =>
-                t.startTime.year == targetDay.year &&
-                t.startTime.month == targetDay.month &&
-                t.startTime.day == targetDay.day)
+            .where(
+              (t) =>
+                  t.startTime.year == targetDay.year &&
+                  t.startTime.month == targetDay.month &&
+                  t.startTime.day == targetDay.day,
+            )
             .toList();
 
         final scheduleResult = _scheduler.scheduleDayWithDetails(
@@ -472,8 +541,10 @@ class ConflictAnticipationService {
       for (var j = i + 1; j < tasks.length; j++) {
         final a = tasks[i];
         final b = tasks[j];
-        final aEnd = a.endTime ?? a.startTime.add(Duration(minutes: a.durationMinutes));
-        final bEnd = b.endTime ?? b.startTime.add(Duration(minutes: b.durationMinutes));
+        final aEnd =
+            a.endTime ?? a.startTime.add(Duration(minutes: a.durationMinutes));
+        final bEnd =
+            b.endTime ?? b.startTime.add(Duration(minutes: b.durationMinutes));
 
         if (a.startTime.isBefore(bEnd) && b.startTime.isBefore(aEnd)) {
           outConflicts.add(
@@ -482,7 +553,8 @@ class ConflictAnticipationService {
               type: ConflictType.directOverlap,
               severity: ConflictSeverity.critical,
               title: 'Schedule Collision',
-              description: '"${a.title}" overlaps with "${b.title}". Both demand your attention at the same time.',
+              description:
+                  '"${a.title}" overlaps with "${b.title}". Both demand your attention at the same time.',
               affectedTaskIds: [a.id, b.id],
               anticipatedAt: a.startTime,
               resolutionAction: ConflictResolutionAction(
@@ -502,16 +574,19 @@ class ConflictAnticipationService {
 
       // Task-to-event overlaps
       final a = tasks[i];
-      final aEnd = a.endTime ?? a.startTime.add(Duration(minutes: a.durationMinutes));
+      final aEnd =
+          a.endTime ?? a.startTime.add(Duration(minutes: a.durationMinutes));
       for (final event in events) {
-        if (a.startTime.isBefore(event.endTime) && event.startTime.isBefore(aEnd)) {
+        if (a.startTime.isBefore(event.endTime) &&
+            event.startTime.isBefore(aEnd)) {
           outConflicts.add(
             AnticipatedConflict(
               id: 'overlap_event_${a.id}_${event.id}',
               type: ConflictType.directOverlap,
               severity: ConflictSeverity.critical,
               title: 'External Meeting Collision',
-              description: 'Task "${a.title}" clashes with calendar event "${event.title}".',
+              description:
+                  'Task "${a.title}" clashes with calendar event "${event.title}".',
               affectedTaskIds: [a.id],
               affectedEventIds: [event.id],
               anticipatedAt: a.startTime,
@@ -550,13 +625,15 @@ class ConflictAnticipationService {
             type: ConflictType.transitBufferCompression,
             severity: ConflictSeverity.warning,
             title: 'Transit Buffer Shortage ($gapMinutes min)',
-            description: 'Only $gapMinutes min gap between "${first.title}" and "${second.title}". High risk of late arrival.',
+            description:
+                'Only $gapMinutes min gap between "${first.title}" and "${second.title}". High risk of late arrival.',
             affectedEventIds: [first.id, second.id],
             anticipatedAt: first.endTime,
             resolutionAction: ConflictResolutionAction(
               actionType: 'insert_buffer',
               label: 'Guard 15m Travel Buffer',
-              description: 'Shield travel and decompression buffer before "${second.title}".',
+              description:
+                  'Shield travel and decompression buffer before "${second.title}".',
               params: {
                 'bufferMinutes': minTransitBufferMinutes,
                 'conflictId': 'transit_${first.id}_${second.id}',
@@ -569,24 +646,30 @@ class ConflictAnticipationService {
 
     // Check task right before an external calendar event
     for (final task in tasks) {
-      final taskEnd = task.endTime ?? task.startTime.add(Duration(minutes: task.durationMinutes));
+      final taskEnd =
+          task.endTime ??
+          task.startTime.add(Duration(minutes: task.durationMinutes));
       for (final event in events) {
         final gapMinutes = event.startTime.difference(taskEnd).inMinutes;
-        if (gapMinutes >= 0 && gapMinutes < 10 && (task.tags.contains('deep_work') || task.priority >= 2)) {
+        if (gapMinutes >= 0 &&
+            gapMinutes < 10 &&
+            (task.tags.contains('deep_work') || task.priority >= 2)) {
           outConflicts.add(
             AnticipatedConflict(
               id: 'transit_task_event_${task.id}_${event.id}',
               type: ConflictType.transitBufferCompression,
               severity: ConflictSeverity.warning,
               title: 'Context Switch Warning',
-              description: 'Intense task "${task.title}" finishes only $gapMinutes min before meeting "${event.title}".',
+              description:
+                  'Intense task "${task.title}" finishes only $gapMinutes min before meeting "${event.title}".',
               affectedTaskIds: [task.id],
               affectedEventIds: [event.id],
               anticipatedAt: taskEnd,
               resolutionAction: ConflictResolutionAction(
                 actionType: 'insert_buffer',
                 label: 'Re-Schedule Before Meeting',
-                description: 'Allocate restorative break before meeting starts.',
+                description:
+                    'Allocate restorative break before meeting starts.',
                 params: {
                   'taskId': task.id,
                   'conflictEventId': event.id,
@@ -607,7 +690,9 @@ class ConflictAnticipationService {
   ) {
     for (final task in tasks) {
       if (task.deadline == null) continue;
-      final finishTime = task.endTime ?? task.startTime.add(Duration(minutes: task.durationMinutes));
+      final finishTime =
+          task.endTime ??
+          task.startTime.add(Duration(minutes: task.durationMinutes));
       final marginMinutes = task.deadline!.difference(finishTime).inMinutes;
 
       if (marginMinutes < 0) {
@@ -618,7 +703,8 @@ class ConflictAnticipationService {
             type: ConflictType.deadlineCompression,
             severity: ConflictSeverity.critical,
             title: 'Deadline Breach Projected',
-            description: '"${task.title}" is scheduled to complete at ${finishTime.hour}:${finishTime.minute.toString().padLeft(2, '0')}, which is ${-marginMinutes} min past deadline.',
+            description:
+                '"${task.title}" is scheduled to complete at ${finishTime.hour}:${finishTime.minute.toString().padLeft(2, '0')}, which is ${-marginMinutes} min past deadline.',
             affectedTaskIds: [task.id],
             anticipatedAt: finishTime,
             resolutionAction: ConflictResolutionAction(
@@ -640,7 +726,8 @@ class ConflictAnticipationService {
             type: ConflictType.deadlineCompression,
             severity: ConflictSeverity.warning,
             title: 'Tight Deadline Margin ($marginMinutes min)',
-            description: '"${task.title}" finishes with only $marginMinutes min safety margin before its deadline (${task.deadline}).',
+            description:
+                '"${task.title}" finishes with only $marginMinutes min safety margin before its deadline (${task.deadline}).',
             affectedTaskIds: [task.id],
             anticipatedAt: finishTime,
             resolutionAction: ConflictResolutionAction(
@@ -669,12 +756,20 @@ class ConflictAnticipationService {
       final demand = CircadianRhythm.inferCognitiveDemand(task);
       if (demand != CognitiveDemand.deepWork) continue;
 
-      final taskEnd = task.endTime ?? task.startTime.add(Duration(minutes: task.durationMinutes));
-      final midPoint = task.startTime.add(taskEnd.difference(task.startTime) ~/ 2);
-      final capacity = CircadianRhythm.energyCapacityAt(midPoint, chronotypeId: chronotypeId);
+      final taskEnd =
+          task.endTime ??
+          task.startTime.add(Duration(minutes: task.durationMinutes));
+      final midPoint = task.startTime.add(
+        taskEnd.difference(task.startTime) ~/ 2,
+      );
+      final capacity = CircadianRhythm.energyCapacityAt(
+        midPoint,
+        chronotypeId: chronotypeId,
+      );
       final phase = CircadianPhase.fromCapacity(capacity);
 
-      if (phase == CircadianPhase.recoveryDip || phase == CircadianPhase.windDown) {
+      if (phase == CircadianPhase.recoveryDip ||
+          phase == CircadianPhase.windDown) {
         final percentStr = '${(capacity * 100).round()}%';
         outConflicts.add(
           AnticipatedConflict(
@@ -682,13 +777,15 @@ class ConflictAnticipationService {
             type: ConflictType.circadianMismatch,
             severity: ConflictSeverity.advisory,
             title: 'Circadian Focus Inefficiency',
-            description: 'Deep work task "${task.title}" is slotted during ${chronotype.label} ${phase.label} ($percentStr capacity). You will likely experience sluggish progress.',
+            description:
+                'Deep work task "${task.title}" is slotted during ${chronotype.label} ${phase.label} ($percentStr capacity). You will likely experience sluggish progress.',
             affectedTaskIds: [task.id],
             anticipatedAt: task.startTime,
             resolutionAction: ConflictResolutionAction(
               actionType: 'realign_circadian',
               label: 'Align to Focus Zenith',
-              description: 'Move "${task.title}" into your peak biological focus window.',
+              description:
+                  'Move "${task.title}" into your peak biological focus window.',
               params: {
                 'taskId': task.id,
                 'conflictId': 'circadian_mismatch_${task.id}',

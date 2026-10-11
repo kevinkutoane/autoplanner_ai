@@ -43,38 +43,47 @@ void main() {
       expect(drift.overdueTasks, isEmpty);
     });
 
-    test('detects negative drift when uncompleted task is past its grace period', () {
-      final tasks = [
-        TaskItem(
-          id: 't-1',
-          title: 'Architecture Review',
-          startTime: DateTime(2026, 10, 2, 10, 0), // Planned at 10:00, now is 10:30 (30m late)
-          endTime: DateTime(2026, 10, 2, 10, 45),
-          isCompleted: false,
-        ),
-        TaskItem(
-          id: 't-2',
-          title: 'Sprint Planning',
-          startTime: DateTime(2026, 10, 2, 11, 0),
-          endTime: DateTime(2026, 10, 2, 12, 0),
-          isCompleted: false,
-        ),
-      ];
+    test(
+      'detects negative drift when uncompleted task is past its grace period',
+      () {
+        final tasks = [
+          TaskItem(
+            id: 't-1',
+            title: 'Architecture Review',
+            startTime: DateTime(
+              2026,
+              10,
+              2,
+              10,
+              0,
+            ), // Planned at 10:00, now is 10:30 (30m late)
+            endTime: DateTime(2026, 10, 2, 10, 45),
+            isCompleted: false,
+          ),
+          TaskItem(
+            id: 't-2',
+            title: 'Sprint Planning',
+            startTime: DateTime(2026, 10, 2, 11, 0),
+            endTime: DateTime(2026, 10, 2, 12, 0),
+            isCompleted: false,
+          ),
+        ];
 
-      final drift = driftService.detectDrift(
-        tasks: tasks,
-        currentTime: fixedNow,
-        graceMinutes: 10,
-      );
+        final drift = driftService.detectDrift(
+          tasks: tasks,
+          currentTime: fixedNow,
+          graceMinutes: 10,
+        );
 
-      expect(drift.hasDrift, isTrue);
-      expect(drift.driftMinutes, equals(30));
-      expect(drift.overdueTasks.length, equals(1));
-      expect(drift.overdueTasks.first.id, equals('t-1'));
-      expect(drift.impactedTasks.length, equals(1));
-      expect(drift.impactedTasks.first.id, equals('t-2'));
-      expect(drift.summary, contains('30 min behind'));
-    });
+        expect(drift.hasDrift, isTrue);
+        expect(drift.driftMinutes, equals(30));
+        expect(drift.overdueTasks.length, equals(1));
+        expect(drift.overdueTasks.first.id, equals('t-1'));
+        expect(drift.impactedTasks.length, equals(1));
+        expect(drift.impactedTasks.first.id, equals('t-2'));
+        expect(drift.summary, contains('30 min behind'));
+      },
+    );
 
     test('ignores fixed anchor tasks during overdue calculation', () {
       final tasks = [
@@ -133,37 +142,40 @@ void main() {
       });
     });
 
-    test('rippleReschedule preserves immovable calendar blocks during ripple', () {
-      withClock(Clock.fixed(fixedNow), () {
-        final tasks = [
-          TaskItem(
-            id: 't-1',
-            title: 'Urgent Bugfix',
-            startTime: DateTime(2026, 10, 2, 9, 0),
-            endTime: DateTime(2026, 10, 2, 9, 45),
-            isCompleted: false,
-          ),
-        ];
+    test(
+      'rippleReschedule preserves immovable calendar blocks during ripple',
+      () {
+        withClock(Clock.fixed(fixedNow), () {
+          final tasks = [
+            TaskItem(
+              id: 't-1',
+              title: 'Urgent Bugfix',
+              startTime: DateTime(2026, 10, 2, 9, 0),
+              endTime: DateTime(2026, 10, 2, 9, 45),
+              isCompleted: false,
+            ),
+          ];
 
-        final externalMeeting = CalendarEvent(
-          id: 'cal-1',
-          title: 'Executive Review',
-          startTime: DateTime(2026, 10, 2, 10, 30),
-          endTime: DateTime(2026, 10, 2, 11, 30),
-        );
+          final externalMeeting = CalendarEvent(
+            id: 'cal-1',
+            title: 'Executive Review',
+            startTime: DateTime(2026, 10, 2, 10, 30),
+            endTime: DateTime(2026, 10, 2, 11, 30),
+          );
 
-        final result = driftService.rippleReschedule(
-          allTasks: tasks,
-          workStartHour: 9,
-          workHoursPerDay: 8,
-          currentTime: fixedNow,
-          calendarBlocks: [externalMeeting],
-        );
+          final result = driftService.rippleReschedule(
+            allTasks: tasks,
+            workStartHour: 9,
+            workHoursPerDay: 8,
+            currentTime: fixedNow,
+            calendarBlocks: [externalMeeting],
+          );
 
-        final healed = result.healedTasks.firstWhere((t) => t.id == 't-1');
-        // Task must not overlap the 10:30–11:30 executive meeting
-        expect(healed.startTime.isBefore(externalMeeting.endTime), isFalse);
-      });
-    });
+          final healed = result.healedTasks.firstWhere((t) => t.id == 't-1');
+          // Task must not overlap the 10:30–11:30 executive meeting
+          expect(healed.startTime.isBefore(externalMeeting.endTime), isFalse);
+        });
+      },
+    );
   });
 }

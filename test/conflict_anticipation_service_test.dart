@@ -31,7 +31,9 @@ void main() {
       );
 
       expect(conflicts, isNotEmpty);
-      final overlap = conflicts.firstWhere((c) => c.type == ConflictType.directOverlap);
+      final overlap = conflicts.firstWhere(
+        (c) => c.type == ConflictType.directOverlap,
+      );
       expect(overlap.severity, ConflictSeverity.critical);
       expect(overlap.affectedTaskIds, containsAll(['task_a', 'task_b']));
       expect(overlap.resolutionAction.actionType, 'auto_ripple');
@@ -57,37 +59,44 @@ void main() {
         currentTime: DateTime(2099, 6, 15, 8, 0),
       );
 
-      final overlap = conflicts.firstWhere((c) => c.type == ConflictType.directOverlap);
+      final overlap = conflicts.firstWhere(
+        (c) => c.type == ConflictType.directOverlap,
+      );
       expect(overlap.severity, ConflictSeverity.critical);
       expect(overlap.affectedTaskIds, contains('task_c'));
       expect(overlap.affectedEventIds, contains('evt_1'));
     });
 
-    test('detects transit buffer compression between consecutive external events', () {
-      final event1 = CalendarEvent(
-        id: 'client_lunch',
-        title: 'Client Lunch (Downtown)',
-        startTime: DateTime(2099, 6, 15, 12, 0),
-        endTime: DateTime(2099, 6, 15, 13, 0),
-      );
-      final event2 = CalendarEvent(
-        id: 'site_visit',
-        title: 'Site Visit (Uptown)',
-        startTime: DateTime(2099, 6, 15, 13, 5), // Only 5 min gap!
-        endTime: DateTime(2099, 6, 15, 14, 30),
-      );
+    test(
+      'detects transit buffer compression between consecutive external events',
+      () {
+        final event1 = CalendarEvent(
+          id: 'client_lunch',
+          title: 'Client Lunch (Downtown)',
+          startTime: DateTime(2099, 6, 15, 12, 0),
+          endTime: DateTime(2099, 6, 15, 13, 0),
+        );
+        final event2 = CalendarEvent(
+          id: 'site_visit',
+          title: 'Site Visit (Uptown)',
+          startTime: DateTime(2099, 6, 15, 13, 5), // Only 5 min gap!
+          endTime: DateTime(2099, 6, 15, 14, 30),
+        );
 
-      final conflicts = service.evaluateSchedule(
-        tasks: [],
-        calendarEvents: [event1, event2],
-        currentTime: DateTime(2099, 6, 15, 8, 0),
-      );
+        final conflicts = service.evaluateSchedule(
+          tasks: [],
+          calendarEvents: [event1, event2],
+          currentTime: DateTime(2099, 6, 15, 8, 0),
+        );
 
-      final transit = conflicts.firstWhere((c) => c.type == ConflictType.transitBufferCompression);
-      expect(transit.severity, ConflictSeverity.warning);
-      expect(transit.description, contains('5 min gap'));
-      expect(transit.resolutionAction.actionType, 'insert_buffer');
-    });
+        final transit = conflicts.firstWhere(
+          (c) => c.type == ConflictType.transitBufferCompression,
+        );
+        expect(transit.severity, ConflictSeverity.warning);
+        expect(transit.description, contains('5 min gap'));
+        expect(transit.resolutionAction.actionType, 'insert_buffer');
+      },
+    );
 
     test('detects deadline breach and deadline tight margin', () {
       final deadlineBreachedTask = TaskItem(
@@ -110,35 +119,47 @@ void main() {
         currentTime: DateTime(2099, 6, 15, 8, 0),
       );
 
-      final breach = conflicts.firstWhere((c) => c.id == 'deadline_breach_task_deadline_breach');
+      final breach = conflicts.firstWhere(
+        (c) => c.id == 'deadline_breach_task_deadline_breach',
+      );
       expect(breach.severity, ConflictSeverity.critical);
       expect(breach.title, contains('Deadline Breach'));
 
-      final tight = conflicts.firstWhere((c) => c.id == 'deadline_tight_task_deadline_tight');
+      final tight = conflicts.firstWhere(
+        (c) => c.id == 'deadline_tight_task_deadline_tight',
+      );
       expect(tight.severity, ConflictSeverity.warning);
       expect(tight.title, contains('Tight Deadline Margin'));
     });
 
-    test('detects circadian focus mismatch when deep work placed in recovery dip', () {
-      final deepWorkInDip = TaskItem(
-        id: 'deep_slump',
-        title: 'Complex Math Proof',
-        startTime: DateTime(2099, 6, 15, 14, 0), // Early Bird post-lunch dip
-        endTime: DateTime(2099, 6, 15, 15, 30),
-        tags: ['coding', 'complex'],
-      );
+    test(
+      'detects circadian focus mismatch when deep work placed in recovery dip',
+      () {
+        final deepWorkInDip = TaskItem(
+          id: 'deep_slump',
+          title: 'Complex Math Proof',
+          startTime: DateTime(2099, 6, 15, 14, 0), // Early Bird post-lunch dip
+          endTime: DateTime(2099, 6, 15, 15, 30),
+          tags: ['coding', 'complex'],
+        );
 
-      final conflicts = service.evaluateSchedule(
-        tasks: [deepWorkInDip],
-        currentTime: DateTime(2099, 6, 15, 8, 0),
-        chronotypeId: 'early_bird',
-      );
+        final conflicts = service.evaluateSchedule(
+          tasks: [deepWorkInDip],
+          currentTime: DateTime(2099, 6, 15, 8, 0),
+          chronotypeId: 'early_bird',
+        );
 
-      final mismatch = conflicts.firstWhere((c) => c.type == ConflictType.circadianMismatch);
-      expect(mismatch.severity, ConflictSeverity.advisory);
-      expect(mismatch.description, contains('Lion'));
-      expect(mismatch.resolutionAction.label, contains('Align to Focus Zenith'));
-    });
+        final mismatch = conflicts.firstWhere(
+          (c) => c.type == ConflictType.circadianMismatch,
+        );
+        expect(mismatch.severity, ConflictSeverity.advisory);
+        expect(mismatch.description, contains('Lion'));
+        expect(
+          mismatch.resolutionAction.label,
+          contains('Align to Focus Zenith'),
+        );
+      },
+    );
   });
 
   group('ConflictAnticipationService Automated Resolutions', () {
@@ -214,7 +235,8 @@ void main() {
       };
       final a = byId['t1']!;
       final b = byId['t2']!;
-      final noOverlap = !a.startTime.isBefore(b.endTime!) ||
+      final noOverlap =
+          !a.startTime.isBefore(b.endTime!) ||
           !b.startTime.isBefore(a.endTime!);
       expect(noOverlap, isTrue);
     });
@@ -289,44 +311,49 @@ void main() {
       expect(updatedC.startTime.isBefore(updatedB.endTime!), isFalse);
     });
 
-    test('auto_ripple shifts task cleanly around an external calendar event', () {
-      final task = TaskItem(
-        id: 'task_x',
-        title: 'Budget Analysis',
-        startTime: DateTime(2099, 6, 15, 14, 0),
-        endTime: DateTime(2099, 6, 15, 15, 0),
-      );
-      final meeting = CalendarEvent(
-        id: 'cal_meeting',
-        title: 'Client Demo',
-        startTime: DateTime(2099, 6, 15, 14, 0),
-        endTime: DateTime(2099, 6, 15, 15, 30),
-      );
+    test(
+      'auto_ripple shifts task cleanly around an external calendar event',
+      () {
+        final task = TaskItem(
+          id: 'task_x',
+          title: 'Budget Analysis',
+          startTime: DateTime(2099, 6, 15, 14, 0),
+          endTime: DateTime(2099, 6, 15, 15, 0),
+        );
+        final meeting = CalendarEvent(
+          id: 'cal_meeting',
+          title: 'Client Demo',
+          startTime: DateTime(2099, 6, 15, 14, 0),
+          endTime: DateTime(2099, 6, 15, 15, 30),
+        );
 
-      final action = const ConflictResolutionAction(
-        actionType: 'auto_ripple',
-        label: 'Shift Around Meeting',
-        description: 'Shift around meeting',
-        params: {
-          'taskId': 'task_x',
-          'conflictEventId': 'cal_meeting',
-          'conflictId': 'overlap_event_task_x_cal_meeting',
-        },
-      );
+        final action = const ConflictResolutionAction(
+          actionType: 'auto_ripple',
+          label: 'Shift Around Meeting',
+          description: 'Shift around meeting',
+          params: {
+            'taskId': 'task_x',
+            'conflictEventId': 'cal_meeting',
+            'conflictId': 'overlap_event_task_x_cal_meeting',
+          },
+        );
 
-      final result = service.applyResolution(
-        action,
-        tasks: [task],
-        calendarEvents: [meeting],
-        workStartHour: 9,
-        workHoursPerDay: 8,
-        currentTime: DateTime(2099, 6, 15, 8, 0),
-      );
+        final result = service.applyResolution(
+          action,
+          tasks: [task],
+          calendarEvents: [meeting],
+          workStartHour: 9,
+          workHoursPerDay: 8,
+          currentTime: DateTime(2099, 6, 15, 8, 0),
+        );
 
-      expect(result.isSuccess, isTrue);
-      final updatedX = result.updatedTasks.firstWhere((t) => t.id == 'task_x');
-      expect(updatedX.startTime.isBefore(meeting.endTime), isFalse);
-    });
+        expect(result.isSuccess, isTrue);
+        final updatedX = result.updatedTasks.firstWhere(
+          (t) => t.id == 'task_x',
+        );
+        expect(updatedX.startTime.isBefore(meeting.endTime), isFalse);
+      },
+    );
 
     test('insert_buffer acknowledges and dismisses calendar-only buffer shortage from evaluateSchedule', () {
       final event1 = CalendarEvent(

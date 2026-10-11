@@ -294,7 +294,8 @@ class SettingsController extends Notifier<AppSettings> {
     if (uri.scheme == 'https') return true;
     if (uri.scheme != 'http') return false;
     final host = uri.host.toLowerCase();
-    final isLocal = host == '127.0.0.1' ||
+    final isLocal =
+        host == '127.0.0.1' ||
         host == 'localhost' ||
         host == '10.0.2.2' ||
         host.startsWith('192.168.') ||

@@ -2155,9 +2155,7 @@ class _GlassTextField extends StatelessWidget {
       ),
       child: TextField(
         controller: controller,
-        inputFormatters: [
-          LengthLimitingTextInputFormatter(250),
-        ],
+        inputFormatters: [LengthLimitingTextInputFormatter(250)],
         keyboardType: keyboardType,
         textCapitalization: capitalization,
         style: TextStyle(

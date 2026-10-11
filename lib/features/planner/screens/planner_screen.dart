@@ -291,23 +291,17 @@ class PlannerScreen extends ConsumerWidget {
               ),
 
               // ── Circadian Energy Curve Ambient Visualizer ─────────
-              const SliverToBoxAdapter(
-                child: CircadianEnergyCurveCard(),
-              ),
+              const SliverToBoxAdapter(child: CircadianEnergyCurveCard()),
 
               // ── 7-Day Weekly Capacity Intelligence Heatmap ─────────
-              const SliverToBoxAdapter(
-                child: WeeklyCapacityHeatmap(),
-              ),
+              const SliverToBoxAdapter(child: WeeklyCapacityHeatmap()),
 
               // ── Search bar ───────────────────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                   child: TextField(
-                    inputFormatters: [
-                      LengthLimitingTextInputFormatter(300),
-                    ],
+                    inputFormatters: [LengthLimitingTextInputFormatter(300)],
                     decoration: InputDecoration(
                       hintText: 'Search tasks...',
                       prefixIcon: const Icon(Icons.search, size: 20),
@@ -398,8 +392,7 @@ class PlannerScreen extends ConsumerWidget {
                 ),
                 // AI-powered suggestions for an empty day
                 const SliverToBoxAdapter(child: _TaskSuggestionsPanel()),
-              ]
-              else ...[
+              ] else ...[
                 SliverToBoxAdapter(
                   child: _PlanMyDayBanner(
                     pendingCount: tasks.where((t) => !t.isCompleted).length,
@@ -743,8 +736,7 @@ class _TaskRow extends ConsumerWidget {
                                         size: 11,
                                         color: kIndigo,
                                       ),
-                                      label:
-                                          contextSynthesis.project!.title,
+                                      label: contextSynthesis.project!.title,
                                       color: kIndigo,
                                       isDark: isDark,
                                     ),
@@ -760,7 +752,9 @@ class _TaskRow extends ConsumerWidget {
                                       color: kCyan,
                                       isDark: isDark,
                                     ),
-                                  if (contextSynthesis.relevantMemories.isNotEmpty)
+                                  if (contextSynthesis
+                                      .relevantMemories
+                                      .isNotEmpty)
                                     _ContextBadge(
                                       icon: const Icon(
                                         Icons.psychology_outlined,

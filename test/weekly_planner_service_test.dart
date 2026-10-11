@@ -85,8 +85,7 @@ void main() {
 
       // Deep work should be placed on a day OTHER than Tuesday
       final tuesdayTasks = result.dayAllocations[tuesday] ?? [];
-      final hasDeepWorkOnTuesday =
-          tuesdayTasks.any((t) => t.id == 'deep_1');
+      final hasDeepWorkOnTuesday = tuesdayTasks.any((t) => t.id == 'deep_1');
       expect(hasDeepWorkOnTuesday, isFalse);
 
       // Notice should flag Tuesday as meeting-heavy
@@ -104,7 +103,13 @@ void main() {
         title: 'Submit Compliance Report',
         startTime: monday,
         endTime: monday.add(const Duration(minutes: 60)),
-        deadline: DateTime(wednesday.year, wednesday.month, wednesday.day, 17, 0),
+        deadline: DateTime(
+          wednesday.year,
+          wednesday.month,
+          wednesday.day,
+          17,
+          0,
+        ),
         priority: 3,
       );
 
@@ -154,8 +159,12 @@ void main() {
         workHoursPerDay: 8,
       );
 
-      final schedPrereq = result.allScheduledTasks.firstWhere((t) => t.id == 'prereq');
-      final schedDep = result.allScheduledTasks.firstWhere((t) => t.id == 'dependent');
+      final schedPrereq = result.allScheduledTasks.firstWhere(
+        (t) => t.id == 'prereq',
+      );
+      final schedDep = result.allScheduledTasks.firstWhere(
+        (t) => t.id == 'dependent',
+      );
 
       expect(schedDep.startTime.isBefore(schedPrereq.endTime!), isFalse);
     });
@@ -204,10 +213,7 @@ void main() {
       expect(replannedDay.isBefore(wednesday), isFalse);
 
       // Mid-week recovery notice is present
-      expect(
-        result.notices.any((n) => n.type == 'midweek_recovery'),
-        isTrue,
-      );
+      expect(result.notices.any((n) => n.type == 'midweek_recovery'), isTrue);
     });
   });
 
@@ -253,37 +259,52 @@ void main() {
   });
 
   group('WeeklyPlannerService Capacity Summaries', () {
-    test('accurately calculates meeting vs task minutes and capacity status', () {
-      final meeting = CalendarEvent(
-        id: 'm1',
-        title: 'Sprint Planning',
-        startTime: DateTime(monday.year, monday.month, monday.day, 9, 0),
-        endTime: DateTime(monday.year, monday.month, monday.day, 12, 0), // 180 min
-      );
+    test(
+      'accurately calculates meeting vs task minutes and capacity status',
+      () {
+        final meeting = CalendarEvent(
+          id: 'm1',
+          title: 'Sprint Planning',
+          startTime: DateTime(monday.year, monday.month, monday.day, 9, 0),
+          endTime: DateTime(
+            monday.year,
+            monday.month,
+            monday.day,
+            12,
+            0,
+          ), // 180 min
+        );
 
-      final task = TaskItem(
-        id: 't1',
-        title: 'Write Tests',
-        startTime: DateTime(monday.year, monday.month, monday.day, 13, 0),
-        endTime: DateTime(monday.year, monday.month, monday.day, 15, 0), // 120 min
-      );
+        final task = TaskItem(
+          id: 't1',
+          title: 'Write Tests',
+          startTime: DateTime(monday.year, monday.month, monday.day, 13, 0),
+          endTime: DateTime(
+            monday.year,
+            monday.month,
+            monday.day,
+            15,
+            0,
+          ), // 120 min
+        );
 
-      final summaries = service.getWeeklyCapacitySummaries(
-        tasks: [task],
-        weekStart: monday,
-        daysCount: 1,
-        workStartHour: 9,
-        workHoursPerDay: 8, // 480 min
-        calendarEvents: [meeting],
-      );
+        final summaries = service.getWeeklyCapacitySummaries(
+          tasks: [task],
+          weekStart: monday,
+          daysCount: 1,
+          workStartHour: 9,
+          workHoursPerDay: 8, // 480 min
+          calendarEvents: [meeting],
+        );
 
-      final daySummary = summaries.first;
-      expect(daySummary.calendarEventsMinutes, 180);
-      expect(daySummary.scheduledTasksMinutes, 120);
-      expect(daySummary.totalAllocatedMinutes, 300);
-      expect(daySummary.freeMinutes, 180);
-      expect(daySummary.capacityRatio, closeTo(300 / 480, 0.01));
-      expect(daySummary.status, DailyCapacityStatus.optimal);
-    });
+        final daySummary = summaries.first;
+        expect(daySummary.calendarEventsMinutes, 180);
+        expect(daySummary.scheduledTasksMinutes, 120);
+        expect(daySummary.totalAllocatedMinutes, 300);
+        expect(daySummary.freeMinutes, 180);
+        expect(daySummary.capacityRatio, closeTo(300 / 480, 0.01));
+        expect(daySummary.status, DailyCapacityStatus.optimal);
+      },
+    );
   });
 }

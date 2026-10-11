@@ -94,8 +94,7 @@ class EnvConfig {
       appName: appName,
       sentryDsn: _pick(_defSentry, 'SENTRY_DSN', ''),
       aiGatewayUrl: _pick(_defGateway, 'AI_GATEWAY_URL', ''),
-      googleServerClientId:
-          _pick(_defGoogle, 'GOOGLE_SERVER_CLIENT_ID', ''),
+      googleServerClientId: _pick(_defGoogle, 'GOOGLE_SERVER_CLIENT_ID', ''),
       enableAILogging:
           dotenv.get('ENABLE_AI_LOGGING', fallback: 'true') == 'true',
       enableTokenTracking:

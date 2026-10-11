@@ -75,8 +75,8 @@ class SampleStarterPlanCard extends ConsumerWidget {
 
     final finalTasks =
         scheduledResult.scheduledTasks.length == sampleTasks.length
-            ? scheduledResult.scheduledTasks
-            : sampleTasks;
+        ? scheduledResult.scheduledTasks
+        : sampleTasks;
 
     taskCtrl.batchUpdateTasks(finalTasks);
     settingsCtrl.dismissStarterPlan();
@@ -160,7 +160,7 @@ class SampleStarterPlanCard extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                  const Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

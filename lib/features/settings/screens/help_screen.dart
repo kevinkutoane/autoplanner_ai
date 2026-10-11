@@ -152,8 +152,7 @@ class HelpScreen extends StatelessWidget {
                             icon: Icons.wb_sunny_rounded,
                             color: kAmber,
                             title: 'Morning Kickoff & Big 3',
-                            body:
-                                'Start with clarity. Review today\'s schedule and lock in your "Big 3" daily focus commitments.',
+                            body: 'Start with clarity. Review today\'s schedule and lock in your "Big 3" daily focus commitments.',
                             isDark: isDark,
                           ),
                           _FlowArrow(),
@@ -162,8 +161,7 @@ class HelpScreen extends StatelessWidget {
                             icon: Icons.record_voice_over_rounded,
                             color: kIndigo,
                             title: 'Brain Dump Studio',
-                            body:
-                                'Speak or type thoughts freely. AutoPlanner automatically sorts them into tasks, goals, and notes.',
+                            body: 'Speak or type thoughts freely. AutoPlanner automatically sorts them into tasks, goals, and notes.',
                             isDark: isDark,
                           ),
                           _FlowArrow(),
@@ -172,8 +170,7 @@ class HelpScreen extends StatelessWidget {
                             icon: Icons.calendar_today_rounded,
                             color: kCyan,
                             title: 'Conflict-Free Scheduling',
-                            body:
-                                'Your schedule is packed automatically with zero overlaps, leaving generous buffers between tasks.',
+                            body: 'Your schedule is packed automatically with zero overlaps, leaving generous buffers between tasks.',
                             isDark: isDark,
                           ),
                           _FlowArrow(),
@@ -182,8 +179,7 @@ class HelpScreen extends StatelessWidget {
                             icon: Icons.timer_rounded,
                             color: kCoral,
                             title: 'Deep Focus & Timers',
-                            body:
-                                'Work distraction-free with customizable timers, relaxing ambient soundscapes, and break prompts.',
+                            body: 'Work distraction-free with customizable timers, relaxing ambient soundscapes, and break prompts.',
                             isDark: isDark,
                           ),
                           _FlowArrow(),
@@ -192,8 +188,7 @@ class HelpScreen extends StatelessWidget {
                             icon: Icons.nightlight_round,
                             color: const Color(0xFF7C4DFF),
                             title: 'Evening Shutdown & Reflection',
-                            body:
-                                'Wrap up your workday with peace of mind. Celebrate completed wins and prepare for tomorrow.',
+                            body: 'Wrap up your workday with peace of mind. Celebrate completed wins and prepare for tomorrow.',
                             isDark: isDark,
                           ),
                         ],

@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:clock/clock.dart';
 
 import '../core/models/calendar_event_model.dart';
@@ -114,9 +115,9 @@ class WeeklyPlannerService {
   WeeklyPlannerService({
     SchedulerService? scheduler,
     DependencyGraphService? dependencyGraphService,
-  })  : _scheduler = scheduler ?? SchedulerService(),
-        _dependencyGraphService =
-            dependencyGraphService ?? DependencyGraphService();
+  }) : _scheduler = scheduler ?? SchedulerService(),
+       _dependencyGraphService =
+           dependencyGraphService ?? DependencyGraphService();
 
   /// Computes real-time capacity summaries across a multi-day window without altering tasks.
   List<DailyCapacitySummary> getWeeklyCapacitySummaries({
@@ -257,7 +258,8 @@ class WeeklyPlannerService {
         task.startTime.month,
         task.startTime.day,
       );
-      if (dayAllocations.containsKey(taskDay) && (task.isFixed || task.isCompleted)) {
+      if (dayAllocations.containsKey(taskDay) &&
+          (task.isFixed || task.isCompleted)) {
         dayAllocations[taskDay]!.add(task);
       } else if (task.isCompleted || task.isFixed) {
         // Completed/fixed tasks outside the window are not ours to move.
@@ -271,8 +273,9 @@ class WeeklyPlannerService {
     }
 
     // 2. Resolve Topological Dependency Order for floating tasks
-    final sortedTasks =
-        _dependencyGraphService.resolveDependencies(floatingTasks).sortedTasks;
+    final sortedTasks = _dependencyGraphService
+        .resolveDependencies(floatingTasks)
+        .sortedTasks;
 
     // Track assigned day for DAG dependencies
     final taskAssignedDay = <String, DateTime>{};
@@ -334,15 +337,18 @@ class WeeklyPlannerService {
       var bestScore = -999999.0;
 
       for (final d in candidateDays) {
-        final currentAllocated = (eventLoadPerDay[d] ?? 0) +
+        final currentAllocated =
+            (eventLoadPerDay[d] ?? 0) +
             dayAllocations[d]!.fold<int>(
               0,
-              (sum, t) => sum + (t.durationMinutes > 0 ? t.durationMinutes : 60),
+              (sum, t) =>
+                  sum + (t.durationMinutes > 0 ? t.durationMinutes : 60),
             );
 
         final projectedMinutes = currentAllocated + taskDur;
-        final projectedRatio =
-            totalDailyCap > 0 ? (projectedMinutes / totalDailyCap) : 1.0;
+        final projectedRatio = totalDailyCap > 0
+            ? (projectedMinutes / totalDailyCap)
+            : 1.0;
 
         // Skip days that would strictly breach 100% capacity if alternatives exist
         if (projectedRatio > 1.0 && candidateDays.length > 1) {
@@ -357,7 +363,8 @@ class WeeklyPlannerService {
 
         // Cognitive demand fit
         final isMeetingHeavy =
-            totalDailyCap > 0 && ((eventLoadPerDay[d] ?? 0) / totalDailyCap) >= 0.40;
+            totalDailyCap > 0 &&
+            ((eventLoadPerDay[d] ?? 0) / totalDailyCap) >= 0.40;
         if (demand == CognitiveDemand.deepWork) {
           if (isMeetingHeavy) {
             score -= 40.0; // Avoid deep work on meeting-heavy days
@@ -387,10 +394,18 @@ class WeeklyPlannerService {
       // Fallback: if all candidate days are at capacity, pick day with lowest projected ratio
       if (bestDay == null) {
         candidateDays.sort((a, b) {
-          final loadA = (eventLoadPerDay[a] ?? 0) +
-              dayAllocations[a]!.fold<int>(0, (s, t) => s + (t.durationMinutes > 0 ? t.durationMinutes : 60));
-          final loadB = (eventLoadPerDay[b] ?? 0) +
-              dayAllocations[b]!.fold<int>(0, (s, t) => s + (t.durationMinutes > 0 ? t.durationMinutes : 60));
+          final loadA =
+              (eventLoadPerDay[a] ?? 0) +
+              dayAllocations[a]!.fold<int>(
+                0,
+                (s, t) => s + (t.durationMinutes > 0 ? t.durationMinutes : 60),
+              );
+          final loadB =
+              (eventLoadPerDay[b] ?? 0) +
+              dayAllocations[b]!.fold<int>(
+                0,
+                (s, t) => s + (t.durationMinutes > 0 ? t.durationMinutes : 60),
+              );
           return loadA.compareTo(loadB);
         });
         bestDay = candidateDays.first;
@@ -398,7 +413,9 @@ class WeeklyPlannerService {
 
       final taskDuration = task.endTime != null
           ? task.endTime!.difference(task.startTime)
-          : Duration(minutes: task.durationMinutes > 0 ? task.durationMinutes : 60);
+          : Duration(
+              minutes: task.durationMinutes > 0 ? task.durationMinutes : 60,
+            );
       final rebasedTask = task.copyWith(
         startTime: DateTime(
           bestDay.year,
@@ -459,8 +476,12 @@ class WeeklyPlannerService {
       final end = parts
           .map((p) => p.endTime ?? p.startTime)
           .reduce((a, b) => a.isAfter(b) ? a : b);
-      collapsed.add(originalsById[entry.key]!
-          .copyWith(startTime: parts.first.startTime, endTime: end));
+      collapsed.add(
+        originalsById[entry.key]!.copyWith(
+          startTime: parts.first.startTime,
+          endTime: end,
+        ),
+      );
     }
     allScheduledTasks
       ..clear()
@@ -600,9 +621,13 @@ class WeeklyPlannerService {
     }
 
     if (debtIndex < 20.0) {
-      recommendations.add('Schedule is in optimal health with minimal planning debt.');
+      recommendations.add(
+        'Schedule is in optimal health with minimal planning debt.',
+      );
     } else if (debtIndex >= 70.0) {
-      recommendations.add('High planning debt: consider a weekly reset pass with /replan-week.');
+      recommendations.add(
+        'High planning debt: consider a weekly reset pass with /replan-week.',
+      );
     }
 
     return PlanningDebtReport(
@@ -627,12 +652,30 @@ class WeeklyPlannerService {
     final tags = task.tags.map((t) => t.toLowerCase()).toList();
 
     const deepKeywords = [
-      'code', 'coding', 'develop', 'architecture', 'design', 'write',
-      'refactor', 'strategy', 'analysis', 'research', 'audit',
+      'code',
+      'coding',
+      'develop',
+      'architecture',
+      'design',
+      'write',
+      'refactor',
+      'strategy',
+      'analysis',
+      'research',
+      'audit',
     ];
     const shallowKeywords = [
-      'email', 'inbox', 'errand', 'groceries', 'admin', 'sync', 'quick',
-      'call', 'receipt', 'clean', 'update',
+      'email',
+      'inbox',
+      'errand',
+      'groceries',
+      'admin',
+      'sync',
+      'quick',
+      'call',
+      'receipt',
+      'clean',
+      'update',
     ];
 
     if (deepKeywords.any((k) => title.contains(k) || tags.contains(k))) {

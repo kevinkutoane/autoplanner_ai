@@ -453,11 +453,11 @@ class AppSettings {
     confettiCelebrationsEnabled:
         (map[kConfettiCelebrationsEnabled] as bool?) ?? true,
     aiConnectionMode: (map[kAiConnectionMode] as String?) ?? 'cloud_gateway',
-    cloudGatewayUrl: (map[kCloudGatewayUrl] as String?) ?? 'http://127.0.0.1:8000',
+    cloudGatewayUrl:
+        (map[kCloudGatewayUrl] as String?) ?? 'http://127.0.0.1:8000',
     autoRippleDrift: (map[kAutoRippleDrift] as bool?) ?? true,
     driftGraceMinutes: (map[kDriftGraceMinutes] as int?) ?? 10,
-    hasDismissedStarterPlan:
-        (map[kHasDismissedStarterPlan] as bool?) ?? false,
+    hasDismissedStarterPlan: (map[kHasDismissedStarterPlan] as bool?) ?? false,
   );
 
   /// Convenience: human-friendly display name (falls back to 'You').

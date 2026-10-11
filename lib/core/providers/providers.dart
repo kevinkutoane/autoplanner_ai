@@ -86,8 +86,8 @@ final aiProviderProvider = Provider<AIProvider>((ref) {
     final gatewayUrl = settings.cloudGatewayUrl.isNotEmpty
         ? settings.cloudGatewayUrl
         : (appConfig.aiGatewayUrl.isNotEmpty
-            ? appConfig.aiGatewayUrl
-            : 'http://127.0.0.1:8000');
+              ? appConfig.aiGatewayUrl
+              : 'http://127.0.0.1:8000');
     final parsed = Uri.tryParse(gatewayUrl);
     if (parsed != null && parsed.hasScheme) {
       return CloudAIProvider(gatewayBaseUrl: parsed);
@@ -220,15 +220,14 @@ final conflictDetectorProvider = Provider<ConflictDetector>(
 /// Singleton provider for [ConflictAnticipationService].
 final conflictAnticipationServiceProvider =
     Provider<ConflictAnticipationService>((ref) {
-  return ConflictAnticipationService(
-    scheduler: ref.watch(schedulerServiceProvider),
-    driftService: ref.watch(scheduleDriftServiceProvider),
-  );
-});
+      return ConflictAnticipationService(
+        scheduler: ref.watch(schedulerServiceProvider),
+        driftService: ref.watch(scheduleDriftServiceProvider),
+      );
+    });
 
 /// Evaluates active schedule and calendar commitments to anticipate conflicts proactively.
-final anticipatedConflictsProvider =
-    Provider<List<AnticipatedConflict>>((ref) {
+final anticipatedConflictsProvider = Provider<List<AnticipatedConflict>>((ref) {
   final tasks = ref.watch(taskControllerProvider);
   final calendarEvents = ref.watch(calendarControllerProvider);
   final settings = ref.watch(settingsProvider);
@@ -242,28 +241,29 @@ final anticipatedConflictsProvider =
 });
 
 /// Singleton provider for [ContextualSynthesisService].
-final contextualSynthesisServiceProvider =
-    Provider<ContextualSynthesisService>((ref) {
-  return ContextualSynthesisService();
-});
+final contextualSynthesisServiceProvider = Provider<ContextualSynthesisService>(
+  (ref) {
+    return ContextualSynthesisService();
+  },
+);
 
 /// Synthesizes cross-domain knowledge graph context for a specific [TaskItem].
 final taskContextSynthesisProvider =
     Provider.family<TaskContextSynthesis, TaskItem>((ref, task) {
-  final service = ref.watch(contextualSynthesisServiceProvider);
-  final goals = ref.watch(goalControllerProvider);
-  final projects = ref.watch(projectControllerProvider);
-  final notes = ref.watch(noteControllerProvider);
-  final memories = ref.watch(memoryControllerProvider);
+      final service = ref.watch(contextualSynthesisServiceProvider);
+      final goals = ref.watch(goalControllerProvider);
+      final projects = ref.watch(projectControllerProvider);
+      final notes = ref.watch(noteControllerProvider);
+      final memories = ref.watch(memoryControllerProvider);
 
-  return service.synthesizeContext(
-    task: task,
-    allGoals: goals,
-    allProjects: projects,
-    allNotes: notes,
-    allMemories: memories,
-  );
-});
+      return service.synthesizeContext(
+        task: task,
+        allGoals: goals,
+        allProjects: projects,
+        allNotes: notes,
+        allMemories: memories,
+      );
+    });
 
 /// Overridden in main() with the initialized AppMonitorService instance.
 final appMonitorServiceProvider = Provider<AppMonitorService>(
@@ -416,28 +416,26 @@ final commandExecutorServiceProvider = Provider<CommandExecutorService>((ref) {
 
 /// Singleton provider for [WeeklyPlannerService]
 final weeklyPlannerServiceProvider = Provider<WeeklyPlannerService>((ref) {
-  return WeeklyPlannerService(
-    scheduler: ref.watch(schedulerServiceProvider),
-  );
+  return WeeklyPlannerService(scheduler: ref.watch(schedulerServiceProvider));
 });
 
 /// Multi-day capacity summary computed for a 7-day period starting at [weekStart].
 final weeklyCapacitySummaryProvider =
     Provider.family<List<DailyCapacitySummary>, DateTime>((ref, weekStart) {
-  final tasks = ref.watch(taskControllerProvider);
-  final calendarEvents = ref.watch(calendarControllerProvider);
-  final settings = ref.watch(settingsProvider);
-  final weeklyService = ref.watch(weeklyPlannerServiceProvider);
+      final tasks = ref.watch(taskControllerProvider);
+      final calendarEvents = ref.watch(calendarControllerProvider);
+      final settings = ref.watch(settingsProvider);
+      final weeklyService = ref.watch(weeklyPlannerServiceProvider);
 
-  return weeklyService.getWeeklyCapacitySummaries(
-    tasks: tasks,
-    weekStart: weekStart,
-    daysCount: 7,
-    workStartHour: settings.workStartHour,
-    workHoursPerDay: settings.workHoursPerDay,
-    calendarEvents: calendarEvents,
-  );
-});
+      return weeklyService.getWeeklyCapacitySummaries(
+        tasks: tasks,
+        weekStart: weekStart,
+        daysCount: 7,
+        workStartHour: settings.workStartHour,
+        workHoursPerDay: settings.workHoursPerDay,
+        calendarEvents: calendarEvents,
+      );
+    });
 
 /// Comprehensive weekly planning debt diagnostics across current task backlog.
 final weeklyPlanningDebtReportProvider = Provider<PlanningDebtReport>((ref) {
@@ -448,6 +446,3 @@ final weeklyPlanningDebtReportProvider = Provider<PlanningDebtReport>((ref) {
     currentTime: clock.now(),
   );
 });
-
-
-

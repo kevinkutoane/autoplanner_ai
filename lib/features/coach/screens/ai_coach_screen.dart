@@ -54,10 +54,7 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
     } catch (_) {
       final fallbackResponse = _generateOfflineCoachFallback(text);
       setState(() {
-        _messages.add({
-          'role': 'assistant',
-          'content': fallbackResponse,
-        });
+        _messages.add({'role': 'assistant', 'content': fallbackResponse});
         _isLoading = false;
       });
       _scrollToBottom();

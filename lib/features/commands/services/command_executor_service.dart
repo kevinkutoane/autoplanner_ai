@@ -20,9 +20,9 @@ class CommandExecutorService {
     ConflictAnticipationService? conflictService,
     ScheduleDriftService? driftService,
     WeeklyPlannerService? weeklyService,
-  })  : _conflictService = conflictService ?? ConflictAnticipationService(),
-        _driftService = driftService ?? ScheduleDriftService(),
-        _weeklyService = weeklyService ?? WeeklyPlannerService();
+  }) : _conflictService = conflictService ?? ConflictAnticipationService(),
+       _driftService = driftService ?? ScheduleDriftService(),
+       _weeklyService = weeklyService ?? WeeklyPlannerService();
 
   /// Generates a preview of changes that will occur if [command] is executed.
   CommandPreview generatePreview(
@@ -283,7 +283,8 @@ class CommandExecutorService {
     DateTime targetDay,
     DateTime currentMoment,
   ) {
-    final from = command.fromTime ??
+    final from =
+        command.fromTime ??
         DateTime(targetDay.year, targetDay.month, targetDay.day, 13, 0);
     final to =
         command.toTime ?? from.add(Duration(minutes: command.minutes ?? 120));
@@ -294,8 +295,7 @@ class CommandExecutorService {
       final end =
           t.endTime ?? t.startTime.add(Duration(minutes: t.durationMinutes));
       return t.startTime.isBefore(to) && end.isAfter(from);
-    }).toList()
-      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    }).toList()..sort((a, b) => a.startTime.compareTo(b.startTime));
 
     final shifts = <TaskShiftPreview>[];
     var nextTime = to;
@@ -344,8 +344,10 @@ class CommandExecutorService {
     List<TaskItem> tasks,
     DateTime currentMoment,
   ) {
-    final drift =
-        _driftService.detectDrift(tasks: tasks, currentTime: currentMoment);
+    final drift = _driftService.detectDrift(
+      tasks: tasks,
+      currentTime: currentMoment,
+    );
     if (!drift.hasDrift) {
       return CommandPreview(
         command: command,
@@ -389,13 +391,14 @@ class CommandExecutorService {
     List<TaskItem> tasks,
     DateTime currentMoment,
   ) {
-    final conflicts =
-        _conflictService.evaluateSchedule(tasks: tasks, currentTime: currentMoment);
+    final conflicts = _conflictService.evaluateSchedule(
+      tasks: tasks,
+      currentTime: currentMoment,
+    );
     if (conflicts.isEmpty) {
       return CommandPreview(
         command: command,
-        summary:
-            'No active schedule conflicts detected. Schedule is aligned.',
+        summary: 'No active schedule conflicts detected. Schedule is aligned.',
       );
     }
 
@@ -409,8 +412,10 @@ class CommandExecutorService {
 
     final shifts = <TaskShiftPreview>[];
     for (final updated in resolution.updatedTasks) {
-      final original =
-          tasks.firstWhere((t) => t.id == updated.id, orElse: () => updated);
+      final original = tasks.firstWhere(
+        (t) => t.id == updated.id,
+        orElse: () => updated,
+      );
       if (original.startTime != updated.startTime) {
         shifts.add(
           TaskShiftPreview(
@@ -480,11 +485,7 @@ class CommandExecutorService {
         ? 'Weekly schedule is already optimally balanced (score: ${planResult.balanceScore.toStringAsFixed(0)}/100).'
         : 'Balanced ${shifts.length} task${shifts.length == 1 ? '' : 's'} across 7 days (Weekly Balance Score: ${planResult.balanceScore.toStringAsFixed(0)}/100).';
 
-    return CommandPreview(
-      command: command,
-      summary: summary,
-      shifts: shifts,
-    );
+    return CommandPreview(command: command, summary: summary, shifts: shifts);
   }
 
   CommandPreview _previewReplanWeek(
@@ -524,11 +525,7 @@ class CommandExecutorService {
         ? 'No slipped tasks detected to recover.'
         : 'Mid-week recovery rebalanced ${shifts.length} task${shifts.length == 1 ? '' : 's'} into remaining days.';
 
-    return CommandPreview(
-      command: command,
-      summary: summary,
-      shifts: shifts,
-    );
+    return CommandPreview(command: command, summary: summary, shifts: shifts);
   }
 
   CommandPreview _previewPlanningDebt(
@@ -547,10 +544,7 @@ class CommandExecutorService {
     final summary =
         'Planning Debt Index: ${debt.debtIndex.toStringAsFixed(0)}/100 (${debt.overdueTasks.length} overdue, ${debt.zombieTasks.length} zombie tasks)$recText';
 
-    return CommandPreview(
-      command: command,
-      summary: summary,
-    );
+    return CommandPreview(command: command, summary: summary);
   }
 
   /// Executes the command previewed against the controller.
@@ -629,10 +623,7 @@ class CommandExecutorService {
         );
 
       case ScheduleCommandType.linkContext:
-        return CommandExecutionResult(
-          success: true,
-          message: preview.summary,
-        );
+        return CommandExecutionResult(success: true, message: preview.summary);
 
       case ScheduleCommandType.planWeek:
       case ScheduleCommandType.replanWeek:
@@ -649,10 +640,7 @@ class CommandExecutorService {
         );
 
       case ScheduleCommandType.planningDebt:
-        return CommandExecutionResult(
-          success: true,
-          message: preview.summary,
-        );
+        return CommandExecutionResult(success: true, message: preview.summary);
 
       case ScheduleCommandType.startFocus:
         return CommandExecutionResult(

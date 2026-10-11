@@ -1,4 +1,5 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -16,10 +17,12 @@ class CircadianEnergyCurveCard extends ConsumerStatefulWidget {
   const CircadianEnergyCurveCard({super.key});
 
   @override
-  ConsumerState<CircadianEnergyCurveCard> createState() => _CircadianEnergyCurveCardState();
+  ConsumerState<CircadianEnergyCurveCard> createState() =>
+      _CircadianEnergyCurveCardState();
 }
 
-class _CircadianEnergyCurveCardState extends ConsumerState<CircadianEnergyCurveCard> {
+class _CircadianEnergyCurveCardState
+    extends ConsumerState<CircadianEnergyCurveCard> {
   bool _isExpanded = true;
   double? _inspectedHour;
 
@@ -32,7 +35,10 @@ class _CircadianEnergyCurveCardState extends ConsumerState<CircadianEnergyCurveC
     final currentHour = now.hour + (now.minute / 60.0);
     final activeHour = _inspectedHour ?? currentHour;
 
-    final capacity = CircadianRhythm.energyCapacityAtHour(activeHour, chronotypeId: chronotype.id);
+    final capacity = CircadianRhythm.energyCapacityAtHour(
+      activeHour,
+      chronotypeId: chronotype.id,
+    );
     final phase = CircadianPhase.fromCapacity(capacity);
     final isInspecting = _inspectedHour != null;
 
@@ -66,7 +72,9 @@ class _CircadianEnergyCurveCardState extends ConsumerState<CircadianEnergyCurveC
               // Header
               InkWell(
                 onTap: () => setState(() => _isExpanded = !_isExpanded),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(18),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
                   child: Row(
@@ -103,13 +111,18 @@ class _CircadianEnergyCurveCardState extends ConsumerState<CircadianEnergyCurveC
                                     style: TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 13.5,
-                                      color: isDark ? Colors.white : Colors.black87,
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black87,
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: phaseColor.withAlpha(30),
                                     borderRadius: BorderRadius.circular(6),
@@ -143,11 +156,14 @@ class _CircadianEnergyCurveCardState extends ConsumerState<CircadianEnergyCurveC
                       ),
                       IconButton(
                         icon: Icon(
-                          _isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                          _isExpanded
+                              ? Icons.expand_less_rounded
+                              : Icons.expand_more_rounded,
                           size: 20,
                           color: isDark ? Colors.white54 : Colors.black45,
                         ),
-                        onPressed: () => setState(() => _isExpanded = !_isExpanded),
+                        onPressed: () =>
+                            setState(() => _isExpanded = !_isExpanded),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
@@ -158,7 +174,9 @@ class _CircadianEnergyCurveCardState extends ConsumerState<CircadianEnergyCurveC
 
               // Animated Curve Body
               AnimatedCrossFade(
-                crossFadeState: _isExpanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+                crossFadeState: _isExpanded
+                    ? CrossFadeState.showFirst
+                    : CrossFadeState.showSecond,
                 duration: const Duration(milliseconds: 250),
                 secondChild: const SizedBox.shrink(),
                 firstChild: Padding(
@@ -172,11 +190,15 @@ class _CircadianEnergyCurveCardState extends ConsumerState<CircadianEnergyCurveC
                       // Interactive Canvas
                       GestureDetector(
                         onHorizontalDragUpdate: (details) {
-                          final RenderBox box = context.findRenderObject() as RenderBox;
+                          final RenderBox box =
+                              context.findRenderObject() as RenderBox;
                           final localPos = details.localPosition;
                           final width = box.size.width - 28;
                           if (width > 0) {
-                            final fraction = (localPos.dx / width).clamp(0.0, 1.0);
+                            final fraction = (localPos.dx / width).clamp(
+                              0.0,
+                              1.0,
+                            );
                             setState(() => _inspectedHour = fraction * 24.0);
                           }
                         },
@@ -188,11 +210,15 @@ class _CircadianEnergyCurveCardState extends ConsumerState<CircadianEnergyCurveC
                           });
                         },
                         onTapDown: (details) {
-                          final RenderBox box = context.findRenderObject() as RenderBox;
+                          final RenderBox box =
+                              context.findRenderObject() as RenderBox;
                           final localPos = details.localPosition;
                           final width = box.size.width - 28;
                           if (width > 0) {
-                            final fraction = (localPos.dx / width).clamp(0.0, 1.0);
+                            final fraction = (localPos.dx / width).clamp(
+                              0.0,
+                              1.0,
+                            );
                             setState(() => _inspectedHour = fraction * 24.0);
                           }
                         },
@@ -228,7 +254,10 @@ class _CircadianEnergyCurveCardState extends ConsumerState<CircadianEnergyCurveC
                       // Actionable Recommendation Pill
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
+                        ),
                         decoration: BoxDecoration(
                           color: phaseColor.withAlpha(isDark ? 20 : 15),
                           borderRadius: BorderRadius.circular(10),
@@ -236,7 +265,11 @@ class _CircadianEnergyCurveCardState extends ConsumerState<CircadianEnergyCurveC
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.bolt_rounded, size: 14, color: phaseColor),
+                            Icon(
+                              Icons.bolt_rounded,
+                              size: 14,
+                              color: phaseColor,
+                            ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
@@ -244,7 +277,9 @@ class _CircadianEnergyCurveCardState extends ConsumerState<CircadianEnergyCurveC
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white70 : Colors.black87,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black87,
                                 ),
                               ),
                             ),
@@ -321,7 +356,10 @@ class _CircadianEnergyCurveCardState extends ConsumerState<CircadianEnergyCurveC
     return DateFormat('h:mm a').format(dt);
   }
 
-  static String _recommendationText(CircadianPhase phase, Chronotype chronotype) {
+  static String _recommendationText(
+    CircadianPhase phase,
+    Chronotype chronotype,
+  ) {
     switch (phase) {
       case CircadianPhase.peakFocus:
         return 'Biological Zenith: Perfect for deep focus, complex code, and strategic architecture.';
@@ -363,7 +401,11 @@ class _CircadianCurvePainter extends CustomPainter {
       ..strokeWidth = 0.8
       ..style = PaintingStyle.stroke;
 
-    canvas.drawLine(Offset(0, height * 0.5), Offset(width, height * 0.5), gridPaint);
+    canvas.drawLine(
+      Offset(0, height * 0.5),
+      Offset(width, height * 0.5),
+      gridPaint,
+    );
 
     final path = Path();
     final fillPath = Path();
@@ -373,7 +415,10 @@ class _CircadianCurvePainter extends CustomPainter {
 
     for (var i = 0; i <= sampleCount; i++) {
       final hour = (i / sampleCount) * 24.0;
-      final capacity = CircadianRhythm.energyCapacityAtHour(hour, chronotypeId: chronotype.id);
+      final capacity = CircadianRhythm.energyCapacityAtHour(
+        hour,
+        chronotypeId: chronotype.id,
+      );
       final x = (hour / 24.0) * width;
       // High capacity maps to near y = 4 (top), low capacity maps to height - 4 (bottom)
       final y = height - (capacity * (height - 12)) - 6;
@@ -426,11 +471,16 @@ class _CircadianCurvePainter extends CustomPainter {
     // Draw real-time needle indicator
     final needleHour = inspectedHour ?? currentHour;
     final needleX = (needleHour / 24.0) * width;
-    final needleCapacity = CircadianRhythm.energyCapacityAtHour(needleHour, chronotypeId: chronotype.id);
+    final needleCapacity = CircadianRhythm.energyCapacityAtHour(
+      needleHour,
+      chronotypeId: chronotype.id,
+    );
     final needleY = height - (needleCapacity * (height - 12)) - 6;
 
     final needlePaint = Paint()
-      ..color = (inspectedHour != null ? Colors.white : accentColor).withAlpha(180)
+      ..color = (inspectedHour != null ? Colors.white : accentColor).withAlpha(
+        180,
+      )
       ..strokeWidth = 1.2
       ..style = PaintingStyle.stroke;
 

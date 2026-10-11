@@ -436,7 +436,9 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
                       // Title
                       TextField(
                         controller: _titleCtrl,
-                        inputFormatters: [LengthLimitingTextInputFormatter(300)],
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(300),
+                        ],
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
@@ -543,7 +545,9 @@ class _NoteDetailScreenState extends ConsumerState<NoteDetailScreen> {
                       // Content editor
                       TextField(
                         controller: _contentCtrl,
-                        inputFormatters: [LengthLimitingTextInputFormatter(50000)],
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(50000),
+                        ],
                         style: TextStyle(
                           fontSize: 15,
                           color: isDark ? Colors.white.withAlpha(200) : kDark0,

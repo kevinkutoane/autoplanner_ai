@@ -44,87 +44,98 @@ class _FakeCalendarController extends CalendarController {
 
 void main() {
   group('WeeklyCapacityHeatmap Widget Tests', () {
-    testWidgets('renders weekly capacity intelligence header, 7 day columns, and plan week button',
-        (tester) async {
-      final monday = DateTime(2026, 10, 5);
-      final task = TaskItem(
-        id: 't1',
-        title: 'Project Brief',
-        startTime: DateTime(monday.year, monday.month, monday.day, 10, 0),
-        endTime: DateTime(monday.year, monday.month, monday.day, 12, 0),
-      );
+    testWidgets(
+      'renders weekly capacity intelligence header, 7 day columns, and plan week button',
+      (tester) async {
+        final monday = DateTime(2026, 10, 5);
+        final task = TaskItem(
+          id: 't1',
+          title: 'Project Brief',
+          startTime: DateTime(monday.year, monday.month, monday.day, 10, 0),
+          endTime: DateTime(monday.year, monday.month, monday.day, 12, 0),
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            taskControllerProvider.overrideWith(() => _FakeTaskController([task])),
-            settingsProvider.overrideWith(() => _FakeSettingsController()),
-            calendarControllerProvider.overrideWith(() => _FakeCalendarController()),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: WeeklyCapacityHeatmap(),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              taskControllerProvider.overrideWith(
+                () => _FakeTaskController([task]),
+              ),
+              settingsProvider.overrideWith(() => _FakeSettingsController()),
+              calendarControllerProvider.overrideWith(
+                () => _FakeCalendarController(),
+              ),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(body: WeeklyCapacityHeatmap()),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.byType(WeeklyCapacityHeatmap), findsOneWidget);
-      expect(find.text('Weekly Capacity Intelligence'), findsOneWidget);
-      expect(find.text('Plan Week'), findsOneWidget);
-    });
+        expect(find.byType(WeeklyCapacityHeatmap), findsOneWidget);
+        expect(find.text('Weekly Capacity Intelligence'), findsOneWidget);
+        expect(find.text('Plan Week'), findsOneWidget);
+      },
+    );
 
-    testWidgets('tapping a day column selects that date in plannerSelectedDateProvider',
-        (tester) async {
-      late WidgetRef capturedRef;
+    testWidgets(
+      'tapping a day column selects that date in plannerSelectedDateProvider',
+      (tester) async {
+        late WidgetRef capturedRef;
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            taskControllerProvider.overrideWith(() => _FakeTaskController([])),
-            settingsProvider.overrideWith(() => _FakeSettingsController()),
-            calendarControllerProvider.overrideWith(() => _FakeCalendarController()),
-          ],
-          child: MaterialApp(
-            home: Scaffold(
-              body: Consumer(
-                builder: (context, ref, _) {
-                  capturedRef = ref;
-                  return const WeeklyCapacityHeatmap();
-                },
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              taskControllerProvider.overrideWith(
+                () => _FakeTaskController([]),
+              ),
+              settingsProvider.overrideWith(() => _FakeSettingsController()),
+              calendarControllerProvider.overrideWith(
+                () => _FakeCalendarController(),
+              ),
+            ],
+            child: MaterialApp(
+              home: Scaffold(
+                body: Consumer(
+                  builder: (context, ref, _) {
+                    capturedRef = ref;
+                    return const WeeklyCapacityHeatmap();
+                  },
+                ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
-
-      // Find any day text button and tap it
-      final dayFinder = find.text('W'); // Wednesday
-      if (dayFinder.evaluate().isNotEmpty) {
-        await tester.tap(dayFinder.first);
         await tester.pumpAndSettle();
-      }
 
-      expect(capturedRef.read(plannerSelectedDateProvider), isNotNull);
-    });
+        // Find any day text button and tap it
+        final dayFinder = find.text('W'); // Wednesday
+        if (dayFinder.evaluate().isNotEmpty) {
+          await tester.tap(dayFinder.first);
+          await tester.pumpAndSettle();
+        }
 
-    testWidgets('tapping Plan Week opens PlanMyWeekSheet modal',
-        (tester) async {
+        expect(capturedRef.read(plannerSelectedDateProvider), isNotNull);
+      },
+    );
+
+    testWidgets('tapping Plan Week opens PlanMyWeekSheet modal', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             taskControllerProvider.overrideWith(() => _FakeTaskController([])),
             settingsProvider.overrideWith(() => _FakeSettingsController()),
-            calendarControllerProvider.overrideWith(() => _FakeCalendarController()),
+            calendarControllerProvider.overrideWith(
+              () => _FakeCalendarController(),
+            ),
           ],
           child: const MaterialApp(
-            home: Scaffold(
-              body: WeeklyCapacityHeatmap(),
-            ),
+            home: Scaffold(body: WeeklyCapacityHeatmap()),
           ),
         ),
       );

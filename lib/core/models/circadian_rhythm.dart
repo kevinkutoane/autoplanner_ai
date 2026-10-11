@@ -4,9 +4,21 @@ import 'task_model.dart';
 
 /// Available biological chronotypes supported by the AutoPlanner personal OS.
 enum Chronotype {
-  earlyBird('early_bird', 'Early Bird (Lion)', 'Peak energy 07:00 - 11:30. Early riser with steep afternoon drop.'),
-  balanced('balanced', 'Balanced (Bear)', 'Peak energy 09:30 - 13:00 and afternoon resurgence 16:00 - 18:30.'),
-  nightOwl('night_owl', 'Night Owl (Wolf)', 'Peak energy 17:00 - 23:00. Slow morning ramp with late evening golden hours.');
+  earlyBird(
+    'early_bird',
+    'Early Bird (Lion)',
+    'Peak energy 07:00 - 11:30. Early riser with steep afternoon drop.',
+  ),
+  balanced(
+    'balanced',
+    'Balanced (Bear)',
+    'Peak energy 09:30 - 13:00 and afternoon resurgence 16:00 - 18:30.',
+  ),
+  nightOwl(
+    'night_owl',
+    'Night Owl (Wolf)',
+    'Peak energy 17:00 - 23:00. Slow morning ramp with late evening golden hours.',
+  );
 
   final String id;
   final String label;
@@ -25,11 +37,31 @@ enum Chronotype {
 
 /// The biological energy phase corresponding to a circadian capacity level.
 enum CircadianPhase {
-  peakFocus('Peak Focus', 'High-intensity cognitive capacity. Prime deep work window.', 0.80),
-  steadyWork('Steady Work', 'Balanced focus suitable for problem solving and collaboration.', 0.60),
-  recoveryDip('Recovery Dip', 'Lower alertness. Ideal for admin, routine chores, or restorative breaks.', 0.35),
-  windDown('Wind-down', 'Mental deceleration phase. Wrap-up and planning.', 0.20),
-  rest('Rest', 'Biological rest window. Avoid scheduling high-effort tasks.', 0.0);
+  peakFocus(
+    'Peak Focus',
+    'High-intensity cognitive capacity. Prime deep work window.',
+    0.80,
+  ),
+  steadyWork(
+    'Steady Work',
+    'Balanced focus suitable for problem solving and collaboration.',
+    0.60,
+  ),
+  recoveryDip(
+    'Recovery Dip',
+    'Lower alertness. Ideal for admin, routine chores, or restorative breaks.',
+    0.35,
+  ),
+  windDown(
+    'Wind-down',
+    'Mental deceleration phase. Wrap-up and planning.',
+    0.20,
+  ),
+  rest(
+    'Rest',
+    'Biological rest window. Avoid scheduling high-effort tasks.',
+    0.0,
+  );
 
   final String label;
   final String description;
@@ -100,13 +132,19 @@ class CircadianRhythm {
 
   /// Computes the normalized biological energy capacity [0.0, 1.0] at [time]
   /// for the specified [chronotypeId].
-  static double energyCapacityAt(DateTime time, {String chronotypeId = 'early_bird'}) {
+  static double energyCapacityAt(
+    DateTime time, {
+    String chronotypeId = 'early_bird',
+  }) {
     final decimalHour = time.hour + (time.minute / 60.0);
     return energyCapacityAtHour(decimalHour, chronotypeId: chronotypeId);
   }
 
   /// Calculates biological energy capacity at decimal hour [0.0 - 24.0).
-  static double energyCapacityAtHour(double hour, {String chronotypeId = 'early_bird'}) {
+  static double energyCapacityAtHour(
+    double hour, {
+    String chronotypeId = 'early_bird',
+  }) {
     final chronotype = Chronotype.fromId(chronotypeId);
     final normalizedHour = ((hour % 24.0) + 24.0) % 24.0;
 
@@ -121,7 +159,10 @@ class CircadianRhythm {
   }
 
   /// Returns the [CircadianPhase] at [time] for [chronotypeId].
-  static CircadianPhase phaseAt(DateTime time, {String chronotypeId = 'early_bird'}) {
+  static CircadianPhase phaseAt(
+    DateTime time, {
+    String chronotypeId = 'early_bird',
+  }) {
     final capacity = energyCapacityAt(time, chronotypeId: chronotypeId);
     return CircadianPhase.fromCapacity(capacity);
   }
@@ -132,12 +173,14 @@ class CircadianRhythm {
     final normalizedTags = task.tags.map((t) => t.trim().toLowerCase()).toSet();
 
     // 1. Explicit shallow tags or low energy
-    if (normalizedTags.any(_shallowTags.contains) || task.energyLevel == 'low') {
+    if (normalizedTags.any(_shallowTags.contains) ||
+        task.energyLevel == 'low') {
       return CognitiveDemand.shallow;
     }
 
     // 2. Explicit deep work tags or high energy
-    if (normalizedTags.any(_deepWorkTags.contains) || task.energyLevel == 'high') {
+    if (normalizedTags.any(_deepWorkTags.contains) ||
+        task.energyLevel == 'high') {
       return CognitiveDemand.deepWork;
     }
 
@@ -175,23 +218,27 @@ class CircadianRhythm {
           final bonus = 14.0 * capacity;
           return (
             score: bonus,
-            rationale: 'Deep work aligned to $timeStr ${chronotype.label} peak focus ($percentDisplay capacity, +${bonus.toStringAsFixed(1)})',
+            rationale:
+                'Deep work aligned to $timeStr ${chronotype.label} peak focus ($percentDisplay capacity, +${bonus.toStringAsFixed(1)})',
           );
         } else if (phase == CircadianPhase.steadyWork) {
           final bonus = 7.0 * capacity;
           return (
             score: bonus,
-            rationale: 'Deep work in ${chronotype.label} steady work window at $timeStr ($percentDisplay capacity, +${bonus.toStringAsFixed(1)})',
+            rationale:
+                'Deep work in ${chronotype.label} steady work window at $timeStr ($percentDisplay capacity, +${bonus.toStringAsFixed(1)})',
           );
         } else if (phase == CircadianPhase.recoveryDip) {
           return (
             score: -8.0,
-            rationale: 'High-cognitive task scheduled during ${chronotype.label} recovery dip ($percentDisplay capacity, -8.0)',
+            rationale:
+                'High-cognitive task scheduled during ${chronotype.label} recovery dip ($percentDisplay capacity, -8.0)',
           );
         } else {
           return (
             score: -12.0,
-            rationale: 'High-cognitive task scheduled during ${chronotype.label} wind-down / rest period ($percentDisplay capacity, -12.0)',
+            rationale:
+                'High-cognitive task scheduled during ${chronotype.label} wind-down / rest period ($percentDisplay capacity, -12.0)',
           );
         }
 
@@ -200,37 +247,44 @@ class CircadianRhythm {
           // Rewarded for protecting peak hours and placing admin in dips
           return (
             score: 10.0,
-            rationale: 'Administrative task scheduled in ${chronotype.label} recovery dip at $timeStr (preserves peak focus, +10.0)',
+            rationale:
+                'Administrative task scheduled in ${chronotype.label} recovery dip at $timeStr (preserves peak focus, +10.0)',
           );
         } else if (phase == CircadianPhase.peakFocus) {
           // Penalized for wasting peak focus on shallow work
           return (
             score: -6.0,
-            rationale: 'Shallow task placed during ${chronotype.label} peak circadian focus window (-6.0)',
+            rationale:
+                'Shallow task placed during ${chronotype.label} peak circadian focus window (-6.0)',
           );
         } else {
           return (
             score: 4.0,
-            rationale: 'Administrative task scheduled in ${chronotype.label} non-peak slot at $timeStr (+4.0)',
+            rationale:
+                'Administrative task scheduled in ${chronotype.label} non-peak slot at $timeStr (+4.0)',
           );
         }
 
       case CognitiveDemand.moderate:
-        if (phase == CircadianPhase.peakFocus || phase == CircadianPhase.steadyWork) {
+        if (phase == CircadianPhase.peakFocus ||
+            phase == CircadianPhase.steadyWork) {
           final bonus = 6.0 * capacity;
           return (
             score: bonus,
-            rationale: 'Standard task scheduled in ${chronotype.label} productive window at $timeStr ($percentDisplay capacity, +${bonus.toStringAsFixed(1)})',
+            rationale:
+                'Standard task scheduled in ${chronotype.label} productive window at $timeStr ($percentDisplay capacity, +${bonus.toStringAsFixed(1)})',
           );
         } else if (phase == CircadianPhase.recoveryDip) {
           return (
             score: 2.0,
-            rationale: 'Standard task scheduled during ${chronotype.label} post-lunch dip at $timeStr (+2.0)',
+            rationale:
+                'Standard task scheduled during ${chronotype.label} post-lunch dip at $timeStr (+2.0)',
           );
         } else {
           return (
             score: -4.0,
-            rationale: 'Standard task scheduled during ${chronotype.label} wind-down/rest window (-4.0)',
+            rationale:
+                'Standard task scheduled during ${chronotype.label} wind-down/rest window (-4.0)',
           );
         }
     }
@@ -310,14 +364,26 @@ class CircadianRhythm {
     return 0.20;
   }
 
-  static double _gaussian(double x, double mean, double stdDev, double floor, double ceiling) {
+  static double _gaussian(
+    double x,
+    double mean,
+    double stdDev,
+    double floor,
+    double ceiling,
+  ) {
     final diff = x - mean;
     final exp = math.exp(-(diff * diff) / (2 * stdDev * stdDev));
     final result = floor + ((ceiling - floor) * exp);
     return result.clamp(0.0, 1.0);
   }
 
-  static double _dip(double x, double center, double width, double baseline, double dipTrough) {
+  static double _dip(
+    double x,
+    double center,
+    double width,
+    double baseline,
+    double dipTrough,
+  ) {
     final diff = x - center;
     final factor = math.exp(-(diff * diff) / (2 * width * width));
     final result = baseline - ((baseline - dipTrough) * factor);

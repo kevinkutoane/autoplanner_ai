@@ -1,4 +1,5 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -62,14 +63,17 @@ class _ConflictAnticipationCardState
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(
-                color: (result.isSuccess ? kNeonViolet : Colors.amber).withAlpha(140),
+                color: (result.isSuccess ? kNeonViolet : Colors.amber)
+                    .withAlpha(140),
                 width: 1,
               ),
             ),
             content: Row(
               children: [
                 Icon(
-                  result.isSuccess ? Icons.auto_mode_rounded : Icons.info_outline_rounded,
+                  result.isSuccess
+                      ? Icons.auto_mode_rounded
+                      : Icons.info_outline_rounded,
                   color: result.isSuccess ? kNeonViolet : Colors.amber,
                   size: 20,
                 ),
@@ -139,18 +143,11 @@ class _ConflictAnticipationCardState
             backgroundColor: const Color(0xFF1A1A2E),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(
-                color: kCyan.withAlpha(150),
-                width: 1,
-              ),
+              side: BorderSide(color: kCyan.withAlpha(150), width: 1),
             ),
             content: Row(
               children: [
-                const Icon(
-                  Icons.verified_rounded,
-                  color: kCyan,
-                  size: 20,
-                ),
+                const Icon(Icons.verified_rounded, color: kCyan, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -217,8 +214,9 @@ class _ConflictAnticipationCardState
     if (conflicts.isEmpty) return const SizedBox.shrink();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hasCritical =
-        conflicts.any((c) => c.severity == ConflictSeverity.critical);
+    final hasCritical = conflicts.any(
+      (c) => c.severity == ConflictSeverity.critical,
+    );
     final accentColor = hasCritical ? kCoral : kAmber;
 
     return ClipRRect(
@@ -341,8 +339,8 @@ class _ConflictAnticipationCardState
                           onPressed: _isResolving
                               ? null
                               : () => _resolveConflict(
-                                    conflicts.first.resolutionAction,
-                                  ),
+                                  conflicts.first.resolutionAction,
+                                ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: accentColor,
                             foregroundColor: Colors.white,
@@ -449,8 +447,7 @@ class _ConflictAnticipationCardState
                               Text(
                                 conflict.description,
                                 style: TextStyle(
-                                  color:
-                                      isDark ? Colors.white : Colors.black87,
+                                  color: isDark ? Colors.white : Colors.black87,
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -474,8 +471,8 @@ class _ConflictAnticipationCardState
                                   onPressed: _isResolving
                                       ? null
                                       : () => _resolveConflict(
-                                            conflict.resolutionAction,
-                                          ),
+                                          conflict.resolutionAction,
+                                        ),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: typeColor,
                                     side: BorderSide(
@@ -528,10 +525,7 @@ class _ConflictAnticipationCardState
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            icon: const Icon(
-                              Icons.done_all_rounded,
-                              size: 16,
-                            ),
+                            icon: const Icon(Icons.done_all_rounded, size: 16),
                             label: Text(
                               'Auto-Resolve All (${conflicts.length})',
                               style: const TextStyle(

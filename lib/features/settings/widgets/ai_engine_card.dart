@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -13,11 +14,7 @@ class AIEngineCard extends StatefulWidget {
   final AppSettings settings;
   final SettingsController ctrl;
 
-  const AIEngineCard({
-    super.key,
-    required this.settings,
-    required this.ctrl,
-  });
+  const AIEngineCard({super.key, required this.settings, required this.ctrl});
 
   @override
   State<AIEngineCard> createState() => _AIEngineCardState();
@@ -74,7 +71,9 @@ class _AIEngineCardState extends State<AIEngineCard> {
 
     final stopwatch = Stopwatch()..start();
     try {
-      final base = rawUrl.endsWith('/') ? rawUrl.substring(0, rawUrl.length - 1) : rawUrl;
+      final base = rawUrl.endsWith('/')
+          ? rawUrl.substring(0, rawUrl.length - 1)
+          : rawUrl;
       final healthUri = Uri.parse('$base/health');
       final res = await http.get(healthUri).timeout(const Duration(seconds: 4));
       stopwatch.stop();
@@ -146,8 +145,12 @@ class _AIEngineCardState extends State<AIEngineCard> {
                     title: Text(
                       '${_formatTokens(opt)} tokens / day',
                       style: TextStyle(
-                        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                        color: selected ? kIndigo : (isDark ? Colors.white70 : Colors.black87),
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: selected
+                            ? kIndigo
+                            : (isDark ? Colors.white70 : Colors.black87),
                       ),
                     ),
                     trailing: selected
@@ -228,7 +231,9 @@ class _AIEngineCardState extends State<AIEngineCard> {
           Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
-              color: isDark ? Colors.black.withAlpha(45) : Colors.grey.withAlpha(25),
+              color: isDark
+                  ? Colors.black.withAlpha(45)
+                  : Colors.grey.withAlpha(25),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -244,7 +249,9 @@ class _AIEngineCardState extends State<AIEngineCard> {
                   mode: 'offline_mock',
                   title: 'Offline Mode',
                   icon: Icons.offline_bolt_rounded,
-                  selected: currentMode == 'offline_mock' || widget.settings.useMockAI,
+                  selected:
+                      currentMode == 'offline_mock' ||
+                      widget.settings.useMockAI,
                   isDark: isDark,
                 ),
                 _buildModeTab(
@@ -275,10 +282,14 @@ class _AIEngineCardState extends State<AIEngineCard> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withAlpha(7) : Colors.black.withAlpha(5),
+              color: isDark
+                  ? Colors.white.withAlpha(7)
+                  : Colors.black.withAlpha(5),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(10),
+                color: isDark
+                    ? Colors.white.withAlpha(12)
+                    : Colors.black.withAlpha(10),
               ),
             ),
             child: Column(
@@ -334,17 +345,22 @@ class _AIEngineCardState extends State<AIEngineCard> {
                         runSpacing: 4,
                         alignment: WrapAlignment.end,
                         children: [5, 10, 15, 30].map((mins) {
-                          final isSelected = widget.settings.driftGraceMinutes == mins;
+                          final isSelected =
+                              widget.settings.driftGraceMinutes == mins;
                           return ChoiceChip(
                             label: Text('${mins}m'),
                             selected: isSelected,
-                            onSelected: (_) => widget.ctrl.updateDriftGraceMinutes(mins),
+                            onSelected: (_) =>
+                                widget.ctrl.updateDriftGraceMinutes(mins),
                             visualDensity: VisualDensity.compact,
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                             labelStyle: TextStyle(
                               fontSize: 10.5,
-                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
                               color: isSelected
                                   ? Colors.white
                                   : (isDark ? Colors.white70 : Colors.black87),
@@ -396,7 +412,9 @@ class _AIEngineCardState extends State<AIEngineCard> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withAlpha(5) : Colors.black.withAlpha(4),
+                color: isDark
+                    ? Colors.white.withAlpha(5)
+                    : Colors.black.withAlpha(4),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -494,7 +512,7 @@ class _AIEngineCardState extends State<AIEngineCard> {
                       color: Colors.black.withAlpha(15),
                       blurRadius: 3,
                       offset: const Offset(0, 1),
-                    )
+                    ),
                   ]
                 : null,
           ),
@@ -537,7 +555,9 @@ class _AIEngineCardState extends State<AIEngineCard> {
         color: isDark ? Colors.white.withAlpha(7) : Colors.black.withAlpha(5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(10),
+          color: isDark
+              ? Colors.white.withAlpha(12)
+              : Colors.black.withAlpha(10),
         ),
       ),
       child: Column(
@@ -561,14 +581,21 @@ class _AIEngineCardState extends State<AIEngineCard> {
                   widget.ctrl.updateCloudGatewayUrl('http://127.0.0.1:8000');
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: kCyan.withAlpha(25),
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: const Text(
                     'Local :8000',
-                    style: TextStyle(fontSize: 10, color: kCyan, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: kCyan,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -593,9 +620,14 @@ class _AIEngineCardState extends State<AIEngineCard> {
                         color: isDark ? Colors.white30 : Colors.black26,
                         fontSize: 11,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       filled: true,
-                      fillColor: isDark ? Colors.black.withAlpha(40) : Colors.grey.withAlpha(20),
+                      fillColor: isDark
+                          ? Colors.black.withAlpha(40)
+                          : Colors.grey.withAlpha(20),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide(
@@ -607,7 +639,8 @@ class _AIEngineCardState extends State<AIEngineCard> {
                         borderSide: const BorderSide(color: kIndigo),
                       ),
                     ),
-                    onSubmitted: (val) => widget.ctrl.updateCloudGatewayUrl(val),
+                    onSubmitted: (val) =>
+                        widget.ctrl.updateCloudGatewayUrl(val),
                   ),
                 ),
               ),
@@ -628,7 +661,10 @@ class _AIEngineCardState extends State<AIEngineCard> {
                       : const Icon(Icons.bolt_rounded, size: 15),
                   label: Text(
                     _isPinging ? '...' : 'Ping',
-                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kIndigo,
@@ -653,15 +689,15 @@ class _AIEngineCardState extends State<AIEngineCard> {
                 color: _pingSuccess == true
                     ? Colors.green.withAlpha(25)
                     : (_pingSuccess == false
-                        ? Colors.red.withAlpha(25)
-                        : Colors.blue.withAlpha(25)),
+                          ? Colors.red.withAlpha(25)
+                          : Colors.blue.withAlpha(25)),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
                   color: _pingSuccess == true
                       ? Colors.green.withAlpha(100)
                       : (_pingSuccess == false
-                          ? Colors.red.withAlpha(100)
-                          : Colors.blue.withAlpha(100)),
+                            ? Colors.red.withAlpha(100)
+                            : Colors.blue.withAlpha(100)),
                 ),
               ),
               child: Row(
@@ -671,8 +707,8 @@ class _AIEngineCardState extends State<AIEngineCard> {
                     _pingSuccess == true
                         ? Icons.check_circle_rounded
                         : (_pingSuccess == false
-                            ? Icons.error_outline_rounded
-                            : Icons.hourglass_top_rounded),
+                              ? Icons.error_outline_rounded
+                              : Icons.hourglass_top_rounded),
                     size: 13,
                     color: _pingSuccess == true
                         ? Colors.green
@@ -689,7 +725,9 @@ class _AIEngineCardState extends State<AIEngineCard> {
                         fontWeight: FontWeight.w600,
                         color: _pingSuccess == true
                             ? Colors.green
-                            : (_pingSuccess == false ? Colors.red : Colors.blue),
+                            : (_pingSuccess == false
+                                  ? Colors.red
+                                  : Colors.blue),
                       ),
                     ),
                   ),
@@ -719,7 +757,9 @@ class _AIEngineCardState extends State<AIEngineCard> {
         color: isDark ? Colors.white.withAlpha(7) : Colors.black.withAlpha(5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? Colors.white.withAlpha(12) : Colors.black.withAlpha(10),
+          color: isDark
+              ? Colors.white.withAlpha(12)
+              : Colors.black.withAlpha(10),
         ),
       ),
       child: Row(

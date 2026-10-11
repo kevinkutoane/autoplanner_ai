@@ -216,8 +216,9 @@ class SettingsScreen extends ConsumerWidget {
                                       label: 'System',
                                       mode: ThemeMode.system,
                                       selected: settings.themeMode,
-                                      onTap: () =>
-                                          ctrl.updateThemeMode(ThemeMode.system),
+                                      onTap: () => ctrl.updateThemeMode(
+                                        ThemeMode.system,
+                                      ),
                                       isDark: isDark,
                                     ),
                                     const SizedBox(width: 10),
@@ -249,8 +250,7 @@ class SettingsScreen extends ConsumerWidget {
                           _SwitchTile(
                             icon: Icons.vibration_rounded,
                             title: 'Haptic feedback',
-                            subtitle:
-                                'Subtle micro-vibrations on taps and task completions',
+                            subtitle: 'Subtle micro-vibrations on taps and task completions',
                             value: settings.hapticsEnabled,
                             onChanged: (v) => ctrl.updateHapticsEnabled(v),
                           ),
@@ -258,8 +258,7 @@ class SettingsScreen extends ConsumerWidget {
                           _SwitchTile(
                             icon: Icons.celebration_rounded,
                             title: 'Achievement celebrations',
-                            subtitle:
-                                'Visual fireworks when hitting streak and level milestones',
+                            subtitle: 'Visual fireworks when hitting streak and level milestones',
                             value: settings.confettiCelebrationsEnabled,
                             onChanged: (v) =>
                                 ctrl.updateConfettiCelebrationsEnabled(v),
@@ -433,10 +432,7 @@ class SettingsScreen extends ConsumerWidget {
                   Stagger(
                     index: 5,
                     child: GlassCard(
-                      child: AIEngineCard(
-                        settings: settings,
-                        ctrl: ctrl,
-                      ),
+                      child: AIEngineCard(settings: settings, ctrl: ctrl),
                     ),
                   ),
 
@@ -478,8 +474,6 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-
-
 
                   const SizedBox(height: 16),
 
@@ -652,7 +646,6 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
-
 
   static Future<void> _pickStartTime(
     BuildContext context,
@@ -1710,8 +1703,6 @@ class _ProductivityPersonaCard extends StatelessWidget {
     );
   }
 }
-
-
 
 // ── Google Calendar tile ───────────────────────────────────────────
 

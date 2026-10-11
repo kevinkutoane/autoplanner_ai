@@ -8,14 +8,18 @@ void main() {
   // Monday 2099-06-15 is used as a fixed, far-future week start.
   final monday = DateTime(2099, 6, 15);
 
-  TaskItem task(String id, DateTime start, {bool done = false, int mins = 60}) =>
-      TaskItem(
-        id: id,
-        title: id,
-        startTime: start,
-        endTime: start.add(Duration(minutes: mins)),
-        isCompleted: done,
-      );
+  TaskItem task(
+    String id,
+    DateTime start, {
+    bool done = false,
+    int mins = 60,
+  }) => TaskItem(
+    id: id,
+    title: id,
+    startTime: start,
+    endTime: start.add(Duration(minutes: mins)),
+    isCompleted: done,
+  );
 
   group('WeeklyPlannerService window rules', () {
     test('completed tasks outside the window are not pulled in', () {

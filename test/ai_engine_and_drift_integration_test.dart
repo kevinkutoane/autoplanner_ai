@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,7 +20,9 @@ void main() {
 
   setUpAll(() async {
     appConfig = const EnvConfig();
-    tempDir = await Directory.systemTemp.createTemp('autoplanner_ai_drift_test_');
+    tempDir = await Directory.systemTemp.createTemp(
+      'autoplanner_ai_drift_test_',
+    );
     Hive.init(tempDir.path);
   });
 
@@ -49,15 +52,27 @@ void main() {
       final ctrl = container.read(settingsProvider.notifier);
       await ctrl.ensureInitialized();
 
-      expect(container.read(settingsProvider).aiConnectionMode, 'cloud_gateway');
+      expect(
+        container.read(settingsProvider).aiConnectionMode,
+        'cloud_gateway',
+      );
 
       await ctrl.updateAIConnectionMode('direct_gemini');
-      expect(container.read(settingsProvider).aiConnectionMode, 'direct_gemini');
+      expect(
+        container.read(settingsProvider).aiConnectionMode,
+        'direct_gemini',
+      );
       expect(box.get(AppSettings.kAiConnectionMode), 'direct_gemini');
 
       await ctrl.updateCloudGatewayUrl('http://192.168.1.100:8000');
-      expect(container.read(settingsProvider).cloudGatewayUrl, 'http://192.168.1.100:8000');
-      expect(box.get(AppSettings.kCloudGatewayUrl), 'http://192.168.1.100:8000');
+      expect(
+        container.read(settingsProvider).cloudGatewayUrl,
+        'http://192.168.1.100:8000',
+      );
+      expect(
+        box.get(AppSettings.kCloudGatewayUrl),
+        'http://192.168.1.100:8000',
+      );
 
       await ctrl.updateAutoRippleDrift(false);
       expect(container.read(settingsProvider).autoRippleDrift, isFalse);
@@ -70,34 +85,42 @@ void main() {
   });
 
   group('aiProviderProvider dynamic switching', () {
-    test('routes to CloudAIProvider when aiConnectionMode is cloud_gateway', () {
-      final container = ProviderContainer(
-        overrides: [
-          settingsProvider.overrideWith(() => _MockSettingsController(
-            AppSettings.defaults().copyWith(
-              aiConnectionMode: 'cloud_gateway',
-              cloudGatewayUrl: 'http://127.0.0.1:8000',
-              useMockAI: false,
+    test(
+      'routes to CloudAIProvider when aiConnectionMode is cloud_gateway',
+      () {
+        final container = ProviderContainer(
+          overrides: [
+            settingsProvider.overrideWith(
+              () => _MockSettingsController(
+                AppSettings.defaults().copyWith(
+                  aiConnectionMode: 'cloud_gateway',
+                  cloudGatewayUrl: 'http://127.0.0.1:8000',
+                  useMockAI: false,
+                ),
+              ),
             ),
-          )),
-        ],
-      );
-      addTearDown(container.dispose);
+          ],
+        );
+        addTearDown(container.dispose);
 
-      final provider = container.read(aiProviderProvider);
-      expect(provider, isA<CloudAIProvider>());
-      final cloudProvider = provider as CloudAIProvider;
-      expect(cloudProvider.gatewayBaseUrl.toString(), 'http://127.0.0.1:8000');
-    });
+        final provider = container.read(aiProviderProvider);
+        expect(provider, isA<CloudAIProvider>());
+        final cloudProvider = provider as CloudAIProvider;
+        expect(
+          cloudProvider.gatewayBaseUrl.toString(),
+          'http://127.0.0.1:8000',
+        );
+      },
+    );
 
     test('routes to MockAIProvider when aiConnectionMode is offline_mock', () {
       final container = ProviderContainer(
         overrides: [
-          settingsProvider.overrideWith(() => _MockSettingsController(
-            AppSettings.defaults().copyWith(
-              aiConnectionMode: 'offline_mock',
+          settingsProvider.overrideWith(
+            () => _MockSettingsController(
+              AppSettings.defaults().copyWith(aiConnectionMode: 'offline_mock'),
             ),
-          )),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -106,39 +129,42 @@ void main() {
       expect(provider, isA<MockAIProvider>());
     });
 
-    test('routes to GeminiProvider when direct_gemini is selected with API key', () {
-      final container = ProviderContainer(
-        overrides: [
-          settingsProvider.overrideWith(() => _MockSettingsController(
-            AppSettings.defaults().copyWith(
-              aiConnectionMode: 'direct_gemini',
-              geminiApiKey: 'test-direct-key-12345',
-              useMockAI: false,
+    test(
+      'routes to GeminiProvider when direct_gemini is selected with API key',
+      () {
+        final container = ProviderContainer(
+          overrides: [
+            settingsProvider.overrideWith(
+              () => _MockSettingsController(
+                AppSettings.defaults().copyWith(
+                  aiConnectionMode: 'direct_gemini',
+                  geminiApiKey: 'test-direct-key-12345',
+                  useMockAI: false,
+                ),
+              ),
             ),
-          )),
-        ],
-      );
-      addTearDown(container.dispose);
+          ],
+        );
+        addTearDown(container.dispose);
 
-      final provider = container.read(aiProviderProvider);
-      expect(provider, isA<GeminiProvider>());
-      final gemini = provider as GeminiProvider;
-      expect(gemini.modelName, 'gemini-2.5-flash');
-    });
+        final provider = container.read(aiProviderProvider);
+        expect(provider, isA<GeminiProvider>());
+        final gemini = provider as GeminiProvider;
+        expect(gemini.modelName, 'gemini-2.5-flash');
+      },
+    );
   });
 
   group('ScheduleDriftCard Widget Tests', () {
-    testWidgets('renders nothing when no schedule drift is detected', (tester) async {
+    testWidgets('renders nothing when no schedule drift is detected', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             scheduleDriftProvider.overrideWithValue(ScheduleDrift.none()),
           ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: ScheduleDriftCard(),
-            ),
-          ),
+          child: const MaterialApp(home: Scaffold(body: ScheduleDriftCard())),
         ),
       );
 
@@ -146,52 +172,51 @@ void main() {
       expect(find.text('Schedule Drift Detected'), findsNothing);
     });
 
-    testWidgets('renders drift warning and Auto-Ripple button when drift is present', (tester) async {
-      final baseDate = DateTime(2026, 10, 2, 9, 0);
-      final driftedTask = TaskItem(
-        id: 'task-1',
-        title: 'Review System Architecture',
-        startTime: baseDate,
-        endTime: baseDate.add(const Duration(minutes: 60)),
-        isCompleted: false,
-      );
+    testWidgets(
+      'renders drift warning and Auto-Ripple button when drift is present',
+      (tester) async {
+        final baseDate = DateTime(2026, 10, 2, 9, 0);
+        final driftedTask = TaskItem(
+          id: 'task-1',
+          title: 'Review System Architecture',
+          startTime: baseDate,
+          endTime: baseDate.add(const Duration(minutes: 60)),
+          isCompleted: false,
+        );
 
-      final activeDrift = ScheduleDrift(
-        hasDrift: true,
-        driftMinutes: 35,
-        overdueTasks: [driftedTask],
-        impactedTasks: [],
-        summary: 'Schedule is running 35 min behind.',
-      );
+        final activeDrift = ScheduleDrift(
+          hasDrift: true,
+          driftMinutes: 35,
+          overdueTasks: [driftedTask],
+          impactedTasks: [],
+          summary: 'Schedule is running 35 min behind.',
+        );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            scheduleDriftProvider.overrideWithValue(activeDrift),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: ScheduleDriftCard(),
-            ),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [scheduleDriftProvider.overrideWithValue(activeDrift)],
+            child: const MaterialApp(home: Scaffold(body: ScheduleDriftCard())),
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Schedule Drift Detected'), findsOneWidget);
-      expect(find.text('+35m'), findsOneWidget);
-      expect(find.text('Auto-Ripple Schedule'), findsOneWidget);
-      expect(find.byIcon(Icons.bolt_rounded), findsOneWidget);
+        expect(find.text('Schedule Drift Detected'), findsOneWidget);
+        expect(find.text('+35m'), findsOneWidget);
+        expect(find.text('Auto-Ripple Schedule'), findsOneWidget);
+        expect(find.byIcon(Icons.bolt_rounded), findsOneWidget);
 
-      // Expand task list
-      await tester.tap(find.byTooltip('View drifted tasks'));
-      await tester.pumpAndSettle();
+        // Expand task list
+        await tester.tap(find.byTooltip('View drifted tasks'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Review System Architecture'), findsOneWidget);
-    });
+        expect(find.text('Review System Architecture'), findsOneWidget);
+      },
+    );
   });
 
   group('AIEngineCard Widget Tests', () {
-    testWidgets('displays connection mode tabs and gateway base url', (tester) async {
+    testWidgets('displays connection mode tabs and gateway base url', (
+      tester,
+    ) async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
@@ -206,10 +231,7 @@ void main() {
           child: MaterialApp(
             home: Scaffold(
               body: SingleChildScrollView(
-                child: AIEngineCard(
-                  settings: settings,
-                  ctrl: ctrl,
-                ),
+                child: AIEngineCard(settings: settings, ctrl: ctrl),
               ),
             ),
           ),

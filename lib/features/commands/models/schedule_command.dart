@@ -194,15 +194,22 @@ class ScheduleCommand {
     final trimmed = text.trim();
     final lower = trimmed.toLowerCase();
 
-    if (lower == '/plan-week' || lower == 'plan week' || lower == '/planweek' || lower == 'plan-week') {
+    if (lower == '/plan-week' ||
+        lower == 'plan week' ||
+        lower == '/planweek' ||
+        lower == 'plan-week') {
       return ScheduleCommand(
         type: ScheduleCommandType.planWeek,
-        explanation: 'Balance weekly capacity and distribute tasks across 7 days.',
+        explanation:
+            'Balance weekly capacity and distribute tasks across 7 days.',
         targetDate: now,
       );
     }
 
-    if (lower == '/replan-week' || lower == 'replan week' || lower == '/replanweek' || lower == 'replan-week') {
+    if (lower == '/replan-week' ||
+        lower == 'replan week' ||
+        lower == '/replanweek' ||
+        lower == 'replan-week') {
       return ScheduleCommand(
         type: ScheduleCommandType.replanWeek,
         explanation: 'Mid-week adaptive recovery: roll uncompleted slipped tasks into open capacity.',
@@ -210,23 +217,34 @@ class ScheduleCommand {
       );
     }
 
-    if (lower == '/debt' || lower == 'planning debt' || lower == '/planning-debt' || lower == 'debt') {
+    if (lower == '/debt' ||
+        lower == 'planning debt' ||
+        lower == '/planning-debt' ||
+        lower == 'debt') {
       return ScheduleCommand(
         type: ScheduleCommandType.planningDebt,
-        explanation: 'Audit planning debt, overdue commitments, and stale tasks.',
+        explanation:
+            'Audit planning debt, overdue commitments, and stale tasks.',
         targetDate: now,
       );
     }
 
-    if (lower == '/reschedule' || lower == 'reschedule' || lower == '/rebalance' || lower == 'rebalance') {
+    if (lower == '/reschedule' ||
+        lower == 'reschedule' ||
+        lower == '/rebalance' ||
+        lower == 'rebalance') {
       return ScheduleCommand(
         type: ScheduleCommandType.autoReschedule,
-        explanation: 'Autonomous schedule drift healing and circadian peak alignment.',
+        explanation:
+            'Autonomous schedule drift healing and circadian peak alignment.',
         targetDate: now,
       );
     }
 
-    if (lower == '/resolve' || lower == 'resolve' || lower == '/resolve-conflicts' || lower == 'fix conflicts') {
+    if (lower == '/resolve' ||
+        lower == 'resolve' ||
+        lower == '/resolve-conflicts' ||
+        lower == 'fix conflicts') {
       return ScheduleCommand(
         type: ScheduleCommandType.resolveConflicts,
         explanation: 'Proactively resolve anticipated schedule collisions, transit shortages, and deadline risks.',
@@ -268,12 +286,15 @@ class ScheduleCommand {
           toTime: to,
           minutes: 120,
           targetDate: now,
-          explanation: 'Protect 2-hour uninterrupted focus block from ${from.hour}:00 to ${to.hour}:00.',
+          explanation:
+              'Protect 2-hour uninterrupted focus block from ${from.hour}:00 to ${to.hour}:00.',
         );
       }
     }
 
-    return ScheduleCommand.unknown(explanation: 'Command not recognized: $text');
+    return ScheduleCommand.unknown(
+      explanation: 'Command not recognized: $text',
+    );
   }
 
   static String _defaultExplanation(

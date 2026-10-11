@@ -451,7 +451,9 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Unable to save API key. Please check your entry and try again.'),
+            content: Text(
+              'Unable to save API key. Please check your entry and try again.',
+            ),
             backgroundColor: kCoral,
           ),
         );

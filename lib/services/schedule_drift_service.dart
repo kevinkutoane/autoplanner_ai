@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:clock/clock.dart';
 
 import '../core/models/task_model.dart';
@@ -46,12 +47,12 @@ class ScheduleDrift {
   }
 
   factory ScheduleDrift.none() => const ScheduleDrift(
-        hasDrift: false,
-        driftMinutes: 0,
-        overdueTasks: [],
-        impactedTasks: [],
-        summary: 'Schedule is on track.',
-      );
+    hasDrift: false,
+    driftMinutes: 0,
+    overdueTasks: [],
+    impactedTasks: [],
+    summary: 'Schedule is on track.',
+  );
 }
 
 /// The result of an autonomous ripple reschedule operation.
@@ -94,7 +95,7 @@ class ScheduleDriftService {
   final SchedulerService _scheduler;
 
   ScheduleDriftService({SchedulerService? scheduler})
-      : _scheduler = scheduler ?? SchedulerService();
+    : _scheduler = scheduler ?? SchedulerService();
 
   /// Detects whether today's schedule has drifted beyond [graceMinutes].
   ScheduleDrift detectDrift({
@@ -150,7 +151,8 @@ class ScheduleDriftService {
       driftMinutes: maxDriftMinutes,
       overdueTasks: overdue,
       impactedTasks: impacted,
-      summary: 'Schedule is running $maxDriftMinutes min behind (${overdue.length} overdue task${overdue.length > 1 ? 's' : ''}).',
+      summary:
+          'Schedule is running $maxDriftMinutes min behind (${overdue.length} overdue task${overdue.length > 1 ? 's' : ''}).',
     );
   }
 
@@ -192,13 +194,16 @@ class ScheduleDriftService {
     );
 
     // Map healed tasks into original collection
-    final scheduledMap = {for (final t in scheduleResult.scheduledTasks) t.id: t};
+    final scheduledMap = {
+      for (final t in scheduleResult.scheduledTasks) t.id: t,
+    };
     var shifted = 0;
 
     final updatedAll = allTasks.map((original) {
       final healed = scheduledMap[original.id];
       if (healed != null) {
-        if (healed.startTime != original.startTime || healed.endTime != original.endTime) {
+        if (healed.startTime != original.startTime ||
+            healed.endTime != original.endTime) {
           shifted++;
           return healed;
         }
@@ -206,7 +211,8 @@ class ScheduleDriftService {
       return original;
     }).toList();
 
-    final rationale = 'Self-healing ripple repositioned $shifted task${shifted == 1 ? '' : 's'} '
+    final rationale =
+        'Self-healing ripple repositioned $shifted task${shifted == 1 ? '' : 's'} '
         'to absorb ${drift.driftMinutes}m drift while preserving fixed commitments.';
 
     return RippleRescheduleResult(

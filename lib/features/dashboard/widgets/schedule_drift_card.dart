@@ -1,4 +1,5 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -49,10 +50,7 @@ class _ScheduleDriftCardState extends ConsumerState<ScheduleDriftCard> {
               backgroundColor: const Color(0xFF1E1E2E),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: kCyan.withAlpha(120),
-                  width: 1,
-                ),
+                side: BorderSide(color: kCyan.withAlpha(120), width: 1),
               ),
               content: Row(
                 children: [
@@ -317,9 +315,7 @@ class _ScheduleDriftCardState extends ConsumerState<ScheduleDriftCard> {
                         decoration: BoxDecoration(
                           color: kCyan.withAlpha(30),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: kCyan.withAlpha(80),
-                          ),
+                          border: Border.all(color: kCyan.withAlpha(80)),
                         ),
                         child: const Icon(
                           Icons.anchor_rounded,

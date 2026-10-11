@@ -102,9 +102,7 @@ class _FocusModeScreenState extends ConsumerState<FocusModeScreen>
               TextField(
                 controller: _distractionController,
                 autofocus: true,
-                inputFormatters: [
-                  LengthLimitingTextInputFormatter(500),
-                ],
+                inputFormatters: [LengthLimitingTextInputFormatter(500)],
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'e.g. Reply to Marcus, check server disk space...',

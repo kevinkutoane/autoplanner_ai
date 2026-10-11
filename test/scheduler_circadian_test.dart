@@ -11,55 +11,68 @@ void main() {
   });
 
   group('SchedulerService Circadian & Chronotype Alignment', () {
-    test('Early Bird (Lion) places deep work in prime morning focus window', () {
-      final tasks = [
-        TaskItem(
-          id: 'admin_1',
-          title: 'Review Inbox',
-          startTime: testDay,
-          tags: ['email', 'admin'],
-          priority: 1,
-        ),
-        TaskItem(
-          id: 'deep_1',
-          title: 'Core Algorithm Architecture',
-          startTime: testDay,
-          tags: ['coding', 'architecture'],
-          priority: 3,
-        ),
-      ];
+    test(
+      'Early Bird (Lion) places deep work in prime morning focus window',
+      () {
+        final tasks = [
+          TaskItem(
+            id: 'admin_1',
+            title: 'Review Inbox',
+            startTime: testDay,
+            tags: ['email', 'admin'],
+            priority: 1,
+          ),
+          TaskItem(
+            id: 'deep_1',
+            title: 'Core Algorithm Architecture',
+            startTime: testDay,
+            tags: ['coding', 'architecture'],
+            priority: 3,
+          ),
+        ];
 
-      final result = scheduler.scheduleDayWithDetails(
-        tasks: tasks,
-        day: testDay,
-        workStartHour: 8,
-        workHoursPerDay: 9,
-        chronotype: 'early_bird',
-      );
+        final result = scheduler.scheduleDayWithDetails(
+          tasks: tasks,
+          day: testDay,
+          workStartHour: 8,
+          workHoursPerDay: 9,
+          chronotype: 'early_bird',
+        );
 
-      final deepTask = result.scheduledTasks.firstWhere((t) => t.id == 'deep_1');
-      final adminTask = result.scheduledTasks.firstWhere((t) => t.id == 'admin_1');
+        final deepTask = result.scheduledTasks.firstWhere(
+          (t) => t.id == 'deep_1',
+        );
+        final adminTask = result.scheduledTasks.firstWhere(
+          (t) => t.id == 'admin_1',
+        );
 
-      // Deep work should be scheduled in morning peak (8:00 - 11:30)
-      expect(deepTask.startTime.hour, inInclusiveRange(8, 11));
-      expect(adminTask.startTime, isNotNull);
+        // Deep work should be scheduled in morning peak (8:00 - 11:30)
+        expect(deepTask.startTime.hour, inInclusiveRange(8, 11));
+        expect(adminTask.startTime, isNotNull);
 
-      // Rationale should mention Lion peak focus and biological capacity
-      final deepRationale = result.explanations['deep_1'];
-      expect(deepRationale, isNotNull);
-      expect(
-        deepRationale!.factors.any((f) => f.contains('Lion') || f.contains('peak focus')),
-        isTrue,
-      );
+        // Rationale should mention Lion peak focus and biological capacity
+        final deepRationale = result.explanations['deep_1'];
+        expect(deepRationale, isNotNull);
+        expect(
+          deepRationale!.factors.any(
+            (f) => f.contains('Lion') || f.contains('peak focus'),
+          ),
+          isTrue,
+        );
 
-      // Admin task should have rationale noting administrative fit
-      final adminRationale = result.explanations['admin_1'];
-      expect(adminRationale, isNotNull);
-      expect(
-        adminRationale!.factors.any((f) => f.contains('Administrative task') || f.contains('preserves peak focus')),
-        isTrue,
-      );
-    });
+        // Admin task should have rationale noting administrative fit
+        final adminRationale = result.explanations['admin_1'];
+        expect(adminRationale, isNotNull);
+        expect(
+          adminRationale!.factors.any(
+            (f) =>
+                f.contains('Administrative task') ||
+                f.contains('preserves peak focus'),
+          ),
+          isTrue,
+        );
+      },
+    );
 
     test('Night Owl (Wolf) aligns high cognitive tasks with evening / late day windows', () {
       final tasks = [
@@ -80,7 +93,9 @@ void main() {
         chronotype: 'night_owl',
       );
 
-      final deepTask = result.scheduledTasks.firstWhere((t) => t.id == 'wolf_deep');
+      final deepTask = result.scheduledTasks.firstWhere(
+        (t) => t.id == 'wolf_deep',
+      );
       expect(deepTask.startTime, isNotNull);
       // For Night Owl working late, the scheduler evaluation favors higher energy slots
       expect(result.explanations['wolf_deep'], isNotNull);
@@ -110,7 +125,9 @@ void main() {
       final explanation = result.explanations['bear_task'];
       expect(explanation, isNotNull);
       expect(
-        explanation!.factors.any((f) => f.contains('Bear') && f.contains('capacity')),
+        explanation!.factors.any(
+          (f) => f.contains('Bear') && f.contains('capacity'),
+        ),
         isTrue,
       );
     });
@@ -121,7 +138,13 @@ void main() {
           id: 'constrained_deep',
           title: 'Deep Work with Late Earliest Start',
           startTime: testDay,
-          earliestStart: DateTime(testDay.year, testDay.month, testDay.day, 14, 0),
+          earliestStart: DateTime(
+            testDay.year,
+            testDay.month,
+            testDay.day,
+            14,
+            0,
+          ),
           tags: ['coding'],
           priority: 3,
         ),
@@ -135,7 +158,9 @@ void main() {
         chronotype: 'early_bird',
       );
 
-      final task = result.scheduledTasks.firstWhere((t) => t.id == 'constrained_deep');
+      final task = result.scheduledTasks.firstWhere(
+        (t) => t.id == 'constrained_deep',
+      );
       expect(task.startTime.hour, greaterThanOrEqualTo(14));
     });
   });

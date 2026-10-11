@@ -146,7 +146,8 @@ void main() {
 
       final memoryKeyword = MemoryEntry(
         id: 'm2',
-        content: 'Refactoring tasks consistently take 25% longer than estimated.',
+        content:
+            'Refactoring tasks consistently take 25% longer than estimated.',
         sourceType: 'pattern',
         createdAt: now,
         tags: ['analytics'],

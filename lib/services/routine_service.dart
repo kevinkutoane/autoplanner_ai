@@ -297,6 +297,7 @@ class RoutineService {
     // 5. Award +50 XP and unlock zen master badge
     await _ref.read(gamificationServiceProvider.notifier).awardEveningRitual();
   }
+
   /// Strips code fences and extracts a plain-text string from an AI response.
   /// If the response is raw JSON, tries to extract a prose field from it.
   /// Returns an empty string if no usable text can be found.
@@ -321,7 +322,13 @@ class RoutineService {
       try {
         final decoded = jsonDecode(text);
         if (decoded is Map) {
-          for (final key in ['message', 'response', 'greeting', 'text', 'explanation']) {
+          for (final key in [
+            'message',
+            'response',
+            'greeting',
+            'text',
+            'explanation',
+          ]) {
             final val = decoded[key];
             if (val is String && val.trim().isNotEmpty) return val.trim();
           }

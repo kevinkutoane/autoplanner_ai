@@ -62,7 +62,9 @@ class _MockCalendarController extends CalendarController {
 
 void main() {
   group('SampleStarterPlanCard Tests', () {
-    testWidgets('renders all feature highlights and CTA buttons', (tester) async {
+    testWidgets('renders all feature highlights and CTA buttons', (
+      tester,
+    ) async {
       final settingsCtrl = _MockSettingsController(AppSettings.defaults());
       final taskCtrl = _MockTaskController([]);
 
@@ -74,9 +76,7 @@ void main() {
           ],
           child: const MaterialApp(
             home: Scaffold(
-              body: SingleChildScrollView(
-                child: SampleStarterPlanCard(),
-              ),
+              body: SingleChildScrollView(child: SampleStarterPlanCard()),
             ),
           ),
         ),
@@ -94,8 +94,7 @@ void main() {
       expect(
         find.byWidgetPredicate(
           (w) =>
-              w is RichText &&
-              w.text.toPlainText().contains('Locked Events'),
+              w is RichText && w.text.toPlainText().contains('Locked Events'),
         ),
         findsOneWidget,
       );
@@ -111,68 +110,68 @@ void main() {
       expect(find.text('Start Fresh'), findsOneWidget);
     });
 
-    testWidgets('tapping Load Sample Plan batches 4 tasks and dismisses starter pack',
-        (tester) async {
-      final settingsCtrl = _MockSettingsController(AppSettings.defaults());
-      final taskCtrl = _MockTaskController([]);
+    testWidgets(
+      'tapping Load Sample Plan batches 4 tasks and dismisses starter pack',
+      (tester) async {
+        final settingsCtrl = _MockSettingsController(AppSettings.defaults());
+        final taskCtrl = _MockTaskController([]);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            settingsProvider.overrideWith(() => settingsCtrl),
-            taskControllerProvider.overrideWith(() => taskCtrl),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: SingleChildScrollView(
-                child: SampleStarterPlanCard(),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              settingsProvider.overrideWith(() => settingsCtrl),
+              taskControllerProvider.overrideWith(() => taskCtrl),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: SingleChildScrollView(child: SampleStarterPlanCard()),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      final loadButton = find.text('Load Sample Plan');
-      expect(loadButton, findsOneWidget);
+        final loadButton = find.text('Load Sample Plan');
+        expect(loadButton, findsOneWidget);
 
-      await tester.tap(loadButton);
-      await tester.pumpAndSettle();
+        await tester.tap(loadButton);
+        await tester.pumpAndSettle();
 
-      expect(taskCtrl.lastBatchUpdated.length, 4);
-      expect(settingsCtrl.dismissedStarterPlanCalled, isTrue);
-      expect(find.textContaining('Sample workday loaded!'), findsOneWidget);
-    });
+        expect(taskCtrl.lastBatchUpdated.length, 4);
+        expect(settingsCtrl.dismissedStarterPlanCalled, isTrue);
+        expect(find.textContaining('Sample workday loaded!'), findsOneWidget);
+      },
+    );
 
-    testWidgets('tapping Start Fresh dismisses starter plan without loading tasks',
-        (tester) async {
-      final settingsCtrl = _MockSettingsController(AppSettings.defaults());
-      final taskCtrl = _MockTaskController([]);
+    testWidgets(
+      'tapping Start Fresh dismisses starter plan without loading tasks',
+      (tester) async {
+        final settingsCtrl = _MockSettingsController(AppSettings.defaults());
+        final taskCtrl = _MockTaskController([]);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            settingsProvider.overrideWith(() => settingsCtrl),
-            taskControllerProvider.overrideWith(() => taskCtrl),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: SingleChildScrollView(
-                child: SampleStarterPlanCard(),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              settingsProvider.overrideWith(() => settingsCtrl),
+              taskControllerProvider.overrideWith(() => taskCtrl),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(
+                body: SingleChildScrollView(child: SampleStarterPlanCard()),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      final startFreshButton = find.text('Start Fresh');
-      expect(startFreshButton, findsOneWidget);
+        final startFreshButton = find.text('Start Fresh');
+        expect(startFreshButton, findsOneWidget);
 
-      await tester.tap(startFreshButton);
-      await tester.pumpAndSettle();
+        await tester.tap(startFreshButton);
+        await tester.pumpAndSettle();
 
-      expect(taskCtrl.lastBatchUpdated.isEmpty, isTrue);
-      expect(settingsCtrl.dismissedStarterPlanCalled, isTrue);
-    });
+        expect(taskCtrl.lastBatchUpdated.isEmpty, isTrue);
+        expect(settingsCtrl.dismissedStarterPlanCalled, isTrue);
+      },
+    );
 
     testWidgets('dismiss close icon calls dismissStarterPlan', (tester) async {
       final settingsCtrl = _MockSettingsController(AppSettings.defaults());
@@ -186,9 +185,7 @@ void main() {
           ],
           child: const MaterialApp(
             home: Scaffold(
-              body: SingleChildScrollView(
-                child: SampleStarterPlanCard(),
-              ),
+              body: SingleChildScrollView(child: SampleStarterPlanCard()),
             ),
           ),
         ),
@@ -205,66 +202,66 @@ void main() {
   });
 
   group('PlannerScreen Starter Plan Integration Tests', () {
-    testWidgets('displays SampleStarterPlanCard when tasks are empty and not dismissed',
-        (tester) async {
-      tester.view.physicalSize = const Size(1080, 3000);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'displays SampleStarterPlanCard when tasks are empty and not dismissed',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 3000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final settingsCtrl = _MockSettingsController(
-        AppSettings.defaults().copyWith(hasDismissedStarterPlan: false),
-      );
-      final taskCtrl = _MockTaskController([]);
+        final settingsCtrl = _MockSettingsController(
+          AppSettings.defaults().copyWith(hasDismissedStarterPlan: false),
+        );
+        final taskCtrl = _MockTaskController([]);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            settingsProvider.overrideWith(() => settingsCtrl),
-            taskControllerProvider.overrideWith(() => taskCtrl),
-            goalControllerProvider.overrideWith(() => _MockGoalController()),
-            calendarControllerProvider.overrideWith(() => _MockCalendarController()),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: PlannerScreen(),
-            ),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              settingsProvider.overrideWith(() => settingsCtrl),
+              taskControllerProvider.overrideWith(() => taskCtrl),
+              goalControllerProvider.overrideWith(() => _MockGoalController()),
+              calendarControllerProvider.overrideWith(
+                () => _MockCalendarController(),
+              ),
+            ],
+            child: const MaterialApp(home: Scaffold(body: PlannerScreen())),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
-      expect(find.byType(SampleStarterPlanCard), findsOneWidget);
-    });
+        await tester.pump();
+        expect(find.byType(SampleStarterPlanCard), findsOneWidget);
+      },
+    );
 
-    testWidgets('hides SampleStarterPlanCard when hasDismissedStarterPlan is true',
-        (tester) async {
-      tester.view.physicalSize = const Size(1080, 3000);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'hides SampleStarterPlanCard when hasDismissedStarterPlan is true',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 3000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final settingsCtrl = _MockSettingsController(
-        AppSettings.defaults().copyWith(hasDismissedStarterPlan: true),
-      );
-      final taskCtrl = _MockTaskController([]);
+        final settingsCtrl = _MockSettingsController(
+          AppSettings.defaults().copyWith(hasDismissedStarterPlan: true),
+        );
+        final taskCtrl = _MockTaskController([]);
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            settingsProvider.overrideWith(() => settingsCtrl),
-            taskControllerProvider.overrideWith(() => taskCtrl),
-            goalControllerProvider.overrideWith(() => _MockGoalController()),
-            calendarControllerProvider.overrideWith(() => _MockCalendarController()),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: PlannerScreen(),
-            ),
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              settingsProvider.overrideWith(() => settingsCtrl),
+              taskControllerProvider.overrideWith(() => taskCtrl),
+              goalControllerProvider.overrideWith(() => _MockGoalController()),
+              calendarControllerProvider.overrideWith(
+                () => _MockCalendarController(),
+              ),
+            ],
+            child: const MaterialApp(home: Scaffold(body: PlannerScreen())),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
-      expect(find.byType(SampleStarterPlanCard), findsNothing);
-    });
+        await tester.pump();
+        expect(find.byType(SampleStarterPlanCard), findsNothing);
+      },
+    );
   });
 }

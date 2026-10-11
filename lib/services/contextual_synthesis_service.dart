@@ -46,29 +46,29 @@ class ContextualSynthesisService {
     ProjectItem? matchedProject;
     if (task.linkedProjectId != null) {
       matchedProject = allProjects.cast<ProjectItem?>().firstWhere(
-            (p) => p?.id == task.linkedProjectId,
-            orElse: () => null,
-          );
+        (p) => p?.id == task.linkedProjectId,
+        orElse: () => null,
+      );
     } else {
       // Fallback: check project linkedTaskIds
       matchedProject = allProjects.cast<ProjectItem?>().firstWhere(
-            (p) => p != null && p.linkedTaskIds.contains(task.id),
-            orElse: () => null,
-          );
+        (p) => p != null && p.linkedTaskIds.contains(task.id),
+        orElse: () => null,
+      );
     }
 
     // 2. Resolve Linked Goal (direct or transitive via project)
     GoalItem? matchedGoal;
     if (task.linkedGoalId != null) {
       matchedGoal = allGoals.cast<GoalItem?>().firstWhere(
-            (g) => g?.id == task.linkedGoalId,
-            orElse: () => null,
-          );
+        (g) => g?.id == task.linkedGoalId,
+        orElse: () => null,
+      );
     } else if (matchedProject?.parentGoalId != null) {
       matchedGoal = allGoals.cast<GoalItem?>().firstWhere(
-            (g) => g?.id == matchedProject!.parentGoalId,
-            orElse: () => null,
-          );
+        (g) => g?.id == matchedProject!.parentGoalId,
+        orElse: () => null,
+      );
     }
 
     // 3. Resolve Related Notes (direct linkedNoteIds, task ID references, or shared tags)
@@ -76,10 +76,12 @@ class ContextualSynthesisService {
     final taskTagSet = task.tags.map((t) => t.trim().toLowerCase()).toSet();
 
     for (final note in allNotes) {
-      final isDirectLink = task.linkedNoteIds.contains(note.id) ||
+      final isDirectLink =
+          task.linkedNoteIds.contains(note.id) ||
           note.linkedTaskIds.contains(task.id);
       final noteTagSet = note.tags.map((t) => t.trim().toLowerCase()).toSet();
-      final hasSharedTag = taskTagSet.isNotEmpty &&
+      final hasSharedTag =
+          taskTagSet.isNotEmpty &&
           taskTagSet.intersection(noteTagSet).isNotEmpty;
 
       if (isDirectLink || hasSharedTag) {
@@ -97,7 +99,8 @@ class ContextualSynthesisService {
 
     for (final mem in allMemories) {
       final memTagSet = mem.tags.map((t) => t.trim().toLowerCase()).toSet();
-      final hasSharedTag = taskTagSet.isNotEmpty &&
+      final hasSharedTag =
+          taskTagSet.isNotEmpty &&
           taskTagSet.intersection(memTagSet).isNotEmpty;
 
       final memContentLower = mem.content.toLowerCase();
@@ -121,7 +124,9 @@ class ContextualSynthesisService {
       score += 0.3;
     }
     if (matchedNotes.isNotEmpty) {
-      badges.add('📝 ${matchedNotes.length} note${matchedNotes.length == 1 ? '' : 's'}');
+      badges.add(
+        '📝 ${matchedNotes.length} note${matchedNotes.length == 1 ? '' : 's'}',
+      );
       score += 0.15;
     }
     if (matchedMemories.isNotEmpty) {

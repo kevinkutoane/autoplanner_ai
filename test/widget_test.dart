@@ -116,10 +116,7 @@ void main() {
       await tester.tap(brainDumpTiles.last);
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(
-        find.textContaining('Voice wave recording'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Voice wave recording'), findsOneWidget);
     });
   });
 }

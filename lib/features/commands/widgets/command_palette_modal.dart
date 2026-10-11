@@ -309,9 +309,7 @@ class _CommandPaletteModalState extends ConsumerState<CommandPaletteModal>
             child: TextField(
               controller: _textCtrl,
               focusNode: _focusNode,
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(500),
-              ],
+              inputFormatters: [LengthLimitingTextInputFormatter(500)],
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,

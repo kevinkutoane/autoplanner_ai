@@ -5,36 +5,95 @@ import 'package:autoplanner_ai/core/models/task_model.dart';
 void main() {
   group('CircadianRhythm Chronotype Models', () {
     test('Early Bird (Lion) peaks in the morning and dips post-lunch', () {
-      final morningPeak = CircadianRhythm.energyCapacityAtHour(9.0, chronotypeId: 'early_bird');
-      final postLunchDip = CircadianRhythm.energyCapacityAtHour(14.0, chronotypeId: 'early_bird');
-      final eveningWindDown = CircadianRhythm.energyCapacityAtHour(21.0, chronotypeId: 'early_bird');
+      final morningPeak = CircadianRhythm.energyCapacityAtHour(
+        9.0,
+        chronotypeId: 'early_bird',
+      );
+      final postLunchDip = CircadianRhythm.energyCapacityAtHour(
+        14.0,
+        chronotypeId: 'early_bird',
+      );
+      final eveningWindDown = CircadianRhythm.energyCapacityAtHour(
+        21.0,
+        chronotypeId: 'early_bird',
+      );
 
-      expect(morningPeak, greaterThan(0.85), reason: 'Lion peak at 9:00 AM should be >= 0.85');
-      expect(postLunchDip, lessThan(0.55), reason: 'Lion post-lunch dip at 2:00 PM should be < 0.55');
-      expect(eveningWindDown, lessThan(0.35), reason: 'Lion evening at 9:00 PM should be < 0.35');
+      expect(
+        morningPeak,
+        greaterThan(0.85),
+        reason: 'Lion peak at 9:00 AM should be >= 0.85',
+      );
+      expect(
+        postLunchDip,
+        lessThan(0.55),
+        reason: 'Lion post-lunch dip at 2:00 PM should be < 0.55',
+      );
+      expect(
+        eveningWindDown,
+        lessThan(0.35),
+        reason: 'Lion evening at 9:00 PM should be < 0.35',
+      );
       expect(morningPeak, greaterThan(postLunchDip));
       expect(morningPeak, greaterThan(eveningWindDown));
     });
 
     test('Balanced (Bear) has morning peak and afternoon resurgence', () {
-      final morningPeak = CircadianRhythm.energyCapacityAtHour(10.5, chronotypeId: 'balanced');
-      final slump = CircadianRhythm.energyCapacityAtHour(14.5, chronotypeId: 'balanced');
-      final afternoonRebound = CircadianRhythm.energyCapacityAtHour(17.5, chronotypeId: 'balanced');
+      final morningPeak = CircadianRhythm.energyCapacityAtHour(
+        10.5,
+        chronotypeId: 'balanced',
+      );
+      final slump = CircadianRhythm.energyCapacityAtHour(
+        14.5,
+        chronotypeId: 'balanced',
+      );
+      final afternoonRebound = CircadianRhythm.energyCapacityAtHour(
+        17.5,
+        chronotypeId: 'balanced',
+      );
 
-      expect(morningPeak, greaterThan(0.85), reason: 'Bear prime focus at 10:30 AM should be >= 0.85');
-      expect(slump, lessThan(0.55), reason: 'Bear post-lunch slump at 2:30 PM should be < 0.55');
-      expect(afternoonRebound, greaterThan(0.65), reason: 'Bear afternoon resurgence at 5:30 PM should be >= 0.65');
+      expect(
+        morningPeak,
+        greaterThan(0.85),
+        reason: 'Bear prime focus at 10:30 AM should be >= 0.85',
+      );
+      expect(
+        slump,
+        lessThan(0.55),
+        reason: 'Bear post-lunch slump at 2:30 PM should be < 0.55',
+      );
+      expect(
+        afternoonRebound,
+        greaterThan(0.65),
+        reason: 'Bear afternoon resurgence at 5:30 PM should be >= 0.65',
+      );
       expect(afternoonRebound, greaterThan(slump));
     });
 
     test('Night Owl (Wolf) has slow morning and evening golden hour', () {
-      final morningInertia = CircadianRhythm.energyCapacityAtHour(8.5, chronotypeId: 'night_owl');
-      final middayBase = CircadianRhythm.energyCapacityAtHour(14.0, chronotypeId: 'night_owl');
-      final eveningGoldenHour = CircadianRhythm.energyCapacityAtHour(21.0, chronotypeId: 'night_owl');
+      final morningInertia = CircadianRhythm.energyCapacityAtHour(
+        8.5,
+        chronotypeId: 'night_owl',
+      );
+      final middayBase = CircadianRhythm.energyCapacityAtHour(
+        14.0,
+        chronotypeId: 'night_owl',
+      );
+      final eveningGoldenHour = CircadianRhythm.energyCapacityAtHour(
+        21.0,
+        chronotypeId: 'night_owl',
+      );
 
-      expect(morningInertia, lessThan(0.45), reason: 'Wolf morning at 8:30 AM should be < 0.45');
+      expect(
+        morningInertia,
+        lessThan(0.45),
+        reason: 'Wolf morning at 8:30 AM should be < 0.45',
+      );
       expect(middayBase, greaterThan(morningInertia));
-      expect(eveningGoldenHour, greaterThan(0.85), reason: 'Wolf golden hour at 9:00 PM should be >= 0.85');
+      expect(
+        eveningGoldenHour,
+        greaterThan(0.85),
+        reason: 'Wolf golden hour at 9:00 PM should be >= 0.85',
+      );
       expect(eveningGoldenHour, greaterThan(morningInertia));
     });
 
@@ -63,7 +122,10 @@ void main() {
         startTime: DateTime(2026, 10, 2, 9, 0),
         tags: ['coding', 'architecture'],
       );
-      expect(CircadianRhythm.inferCognitiveDemand(task), CognitiveDemand.deepWork);
+      expect(
+        CircadianRhythm.inferCognitiveDemand(task),
+        CognitiveDemand.deepWork,
+      );
     });
 
     test('Infers shallow / admin from tags', () {
@@ -73,7 +135,10 @@ void main() {
         startTime: DateTime(2026, 10, 2, 14, 0),
         tags: ['email', 'admin'],
       );
-      expect(CircadianRhythm.inferCognitiveDemand(task), CognitiveDemand.shallow);
+      expect(
+        CircadianRhythm.inferCognitiveDemand(task),
+        CognitiveDemand.shallow,
+      );
     });
 
     test('Infers from energyLevel override', () {
@@ -83,7 +148,10 @@ void main() {
         startTime: DateTime(2026, 10, 2, 10, 0),
         energyLevel: 'high',
       );
-      expect(CircadianRhythm.inferCognitiveDemand(highEnergyTask), CognitiveDemand.deepWork);
+      expect(
+        CircadianRhythm.inferCognitiveDemand(highEnergyTask),
+        CognitiveDemand.deepWork,
+      );
 
       final lowEnergyTask = TaskItem(
         id: '4',
@@ -91,7 +159,10 @@ void main() {
         startTime: DateTime(2026, 10, 2, 14, 0),
         energyLevel: 'low',
       );
-      expect(CircadianRhythm.inferCognitiveDemand(lowEnergyTask), CognitiveDemand.shallow);
+      expect(
+        CircadianRhythm.inferCognitiveDemand(lowEnergyTask),
+        CognitiveDemand.shallow,
+      );
     });
 
     test('Infers deep work for high priority when unspecific', () {
@@ -101,7 +172,10 @@ void main() {
         startTime: DateTime(2026, 10, 2, 10, 0),
         priority: 2,
       );
-      expect(CircadianRhythm.inferCognitiveDemand(highPriorityTask), CognitiveDemand.deepWork);
+      expect(
+        CircadianRhythm.inferCognitiveDemand(highPriorityTask),
+        CognitiveDemand.deepWork,
+      );
     });
   });
 

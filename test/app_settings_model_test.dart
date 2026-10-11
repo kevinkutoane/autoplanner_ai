@@ -229,21 +229,24 @@ void main() {
 
   // ── Serialization (toMap / fromMap) ───────────────────────────────────────
   group('AppSettings serialization', () {
-    test('round-trips AI Gateway and drift settings through toMap and fromMap', () {
-      final original = AppSettings.defaults().copyWith(
-        aiConnectionMode: 'offline_mock',
-        cloudGatewayUrl: 'http://custom-host:9000',
-        autoRippleDrift: false,
-        driftGraceMinutes: 15,
-      );
-      final map = original.toMap();
-      final restored = AppSettings.fromMap(map);
+    test(
+      'round-trips AI Gateway and drift settings through toMap and fromMap',
+      () {
+        final original = AppSettings.defaults().copyWith(
+          aiConnectionMode: 'offline_mock',
+          cloudGatewayUrl: 'http://custom-host:9000',
+          autoRippleDrift: false,
+          driftGraceMinutes: 15,
+        );
+        final map = original.toMap();
+        final restored = AppSettings.fromMap(map);
 
-      expect(restored.aiConnectionMode, 'offline_mock');
-      expect(restored.cloudGatewayUrl, 'http://custom-host:9000');
-      expect(restored.autoRippleDrift, isFalse);
-      expect(restored.driftGraceMinutes, 15);
-    });
+        expect(restored.aiConnectionMode, 'offline_mock');
+        expect(restored.cloudGatewayUrl, 'http://custom-host:9000');
+        expect(restored.autoRippleDrift, isFalse);
+        expect(restored.driftGraceMinutes, 15);
+      },
+    );
 
     test('serializes and deserializes hasDismissedStarterPlan', () {
       final custom = AppSettings.defaults().copyWith(
