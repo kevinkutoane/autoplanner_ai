@@ -272,23 +272,31 @@
 
 ---
 
-### Phase 4.0: Production Release Certification & Shipping Readiness (v3.0.0 GA) `[COMPLETED]`
-- **Goal**: Full production release hardening, ProGuard / R8 native background plugin preservation, day-0 cold start onboarding, settings UX streamlining, and store certification.
+### Phase 4.0: User-Testing Readiness Certification & Stabilization (v3.0.0+1 Pilot) `[COMPLETED]`
+- **Goal**: Hardening for controlled user testing on Android, proactive conflict anticipation auto-ripple ordering fixes, responsive layout guarantees, ProGuard / R8 preservation, day-0 cold start onboarding, and settings UX streamlining.
 - **Delivered**:
-  1. **Release Packaging & ProGuard/R8 Hardening**:
-     - Configured explicit ProGuard / R8 keep rules in `android/app/proguard-rules.pro` for `androidx.work.**`, `com.dexterous.flutterlocalnotifications.**`, `es.antonborri.home_widget.**`, `androidx.biometric.**`, and Hive TypeAdapters.
-     - Created `android/key.properties.example` for secure production keystore setup.
-     - Bumped version to `3.0.0+1` in `pubspec.yaml` and across release manifests.
-  2. **Day-0 Cold Start Experience (`SampleStarterPlanCard`)**:
+  1. **Conflict Resolution & Auto-Ripple Ordering Fixes**:
+     - `ConflictAnticipationService`: strictly preserves tasks scheduled before the selected task's original start; shifts target task past colliding tasks and external calendar events; treats fixed tasks as immovable obstacles; cascades downstream tasks cleanly; returns explicit capacity failures when remaining schedule is insufficient.
+     - Conflict dismissal lifecycle: ensures conflicts are only dismissed upon verified resolution (`isSuccess == true`), keeping unresolvable conflicts visible; supports explicit acknowledgement for calendar-only buffer warnings without altering tasks.
+  2. **Responsive Layout Hardening**:
+     - Validated zero RenderFlex overflows on narrow 320px viewports and 1.5x accessibility text scales across `ConflictAnticipationCard`, `ScheduleDriftCard`, and `PlanMyWeekSheet`.
+  3. **Release Packaging & ProGuard/R8 Hardening**:
+     - Configured explicit ProGuard / R8 keep rules in `android/app/proguard-rules.pro` for `androidx.work.**`, `com.dexterous.flutterlocalnotifications.**`, `es.antonborri.home_widget.**`, `androidx.biometric.**`, Hive TypeAdapters, and `-dontwarn com.google.android.play.core.**`.
+     - Created `android/key.properties.example` for reproducible keystore setup.
+     - Bumped version to `3.0.0+1` in `pubspec.yaml` and release manifests; aligned CI release artifact name to `autoplanner-ai-3.0.0-release`.
+  4. **Day-0 Cold Start Experience (`SampleStarterPlanCard`)**:
      - Interactive starter pack card on empty planner days demonstrating circadian peak alignment, fixed anchor protection, and dip absorption.
      - 1-tap "Load Sample Plan" to populate a realistic workday or "Start Fresh" to dismiss.
-     - Hive-persisted `hasDismissedStarterPlan` preference with serialization roundtrips.
-  3. **Settings Panel UX Streamlining & De-cluttering**:
+  5. **Settings Panel UX Streamlining**:
      - Resolved visual congestion and RenderFlex overflow issues on narrow viewports and accessibility font scales.
-     - Streamlined sound & vibration controls into responsive `_SwitchTile`s.
-     - Corrected versioning display to `3.0.0+1` and gateway version telemetry to `3.0.0`.
-  4. **Release Notes & GA Certification**:
-     - Created `docs/RELEASE_NOTES_v3.0.0.md` detailing all architectural capabilities.
-     - Updated `docs/PRODUCTION_READINESS.md` certifying General Availability (GA).
-  5. **Verification**:
-     - Added comprehensive unit and widget tests in `test/sample_starter_plan_test.dart` and `test/app_settings_model_test.dart` with 100% pass rate.
+     - Streamlined sound & vibration controls into responsive `_SwitchTile`s; unified version display to `3.0.0+1`.
+  6. **Automated Verification**:
+     - Expanded test suite to **650 passing automated tests across 51 test files** (100% pass rate).
+     - Clean static analysis with `--fatal-infos` (0 issues).
+     - Verified clean debug and release APK compilation (`flutter build apk --debug`, `flutter build apk --release`).
+
+---
+
+### Phase 4.1: User Pilot Trials, Public Store Certification & Cross-Platform QA `[PLANNED]`
+- **Goal**: Gather feedback from controlled user testing pilot, execute iOS physical hardware verification, deploy cloud AI gateway infrastructure, and prepare public store release (GA).
+

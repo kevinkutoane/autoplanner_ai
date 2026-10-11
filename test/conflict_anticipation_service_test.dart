@@ -397,5 +397,253 @@ void main() {
       );
       expect(conflictsAfter, isEmpty);
     });
+
+    test('auto_ripple preserves earlier tasks while moving selected task and cascading downstream', () {
+      final earlierTask = TaskItem(
+        id: 'task_earlier',
+        title: 'Morning Routine',
+        startTime: DateTime(2099, 6, 15, 8, 30),
+        endTime: DateTime(2099, 6, 15, 9, 30),
+      );
+      final taskA = TaskItem(
+        id: 'task_a',
+        title: 'Team Sync',
+        startTime: DateTime(2099, 6, 15, 10, 0),
+        endTime: DateTime(2099, 6, 15, 11, 0),
+      );
+      final taskB = TaskItem(
+        id: 'task_b',
+        title: 'Interview',
+        startTime: DateTime(2099, 6, 15, 10, 30),
+        endTime: DateTime(2099, 6, 15, 11, 30),
+      );
+      final taskC = TaskItem(
+        id: 'task_c',
+        title: 'Deep Focus Coding',
+        startTime: DateTime(2099, 6, 15, 11, 15),
+        endTime: DateTime(2099, 6, 15, 12, 15),
+      );
+
+      final action = const ConflictResolutionAction(
+        actionType: 'auto_ripple',
+        label: 'Auto-Ripple Downstream',
+        description: 'Ripple',
+        params: {
+          'taskId': 'task_b',
+          'conflictTaskId': 'task_a',
+          'conflictId': 'overlap_task_task_a_task_b',
+        },
+      );
+
+      final result = service.applyResolution(
+        action,
+        tasks: [earlierTask, taskA, taskB, taskC],
+        workStartHour: 8,
+        workHoursPerDay: 9,
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      expect(result.isSuccess, isTrue);
+
+      // Earlier task must not be in updatedTasks and must remain completely untouched
+      expect(result.updatedTasks.any((t) => t.id == 'task_earlier'), isFalse);
+      expect(result.updatedTasks.any((t) => t.id == 'task_a'), isFalse);
+
+      final updatedB = result.updatedTasks.firstWhere((t) => t.id == 'task_b');
+      final updatedC = result.updatedTasks.firstWhere((t) => t.id == 'task_c');
+
+      // Assert exact expected start and end times
+      expect(updatedB.startTime, DateTime(2099, 6, 15, 11, 0));
+      expect(updatedB.endTime, DateTime(2099, 6, 15, 12, 0));
+      expect(updatedC.startTime, DateTime(2099, 6, 15, 12, 0));
+      expect(updatedC.endTime, DateTime(2099, 6, 15, 13, 0));
+    });
+
+    test('auto_ripple treats fixed commitments as immovable obstacles', () {
+      final taskA = TaskItem(
+        id: 'task_a',
+        title: 'Standup',
+        startTime: DateTime(2099, 6, 15, 10, 0),
+        endTime: DateTime(2099, 6, 15, 10, 30),
+      );
+      final taskB = TaskItem(
+        id: 'task_b',
+        title: 'Design Review',
+        startTime: DateTime(2099, 6, 15, 10, 15),
+        endTime: DateTime(2099, 6, 15, 11, 15),
+      );
+      final fixedTask = TaskItem(
+        id: 'fixed_task',
+        title: 'Client Contract Review (Fixed)',
+        startTime: DateTime(2099, 6, 15, 10, 30),
+        endTime: DateTime(2099, 6, 15, 11, 30),
+        isFixed: true,
+      );
+      final downstream = TaskItem(
+        id: 'downstream_task',
+        title: 'Documentation',
+        startTime: DateTime(2099, 6, 15, 11, 30),
+        endTime: DateTime(2099, 6, 15, 12, 30),
+      );
+
+      final action = const ConflictResolutionAction(
+        actionType: 'auto_ripple',
+        label: 'Auto-Ripple Downstream',
+        description: 'Ripple',
+        params: {
+          'taskId': 'task_b',
+          'conflictTaskId': 'task_a',
+          'conflictId': 'overlap_task_task_a_task_b',
+        },
+      );
+
+      final result = service.applyResolution(
+        action,
+        tasks: [taskA, taskB, fixedTask, downstream],
+        workStartHour: 9,
+        workHoursPerDay: 8,
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      expect(result.isSuccess, isTrue);
+      // Fixed task must not be modified
+      expect(result.updatedTasks.any((t) => t.id == 'fixed_task'), isFalse);
+
+      final updatedB = result.updatedTasks.firstWhere((t) => t.id == 'task_b');
+      final updatedDownstream = result.updatedTasks.firstWhere(
+        (t) => t.id == 'downstream_task',
+      );
+
+      // task_b jumps past the fixed commitment (ends at 11:30)
+      expect(updatedB.startTime, DateTime(2099, 6, 15, 11, 30));
+      expect(updatedB.endTime, DateTime(2099, 6, 15, 12, 30));
+      // downstream cascades past task_b
+      expect(updatedDownstream.startTime, DateTime(2099, 6, 15, 12, 30));
+      expect(updatedDownstream.endTime, DateTime(2099, 6, 15, 13, 30));
+    });
+
+    test('auto_ripple returns explicit failure when remaining schedule capacity is insufficient', () {
+      final taskA = TaskItem(
+        id: 'task_late_a',
+        title: 'Closing Sprint',
+        startTime: DateTime(2099, 6, 15, 16, 0),
+        endTime: DateTime(2099, 6, 15, 17, 0),
+      );
+      final taskB = TaskItem(
+        id: 'task_late_b',
+        title: 'Urgent Deploy',
+        startTime: DateTime(2099, 6, 15, 16, 30),
+        endTime: DateTime(2099, 6, 15, 17, 30),
+      );
+
+      final action = const ConflictResolutionAction(
+        actionType: 'auto_ripple',
+        label: 'Auto-Ripple',
+        description: 'Ripple',
+        params: {
+          'taskId': 'task_late_b',
+          'conflictTaskId': 'task_late_a',
+          'conflictId': 'overlap_late',
+        },
+      );
+
+      // Work window ends at 17:00 (9:00 + 8 hours = 17:00)
+      final result = service.applyResolution(
+        action,
+        tasks: [taskA, taskB],
+        workStartHour: 9,
+        workHoursPerDay: 8,
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      expect(result.isSuccess, isFalse);
+      expect(result.updatedTasks, isEmpty);
+      expect(
+        result.summary,
+        contains('Insufficient remaining schedule capacity to ripple tasks.'),
+      );
+    });
+
+    test('failed resolution leaves conflict available in evaluateSchedule', () {
+      final taskA = TaskItem(
+        id: 'task_end_a',
+        title: 'Late Meeting',
+        startTime: DateTime(2099, 6, 15, 16, 0),
+        endTime: DateTime(2099, 6, 15, 17, 0),
+      );
+      final taskB = TaskItem(
+        id: 'task_end_b',
+        title: 'Late Sync',
+        startTime: DateTime(2099, 6, 15, 16, 30),
+        endTime: DateTime(2099, 6, 15, 17, 30),
+      );
+
+      final initialConflicts = service.evaluateSchedule(
+        tasks: [taskA, taskB],
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+      expect(initialConflicts, isNotEmpty);
+      final conflict = initialConflicts.firstWhere(
+        (c) => c.type == ConflictType.directOverlap,
+      );
+
+      // Attempt resolution with tight capacity limit -> fails
+      final result = service.applyResolution(
+        conflict.resolutionAction,
+        tasks: [taskA, taskB],
+        workStartHour: 9,
+        workHoursPerDay: 8,
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      expect(result.isSuccess, isFalse);
+
+      // Since resolution failed, conflict must still be detected and available
+      final postFailureConflicts = service.evaluateSchedule(
+        tasks: [taskA, taskB],
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+      expect(postFailureConflicts.any((c) => c.id == conflict.id), isTrue);
+    });
+
+    test('successful resolution dismisses conflict from evaluateSchedule', () {
+      final taskA = TaskItem(
+        id: 'sync_a',
+        title: 'Morning Sync',
+        startTime: DateTime(2099, 6, 15, 10, 0),
+        endTime: DateTime(2099, 6, 15, 11, 0),
+      );
+      final taskB = TaskItem(
+        id: 'sync_b',
+        title: 'Design Review',
+        startTime: DateTime(2099, 6, 15, 10, 30),
+        endTime: DateTime(2099, 6, 15, 11, 30),
+      );
+
+      final initialConflicts = service.evaluateSchedule(
+        tasks: [taskA, taskB],
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+      final conflict = initialConflicts.firstWhere(
+        (c) => c.type == ConflictType.directOverlap,
+      );
+
+      final result = service.applyResolution(
+        conflict.resolutionAction,
+        tasks: [taskA, taskB],
+        workStartHour: 9,
+        workHoursPerDay: 8,
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      expect(result.isSuccess, isTrue);
+
+      // Conflict must be dismissed
+      final postSuccessConflicts = service.evaluateSchedule(
+        tasks: [taskA, taskB],
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+      expect(postSuccessConflicts.any((c) => c.id == conflict.id), isFalse);
+    });
   });
 }

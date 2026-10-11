@@ -211,6 +211,66 @@ void main() {
         expect(find.text('Review System Architecture'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'renders cleanly without overflow in 320px viewport with large text scale',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final baseDate = DateTime(2026, 10, 2, 9, 0);
+        final driftedTask = TaskItem(
+          id: 'task-1',
+          title: 'Review System Architecture with Distributed Teams',
+          startTime: baseDate,
+          endTime: baseDate.add(const Duration(minutes: 60)),
+          isCompleted: false,
+        );
+
+        final activeDrift = ScheduleDrift(
+          hasDrift: true,
+          driftMinutes: 35,
+          overdueTasks: [driftedTask],
+          impactedTasks: [],
+          summary: 'Schedule is running 35 min behind.',
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [scheduleDriftProvider.overrideWithValue(activeDrift)],
+            child: MaterialApp(
+              theme: ThemeData.dark(),
+              home: MediaQuery(
+                data: const MediaQueryData(
+                  size: Size(320, 800),
+                  textScaler: TextScaler.linear(1.5),
+                ),
+                child: const Scaffold(
+                  body: SingleChildScrollView(child: ScheduleDriftCard()),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        expect(find.byType(ScheduleDriftCard), findsOneWidget);
+        expect(find.text('Auto-Ripple Schedule'), findsOneWidget);
+
+        // Expand task list
+        await tester.tap(find.byTooltip('View drifted tasks'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Review System Architecture with Distributed Teams'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 
   group('AIEngineCard Widget Tests', () {

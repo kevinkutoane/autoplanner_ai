@@ -4,6 +4,29 @@ All notable changes to AutoPlanner AI are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/).
 
+## [3.0.0+1] — 2026-10-12
+
+### Auto-Ripple Ordering, Conflict Dismissal Lifecycle & Responsive Layout Hardening
+
+- **Auto-Ripple Ordering & Collision Avoidance (`ConflictAnticipationService`)**:
+  - Implemented origin boundary checking: tasks scheduled prior to the selected task's original start time remain strictly untouched and preserved.
+  - Target task cleanly moves after its conflicting task or external calendar event.
+  - Immovable obstacles: external calendar events, fixed tasks (`isFixed: true`), and prior commitments are respected without overlap.
+  - Downstream cascade shifts only non-fixed tasks scheduled at or after the target task's original start.
+  - Explicit capacity failures: returns `isSuccess: false` with `'Insufficient remaining schedule capacity to ripple tasks.'` when tasks would exceed configured working hours or day boundaries, preventing false-positive successes.
+- **Conflict Dismissal State Integrity**:
+  - Updated `applyResolution` and `ConflictAnticipationCard` so conflicts are only dismissed upon verified resolution (`isSuccess == true`). Failed resolution attempts leave the conflict visible and actionable.
+  - Enabled explicit acknowledgement of calendar-only transit buffer shortages without modifying user tasks.
+- **Responsive Layout Hardening**:
+  - Resolved RenderFlex overflow on `PlanMyWeekSheet` action button by wrapping child content in `Flexible` with `maxLines: 1` and responsive `ConstrainedBox` bounds.
+  - Added automated widget tests validating zero overflows and actionable controls across `ConflictAnticipationCard`, `ScheduleDriftCard`, and `PlanMyWeekSheet` under constrained 320px viewports and 1.5x text scaling.
+- **Release Toolchain & CI Artifact Alignment**:
+  - Added `-dontwarn com.google.android.play.core.**` to `android/app/proguard-rules.pro`, resolving R8 minification errors for release APK builds.
+  - Aligned release APK artifact name in `.github/workflows/ci.yml` to `autoplanner-ai-3.0.0-release`.
+  - Total automated test suite expanded to **650 passing tests across 51 test files** (100% pass rate).
+
+---
+
 ## [2.3.1] — 2026-09-18
 
 ### Dashboard Overflow Hardening & App Stability (2026-09-19)

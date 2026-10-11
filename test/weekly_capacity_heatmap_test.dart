@@ -152,5 +152,51 @@ void main() {
       expect(find.text('Autonomous Weekly Planner'), findsOneWidget);
       expect(find.text('Confirm & Balance Week'), findsOneWidget);
     });
+
+    testWidgets(
+      'PlanMyWeekSheet renders without overflow in narrow 320px viewport with large text scale',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              taskControllerProvider.overrideWith(
+                () => _FakeTaskController([]),
+              ),
+              settingsProvider.overrideWith(() => _FakeSettingsController()),
+              calendarControllerProvider.overrideWith(
+                () => _FakeCalendarController(),
+              ),
+            ],
+            child: MaterialApp(
+              theme: ThemeData.dark(),
+              home: MediaQuery(
+                data: const MediaQueryData(
+                  size: Size(320, 800),
+                  textScaler: TextScaler.linear(1.5),
+                ),
+                child: const Scaffold(body: PlanMyWeekSheet()),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        expect(find.byType(PlanMyWeekSheet), findsOneWidget);
+        expect(find.text('Autonomous Weekly Planner'), findsOneWidget);
+        expect(find.text('Confirm & Balance Week'), findsOneWidget);
+
+        final confirmBtn = find.byType(ElevatedButton);
+        expect(confirmBtn, findsOneWidget);
+        await tester.tap(confirmBtn);
+        await tester.pumpAndSettle();
+      },
+    );
   });
 }

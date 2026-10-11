@@ -609,15 +609,21 @@ class _PlanMyWeekSheetState extends ConsumerState<PlanMyWeekSheet> {
             // Action Button
             Padding(
               padding: const EdgeInsets.all(20),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: double.infinity,
+                  minHeight: 52,
+                ),
                 child: ElevatedButton(
                   onPressed: _isPlanning ? null : _applyWeeklyPlan,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kIndigo,
                     foregroundColor: Colors.white,
                     elevation: 6,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -633,14 +639,19 @@ class _PlanMyWeekSheetState extends ConsumerState<PlanMyWeekSheet> {
                         )
                       : const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.check_circle_rounded, size: 20),
                             SizedBox(width: 8),
-                            Text(
-                              'Confirm & Balance Week',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
+                            Flexible(
+                              child: Text(
+                                'Confirm & Balance Week',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],

@@ -1,14 +1,14 @@
 # AutoPlanner AI
 
-> **AI-powered daily planner for Android & iOS** — turn a stream-of-consciousness brain dump into a fully scheduled, priority-scored day in seconds.
+> **AI-powered daily planner** — turn a stream-of-consciousness brain dump into a fully scheduled, priority-scored day in seconds.
 
 [![Flutter](https://img.shields.io/badge/Flutter-%5E3.47.2-02569B?logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-%5E3.13.x-0175C2?logo=dart)](https://dart.dev)
 [![AI Engine](https://img.shields.io/badge/AI-Gemini%202.5%20Flash-4285F4?logo=google)](https://aistudio.google.com)
-[![Tests](https://img.shields.io/badge/Tests-558%20Passing-brightgreen)](test/)
+[![Tests](https://img.shields.io/badge/Tests-650%20Passing-brightgreen)](test/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Version:** 2.3.1 · **Target Platforms:** Android & iOS · **State:** Riverpod · **Persistence:** Encrypted Hive (AES-256)
+**Version:** 3.0.0+1 · **Target Platform:** Android (Verified) · **State:** Riverpod · **Persistence:** Encrypted Hive (AES-256)
 
 ---
 

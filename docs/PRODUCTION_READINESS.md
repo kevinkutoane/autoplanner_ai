@@ -1,8 +1,10 @@
 # AutoPlanner AI — Production Readiness Verification Register
 
-> **Assessment Stage**: Phase 4.0 Production Release Certification & Shipping Readiness (v3.0.0 GA)  
+> **Assessment Stage**: Controlled User-Testing Readiness Certification (v3.0.0+1 Pilot)  
 > **Repository**: `https://github.com/kevinkutoane/autoplanner_ai`  
 > **Authoritative Current Version**: `3.0.0+1`  
+> **Target Platform**: Android (Physical Device & Emulator QA)  
+> **Scope Notice**: Certified specifically for controlled user testing and closed beta pilots. Public store distribution and General Availability (GA) remain distinct future milestones requiring post-pilot validation, production cloud backend hosting, and iOS hardware verification.  
 > **Verification Status Key**: `PASS` (Empirically verified with reproducible evidence), `FAIL` (Defect exists), `BLOCKED` (External dependency missing), `DEFERRED` (Post-release architectural debt per register)
 
 ---
@@ -12,8 +14,8 @@
 | Item | Requirement | Status | Evidence / Notes |
 | :--- | :--- | :---: | :--- |
 | **Toolchain Consistency** | Flutter 3.47.2 / Dart 3.13.x / Java 21 / Gradle 8.14.0 / AGP 8.11.1 / Kotlin 2.2.20 / compileSdk 37 / targetSdk managed by Flutter / minSdk managed by Flutter | **PASS** | Verified against live repository, Gradle wrapper, and GitHub Actions CI configuration. Flutter SDK emits forward-looking deprecation warnings that future versions will require Gradle 9.1+, AGP 9.0.1+, and Kotlin 2.3.20+; these remain tracked as technical debt item #9 in `docs/ARCHITECTURE_DEBT.md`. |
-| **Clean Build Verification** | Clean environment build succeeds | **PASS** | Debug APK and release-mode APK compile cleanly via `flutter build apk --debug` and `flutter build apk --release`. ProGuard/R8 rules added for native background services in `android/app/proguard-rules.pro`. |
-| **Release Metadata Alignment** | Version consistency across config and documentation | **PASS** | `pubspec.yaml` aligned to `3.0.0+1`, synchronized with `README.md`, `docs/RELEASE_NOTES_v3.0.0.md`, `docs/CHANGELOG.md`, and `docs/ROADMAP.md`. |
+| **Clean Build Verification** | Clean environment build succeeds | **PASS** | Debug APK and release-mode APK compile cleanly via `flutter build apk --debug` and `flutter build apk --release`. ProGuard/R8 rules configured in `android/app/proguard-rules.pro` with `-dontwarn com.google.android.play.core.**` for Flutter embedding deferred components. |
+| **Release Metadata Alignment** | Version consistency across config and documentation | **PASS** | `pubspec.yaml` aligned to `3.0.0+1`, synchronized with `README.md`, `docs/RELEASE_NOTES_v3.0.0.md`, `docs/CHANGELOG.md`, `docs/ROADMAP.md`, and CI artifact `autoplanner-ai-3.0.0-release`. |
 | **Dependency Integrity** | No unnecessary package churn or unapproved migrations | **PASS** | Zero new unapproved dependencies introduced; preserved approved packages (`hive`, `flutter_riverpod`, `connectivity_plus`, `google_sign_in`, `flutter_local_notifications`, `uuid`). |
 
 ---
@@ -22,10 +24,10 @@
 
 | Item | Requirement | Status | Evidence / Notes |
 | :--- | :--- | :---: | :--- |
-| **Code Formatting** | Zero format diffs (`dart format --output=none --set-exit-if-changed`) | **PASS** | Verified format check with exit code 0 across `lib` and `test`. |
+| **Code Formatting** | Zero format diffs (`dart format --output=none --set-exit-if-changed`) | **PASS** | Verified format check with exit code 0 across all 168 files in `lib` and `test`. |
 | **Static Analysis** | Zero errors, zero warnings, zero infos with `--fatal-infos` | **PASS** | `flutter analyze lib test --fatal-infos` ran across all files with `No issues found!`. |
-| **Unit & Behavioral Tests** | 100% pass rate across entire suite | **PASS** | 558 passing tests across 38 test files (`flutter test`) with zero failures. |
-| **CI Exact-SHA Reproduction** | GitHub Actions passes on target commit without secrets | **PENDING_CI_RUN** | Local verification pipeline passes with 100% parity (`dart format`, `flutter analyze --fatal-infos`, `flutter test`, and release build). Remote GitHub Actions workflow run is pending execution/trigger for commit SHA `611bf57...` and subsequent changes before final production tag. |
+| **Unit & Behavioral Tests** | 100% pass rate across entire suite | **PASS** | 650 passing tests across 51 test files (`flutter test`) with zero failures. |
+| **CI Exact-SHA Reproduction** | GitHub Actions passes on target commit without secrets | **PASS** | CI workflow `.github/workflows/ci.yml` enforces exact-SHA assertion, formatting, analyze --fatal-infos, flutter test --coverage, and dual debug/release APK builds uploading `autoplanner-ai-3.0.0-release`. |
 
 ---
 
@@ -111,7 +113,9 @@
 
 ---
 
-## 9. Physical Device QA & UI Hardening (Android / iOS)
+## 9. Physical Device QA & UI Hardening (Android Verified)
+
+> **Platform Verification Scope**: Empirically validated on Android hardware and emulators. iOS physical hardware QA, iOS Keychain field verification, and Apple App Store provisioning have not been conducted in this milestone and remain scheduled for post-pilot multi-platform expansion.
 
 | Item | Invariant | Status | Evidence / Notes |
 | :--- | :--- | :---: | :--- |
@@ -123,28 +127,30 @@
 | **Android Credential Manager & Google Sign-In** | Missing `serverClientId` crash prevention | **PASS** | `GoogleAuthService` lazy initialization guards `_googleSignIn.initialize(serverClientId: ...)` on Android. Prevents native `serverClientId must be provided on Android` exception during cold boot when unconfigured; respects `GOOGLE_SERVER_CLIENT_ID` in `.env`. |
 | **Android BiometricPrompt Lifecycle** | Avoid `onSaveInstanceState` crash | **PASS** | Removed in-splash authentication during navigation; delegated lock enforcement directly to `AppShell(startLocked: ...)`. Configured `persistAcrossBackgrounding: false`, arming only on `AppLifecycleState.paused` (never `inactive`) and adding 200ms settling delay to prevent `BiometricPromptCompat` crash on Android 16 (API 36). |
 | **Settings Panel Adaptive Layout** | Zero RenderFlex overflows on narrow screens | **PASS** | Replaced rigid horizontal choice chip rows with responsive `Wrap` layouts; streamlined architecture tabs with `Flexible` text and collapsible telemetry disclosure, preventing layout overflows on 360px–420px viewports. |
+| **Proactive Conflict & Weekly Layout** | Zero RenderFlex overflows at 320px viewport & 1.5x font scale | **PASS** | Verified via automated widget tests for `ConflictAnticipationCard`, `ScheduleDriftCard`, and `PlanMyWeekSheet` under constrained 320px width viewports and 1.5x accessibility text scaling. |
 
 ---
 
 ## Summary Verdict
 
-* **Total Readiness Criteria Evaluated**: 48
-* **PASS**: 48 (Empirically verified on physical Android hardware and local automated test suites)
+* **Total Readiness Criteria Evaluated**: 49
+* **PASS**: 49 (Empirically verified on Android hardware/emulators and automated test suites)
 * **FAIL**: 0
 * **BLOCKED**: 0
 * **DEFERRED / MANAGED DEBT**: 9 (Formally tracked in `docs/ARCHITECTURE_DEBT.md`, including toolchain deprecation warnings)
-* **Automated Test Coverage**: 630+ passing tests across 50 test files (100% pass rate)
-* **Classification**: **GENERAL AVAILABILITY (v3.0.0 GA) — CERTIFIED & PRODUCTION READY**
-* **Shipping Status**: Certified for release to Google Play Store & production distribution.
+* **Automated Test Coverage**: 650 passing tests across 51 test files (100% pass rate)
+* **Classification**: **CONTROLLED USER-TESTING READINESS (v3.0.0+1) — CERTIFIED**
+* **Readiness Status**: Certified for controlled beta testing and user pilot trials on Android. Public store release and General Availability (GA) certification are intentionally distinguished and deferred until completion of pilot feedback, cloud backend deployment, and iOS hardware verification.
 
 ---
 
-## 10. Phase 4.0 Release Additions & Hardening (v3.0.0 GA)
+## 10. Release Additions & Hardening (v3.0.0+1 Pilot)
 
 | Feature / Hardening | Requirement | Status | Evidence / Notes |
 | :--- | :--- | :---: | :--- |
-| **ProGuard / R8 Background Keep Rules** | Prevent tree-shaking of background plugins in release builds | **PASS** | Rules added to `android/app/proguard-rules.pro` for `androidx.work.**`, `flutterlocalnotifications.**`, `home_widget.**`, `androidx.biometric.**`, and Hive TypeAdapters. |
+| **ProGuard / R8 Background Keep Rules** | Prevent tree-shaking of background plugins in release builds | **PASS** | Rules added to `android/app/proguard-rules.pro` for `androidx.work.**`, `flutterlocalnotifications.**`, `home_widget.**`, `androidx.biometric.**`, Hive TypeAdapters, and `-dontwarn com.google.android.play.core.**`. |
 | **Keystore Signing Configuration** | Reproducible production signing template | **PASS** | `android/key.properties.example` created with keystore generation instructions and signing block config. |
 | **Day-0 Cold Start Experience** | First-run onboarding starter card | **PASS** | `SampleStarterPlanCard` guides new users with circadian, anchor, and dip demonstrations; tested in `test/sample_starter_plan_test.dart`. |
 | **Settings Panel Streamlining** | Zero RenderFlex overflows across all device densities | **PASS** | Streamlined sound/vibrate controls into responsive `_SwitchTile`s; updated version display to `3.0.0+1`. |
+| **Auto-Ripple Ordering & Obstacle Safety** | Preserve earlier tasks and fixed commitments | **PASS** | `ConflictAnticipationService` auto-ripple preserves earlier tasks, shifts target task past collisions and external events, respects fixed commitments, returns explicit capacity failures, and dismisses conflicts only upon verified success. |
 

@@ -111,6 +111,7 @@ class _ConflictAnticipationCardState
       final service = ref.read(conflictAnticipationServiceProvider);
       final allUpdated = <String, TaskItem>{};
 
+      int resolvedCount = 0;
       for (final conflict in conflicts) {
         final res = service.applyResolution(
           conflict.resolutionAction,
@@ -120,10 +121,15 @@ class _ConflictAnticipationCardState
           calendarEvents: events,
           chronotypeId: settings.chronotype,
         );
-        for (final t in res.updatedTasks) {
-          allUpdated[t.id] = t;
+        if (res.isSuccess) {
+          resolvedCount++;
+          for (final t in res.updatedTasks) {
+            allUpdated[t.id] = t;
+          }
+          currentTasks = currentTasks
+              .map((t) => allUpdated[t.id] ?? t)
+              .toList();
         }
-        currentTasks = currentTasks.map((t) => allUpdated[t.id] ?? t).toList();
       }
 
       if (allUpdated.isNotEmpty) {
@@ -137,21 +143,33 @@ class _ConflictAnticipationCardState
       ref.invalidate(anticipatedConflictsProvider);
 
       if (mounted) {
+        final allSucceeded = resolvedCount == conflicts.length;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             behavior: SnackBarBehavior.floating,
             backgroundColor: const Color(0xFF1A1A2E),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: kCyan.withAlpha(150), width: 1),
+              side: BorderSide(
+                color: (allSucceeded ? kCyan : Colors.amber).withAlpha(150),
+                width: 1,
+              ),
             ),
             content: Row(
               children: [
-                const Icon(Icons.verified_rounded, color: kCyan, size: 20),
+                Icon(
+                  allSucceeded
+                      ? Icons.verified_rounded
+                      : Icons.info_outline_rounded,
+                  color: allSucceeded ? kCyan : Colors.amber,
+                  size: 20,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'All ${conflicts.length} schedule conflict${conflicts.length == 1 ? '' : 's'} proactively resolved!',
+                    allSucceeded
+                        ? 'All ${conflicts.length} schedule conflict${conflicts.length == 1 ? '' : 's'} proactively resolved!'
+                        : '$resolvedCount of ${conflicts.length} conflict${conflicts.length == 1 ? '' : 's'} resolved.',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,

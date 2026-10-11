@@ -29,3 +29,6 @@
 
 # Keep annotations
 -keepattributes *Annotation*
+
+# Google Play Core (suppress warnings for unused deferred components in Flutter embedding)
+-dontwarn com.google.android.play.core.**

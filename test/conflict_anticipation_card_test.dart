@@ -240,5 +240,88 @@ void main() {
         );
       },
     );
+
+    testWidgets(
+      'renders without overflow in narrow 320px viewport with large text scale',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        final base = DateTime(2026, 10, 2, 9, 0);
+        final task1 = TaskItem(
+          id: 't-1',
+          title: 'Quarterly Executive Review Planning Session',
+          startTime: base,
+          endTime: base.add(const Duration(minutes: 60)),
+        );
+        final conflict1 = AnticipatedConflict(
+          id: 'c-narrow-1',
+          type: ConflictType.directOverlap,
+          severity: ConflictSeverity.critical,
+          title: 'Direct Overlap Collision',
+          description: 'Long description that could cause overflow on constrained screens without proper wrapping.',
+          affectedTaskIds: ['t-1'],
+          anticipatedAt: base,
+          resolutionAction: ConflictResolutionAction(
+            actionType: 'reschedule_task',
+            label: 'Shift Executive Sync by 30m',
+            description: 'Move after earlier task.',
+            params: {
+              'taskId': 't-1',
+              'newStartTime': base
+                  .add(const Duration(minutes: 60))
+                  .toIso8601String(),
+            },
+          ),
+        );
+
+        final fakeCtrl = _FakeTaskController([task1]);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              anticipatedConflictsProvider.overrideWithValue([conflict1]),
+              taskControllerProvider.overrideWith(() => fakeCtrl),
+              settingsProvider.overrideWith(() => _FakeSettingsController()),
+              calendarControllerProvider.overrideWith(
+                () => _FakeCalendarController(),
+              ),
+            ],
+            child: MaterialApp(
+              theme: ThemeData.dark(),
+              home: MediaQuery(
+                data: const MediaQueryData(
+                  size: Size(320, 800),
+                  textScaler: TextScaler.linear(1.5),
+                ),
+                child: const Scaffold(
+                  body: SingleChildScrollView(
+                    child: ConflictAnticipationCard(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        expect(find.byType(ConflictAnticipationCard), findsOneWidget);
+
+        // Tap to expand
+        await tester.tap(find.text('Conflict Anticipation'));
+        await tester.pumpAndSettle();
+
+        // Verify actions are accessible and button can be tapped
+        final resolveBtn = find.text('Shift Executive Sync by 30m');
+        expect(resolveBtn, findsOneWidget);
+        await tester.tap(resolveBtn);
+        await tester.pumpAndSettle();
+        expect(fakeCtrl.lastBatchUpdated.length, 1);
+      },
+    );
   });
 }

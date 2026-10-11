@@ -161,233 +161,20 @@ class ConflictAnticipationService {
   }) {
     final now = currentTime ?? clock.now();
     final conflictId = action.params['conflictId'] as String?;
-    if (conflictId != null) {
-      _dismissedConflictIds.add(conflictId);
-    }
+
+    ConflictResolutionResult result;
 
     switch (action.actionType) {
       case 'ripple_schedule':
       case 'auto_ripple':
-        final targetTaskId = action.params['taskId'] as String?;
-        final conflictTaskId = action.params['conflictTaskId'] as String?;
-        final conflictEventId = action.params['conflictEventId'] as String?;
-
-        // 1. Identify target task to shift
-        TaskItem? targetTask;
-        if (targetTaskId != null) {
-          for (final t in tasks) {
-            if (t.id == targetTaskId) {
-              targetTask = t;
-              break;
-            }
-          }
-        }
-
-        // Fallback: search for any clashing task
-        if (targetTask == null) {
-          for (var i = 0; i < tasks.length; i++) {
-            final a = tasks[i];
-            if (a.isCompleted) continue;
-            final aEnd =
-                a.endTime ??
-                a.startTime.add(
-                  Duration(
-                    minutes: a.durationMinutes > 0 ? a.durationMinutes : 60,
-                  ),
-                );
-            // Check clash with another task
-            for (var j = i + 1; j < tasks.length; j++) {
-              final b = tasks[j];
-              if (b.isCompleted) continue;
-              final bEnd =
-                  b.endTime ??
-                  b.startTime.add(
-                    Duration(
-                      minutes: b.durationMinutes > 0 ? b.durationMinutes : 60,
-                    ),
-                  );
-              if (a.startTime.isBefore(bEnd) && b.startTime.isBefore(aEnd)) {
-                targetTask = b;
-                break;
-              }
-            }
-            if (targetTask != null) break;
-            // Check clash with calendar event
-            for (final ev in calendarEvents) {
-              if (ev.isAllDay) continue;
-              if (a.startTime.isBefore(ev.endTime) &&
-                  ev.startTime.isBefore(aEnd)) {
-                targetTask = a;
-                break;
-              }
-            }
-            if (targetTask != null) break;
-          }
-        }
-
-        if (targetTask == null) {
-          return const ConflictResolutionResult(
-            updatedTasks: [],
-            summary: 'No overlapping tasks to ripple.',
-            isSuccess: false,
-          );
-        }
-
-        // 2. Determine target start boundary past the colliding block
-        DateTime targetStart = targetTask.startTime;
-        if (conflictTaskId != null) {
-          for (final t in tasks) {
-            if (t.id == conflictTaskId) {
-              final cEnd =
-                  t.endTime ??
-                  t.startTime.add(
-                    Duration(
-                      minutes: t.durationMinutes > 0 ? t.durationMinutes : 60,
-                    ),
-                  );
-              if (cEnd.isAfter(targetStart)) targetStart = cEnd;
-              break;
-            }
-          }
-        } else if (conflictEventId != null) {
-          for (final ev in calendarEvents) {
-            if (ev.id == conflictEventId) {
-              if (ev.endTime.isAfter(targetStart)) targetStart = ev.endTime;
-              break;
-            }
-          }
-        } else {
-          // Find any collision with targetTask
-          final curEnd =
-              targetTask.endTime ??
-              targetTask.startTime.add(
-                Duration(
-                  minutes: targetTask.durationMinutes > 0
-                      ? targetTask.durationMinutes
-                      : 60,
-                ),
-              );
-          for (final t in tasks) {
-            if (t.id == targetTask.id || t.isCompleted) continue;
-            final tEnd =
-                t.endTime ??
-                t.startTime.add(
-                  Duration(
-                    minutes: t.durationMinutes > 0 ? t.durationMinutes : 60,
-                  ),
-                );
-            if (targetTask.startTime.isBefore(tEnd) &&
-                t.startTime.isBefore(curEnd)) {
-              if (tEnd.isAfter(targetStart)) targetStart = tEnd;
-            }
-          }
-          for (final ev in calendarEvents) {
-            if (ev.isAllDay) continue;
-            if (targetTask.startTime.isBefore(ev.endTime) &&
-                ev.startTime.isBefore(curEnd)) {
-              if (ev.endTime.isAfter(targetStart)) targetStart = ev.endTime;
-            }
-          }
-        }
-
-        if (targetStart == targetTask.startTime) {
-          targetStart = targetTask.startTime.add(const Duration(minutes: 30));
-        }
-
-        // 3. Find same-day active tasks and events
-        final taskDay = targetTask.startTime;
-        final sameDayTasks =
-            tasks
-                .where(
-                  (t) =>
-                      !t.isCompleted &&
-                      t.startTime.year == taskDay.year &&
-                      t.startTime.month == taskDay.month &&
-                      t.startTime.day == taskDay.day,
-                )
-                .toList()
-              ..sort((a, b) => a.startTime.compareTo(b.startTime));
-
-        final sameDayEvents =
-            calendarEvents
-                .where(
-                  (e) =>
-                      !e.isAllDay &&
-                      e.startTime.year == taskDay.year &&
-                      e.startTime.month == taskDay.month &&
-                      e.startTime.day == taskDay.day,
-                )
-                .toList()
-              ..sort((a, b) => a.startTime.compareTo(b.startTime));
-
-        DateTime avoidEvents(DateTime start, Duration dur) {
-          var cur = start;
-          var hasShifted = true;
-          while (hasShifted) {
-            hasShifted = false;
-            final end = cur.add(dur);
-            for (final ev in sameDayEvents) {
-              if (cur.isBefore(ev.endTime) && ev.startTime.isBefore(end)) {
-                cur = ev.endTime;
-                hasShifted = true;
-              }
-            }
-          }
-          return cur;
-        }
-
-        final targetDur = targetTask.endTime != null
-            ? targetTask.endTime!.difference(targetTask.startTime)
-            : Duration(
-                minutes: targetTask.durationMinutes > 0
-                    ? targetTask.durationMinutes
-                    : 60,
-              );
-
-        final adjustedStart = avoidEvents(targetStart, targetDur);
-        final adjustedEnd = adjustedStart.add(targetDur);
-
-        final updatedMap = <String, TaskItem>{};
-        final updatedTarget = targetTask.copyWith(
-          startTime: adjustedStart,
-          endTime: adjustedEnd,
+        result = _applyAutoRipple(
+          action: action,
+          tasks: tasks,
+          workStartHour: workStartHour,
+          workHoursPerDay: workHoursPerDay,
+          calendarEvents: calendarEvents,
         );
-        updatedMap[updatedTarget.id] = updatedTarget;
-
-        // 4. Ripple all subsequent downstream tasks on that day
-        var cursor = adjustedEnd;
-        for (final t in sameDayTasks) {
-          if (t.id == targetTask.id || t.isFixed) continue;
-          if (t.startTime.isBefore(cursor)) {
-            final tDur = t.endTime != null
-                ? t.endTime!.difference(t.startTime)
-                : Duration(
-                    minutes: t.durationMinutes > 0 ? t.durationMinutes : 60,
-                  );
-            final newStart = avoidEvents(cursor, tDur);
-            final newEnd = newStart.add(tDur);
-            final moved = t.copyWith(startTime: newStart, endTime: newEnd);
-            updatedMap[moved.id] = moved;
-            cursor = newEnd;
-          } else {
-            final tEnd =
-                t.endTime ??
-                t.startTime.add(
-                  Duration(
-                    minutes: t.durationMinutes > 0 ? t.durationMinutes : 60,
-                  ),
-                );
-            if (tEnd.isAfter(cursor)) cursor = tEnd;
-          }
-        }
-
-        final changedTasks = updatedMap.values.toList();
-        return ConflictResolutionResult(
-          updatedTasks: changedTasks,
-          summary:
-              'Schedule autonomously rippled. ${changedTasks.length} task${changedTasks.length == 1 ? '' : 's'} smoothly repositioned.',
-          isSuccess: changedTasks.isNotEmpty,
-        );
+        break;
 
       case 'insert_buffer':
         final taskId = action.params['taskId'] as String?;
@@ -396,12 +183,25 @@ class ConflictAnticipationService {
 
         // If no task specified (e.g. buffer warning between two calendar events), acknowledge and dismiss
         if (taskId == null) {
-          return ConflictResolutionResult(
+          result = ConflictResolutionResult(
             updatedTasks: const [],
             summary:
                 'Transit buffer alert acknowledged ($bufferMins min travel buffer recommended).',
             isSuccess: true,
           );
+          break;
+        }
+
+        final targetTask = tasks.where((t) => t.id == taskId).firstOrNull;
+        if (targetTask == null ||
+            targetTask.isFixed ||
+            targetTask.isCompleted) {
+          result = const ConflictResolutionResult(
+            updatedTasks: [],
+            summary: 'Cannot insert buffer on target task.',
+            isSuccess: false,
+          );
+          break;
         }
 
         final updated = <TaskItem>[];
@@ -418,12 +218,13 @@ class ConflictAnticipationService {
             updated.add(t.copyWith(startTime: newStart, endTime: newEnd));
           }
         }
-        return ConflictResolutionResult(
+        result = ConflictResolutionResult(
           updatedTasks: updated,
           summary:
               'Inserted $bufferMins min buffer and adjusted downstream tasks.',
           isSuccess: updated.isNotEmpty,
         );
+        break;
 
       case 'reschedule_task':
         final taskId = action.params['taskId'] as String?;
@@ -449,17 +250,19 @@ class ConflictAnticipationService {
               })
               .where((t) => t.id == taskId)
               .toList();
-          return ConflictResolutionResult(
+          result = ConflictResolutionResult(
             updatedTasks: updated,
             summary: 'Task rescheduled to $newStart.',
             isSuccess: updated.isNotEmpty,
           );
+        } else {
+          result = const ConflictResolutionResult(
+            updatedTasks: [],
+            summary: 'No valid task or start time specified.',
+            isSuccess: false,
+          );
         }
-        return const ConflictResolutionResult(
-          updatedTasks: [],
-          summary: 'No valid task or start time specified.',
-          isSuccess: false,
-        );
+        break;
 
       case 'realign_circadian':
       case 'reschedule_day':
@@ -505,28 +308,343 @@ class ConflictAnticipationService {
               (o.startTime != t.startTime || o.endTime != t.endTime);
         }).toList();
 
-        return ConflictResolutionResult(
+        result = ConflictResolutionResult(
           updatedTasks: changed,
           summary: changed.isNotEmpty
               ? 'Schedule realigned to your ${Chronotype.fromId(chronotypeId).label} circadian peak focus windows.'
               : 'Tasks already aligned with your circadian peak windows.',
           isSuccess: true,
         );
+        break;
 
       case 'dismiss_conflict':
-        return const ConflictResolutionResult(
+        result = const ConflictResolutionResult(
           updatedTasks: [],
           summary: 'Conflict notification acknowledged.',
           isSuccess: true,
         );
+        break;
 
       default:
-        return const ConflictResolutionResult(
+        result = const ConflictResolutionResult(
           updatedTasks: [],
           summary: 'Unknown action type.',
           isSuccess: false,
         );
     }
+
+    if (result.isSuccess && conflictId != null) {
+      _dismissedConflictIds.add(conflictId);
+    }
+
+    return result;
+  }
+
+  ConflictResolutionResult _applyAutoRipple({
+    required ConflictResolutionAction action,
+    required List<TaskItem> tasks,
+    required int workStartHour,
+    required int workHoursPerDay,
+    required List<CalendarEvent> calendarEvents,
+  }) {
+    final targetTaskId = action.params['taskId'] as String?;
+    final conflictTaskId = action.params['conflictTaskId'] as String?;
+    final conflictEventId = action.params['conflictEventId'] as String?;
+
+    // 1. Identify target task to shift
+    TaskItem? targetTask;
+    if (targetTaskId != null) {
+      for (final t in tasks) {
+        if (t.id == targetTaskId) {
+          targetTask = t;
+          break;
+        }
+      }
+    }
+
+    // Fallback: search for any clashing task
+    if (targetTask == null) {
+      for (var i = 0; i < tasks.length; i++) {
+        final a = tasks[i];
+        if (a.isCompleted) continue;
+        final aEnd =
+            a.endTime ??
+            a.startTime.add(
+              Duration(minutes: a.durationMinutes > 0 ? a.durationMinutes : 60),
+            );
+        for (var j = i + 1; j < tasks.length; j++) {
+          final b = tasks[j];
+          if (b.isCompleted) continue;
+          final bEnd =
+              b.endTime ??
+              b.startTime.add(
+                Duration(
+                  minutes: b.durationMinutes > 0 ? b.durationMinutes : 60,
+                ),
+              );
+          if (a.startTime.isBefore(bEnd) && b.startTime.isBefore(aEnd)) {
+            targetTask = b;
+            break;
+          }
+        }
+        if (targetTask != null) break;
+        for (final ev in calendarEvents) {
+          if (ev.isAllDay) continue;
+          if (a.startTime.isBefore(ev.endTime) && ev.startTime.isBefore(aEnd)) {
+            targetTask = a;
+            break;
+          }
+        }
+        if (targetTask != null) break;
+      }
+    }
+
+    if (targetTask == null) {
+      return const ConflictResolutionResult(
+        updatedTasks: [],
+        summary: 'No overlapping tasks to ripple.',
+        isSuccess: false,
+      );
+    }
+
+    if (targetTask.isFixed) {
+      return ConflictResolutionResult(
+        updatedTasks: const [],
+        summary: 'Cannot ripple fixed task "${targetTask.title}".',
+        isSuccess: false,
+      );
+    }
+
+    final originalTargetStart = targetTask.startTime;
+    final taskDay = originalTargetStart;
+
+    // 2. Determine target start boundary past the colliding block
+    DateTime targetStart = originalTargetStart;
+    if (conflictTaskId != null) {
+      for (final t in tasks) {
+        if (t.id == conflictTaskId) {
+          final cEnd =
+              t.endTime ??
+              t.startTime.add(
+                Duration(
+                  minutes: t.durationMinutes > 0 ? t.durationMinutes : 60,
+                ),
+              );
+          if (cEnd.isAfter(targetStart)) targetStart = cEnd;
+          break;
+        }
+      }
+    } else if (conflictEventId != null) {
+      for (final ev in calendarEvents) {
+        if (ev.id == conflictEventId) {
+          if (ev.endTime.isAfter(targetStart)) targetStart = ev.endTime;
+          break;
+        }
+      }
+    } else {
+      // Find any collision with targetTask
+      final curEnd =
+          targetTask.endTime ??
+          targetTask.startTime.add(
+            Duration(
+              minutes: targetTask.durationMinutes > 0
+                  ? targetTask.durationMinutes
+                  : 60,
+            ),
+          );
+      for (final t in tasks) {
+        if (t.id == targetTask.id || t.isCompleted) continue;
+        final tEnd =
+            t.endTime ??
+            t.startTime.add(
+              Duration(minutes: t.durationMinutes > 0 ? t.durationMinutes : 60),
+            );
+        if (targetTask.startTime.isBefore(tEnd) &&
+            t.startTime.isBefore(curEnd)) {
+          if (tEnd.isAfter(targetStart)) targetStart = tEnd;
+        }
+      }
+      for (final ev in calendarEvents) {
+        if (ev.isAllDay) continue;
+        if (targetTask.startTime.isBefore(ev.endTime) &&
+            ev.startTime.isBefore(curEnd)) {
+          if (ev.endTime.isAfter(targetStart)) targetStart = ev.endTime;
+        }
+      }
+    }
+
+    if (targetStart == originalTargetStart) {
+      targetStart = originalTargetStart.add(const Duration(minutes: 30));
+    }
+
+    // Capacity window for the day
+    final workStart = DateTime(
+      taskDay.year,
+      taskDay.month,
+      taskDay.day,
+      workStartHour,
+    );
+    final workEnd = workStart.add(Duration(hours: workHoursPerDay));
+    final eod = DateTime(taskDay.year, taskDay.month, taskDay.day, 23, 59);
+    final effectiveLimit = originalTargetStart.isBefore(workEnd)
+        ? workEnd
+        : eod;
+
+    // Same-day active tasks and events
+    final sameDayTasks =
+        tasks
+            .where(
+              (t) =>
+                  !t.isCompleted &&
+                  t.startTime.year == taskDay.year &&
+                  t.startTime.month == taskDay.month &&
+                  t.startTime.day == taskDay.day,
+            )
+            .toList()
+          ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+    final sameDayEvents =
+        calendarEvents
+            .where(
+              (e) =>
+                  !e.isAllDay &&
+                  e.startTime.year == taskDay.year &&
+                  e.startTime.month == taskDay.month &&
+                  e.startTime.day == taskDay.day,
+            )
+            .toList()
+          ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+    // Immovable obstacles:
+    // 1. External calendar events
+    // 2. Fixed tasks on that day
+    // 3. Tasks scheduled BEFORE originalTargetStart (must remain untouched!)
+    final immovableObstacles = <_TimeBlock>[
+      for (final ev in sameDayEvents) _TimeBlock(ev.startTime, ev.endTime),
+      for (final t in sameDayTasks)
+        if (t.id != targetTask.id &&
+            (t.isFixed || t.startTime.isBefore(originalTargetStart)))
+          _TimeBlock(
+            t.startTime,
+            t.endTime ??
+                t.startTime.add(
+                  Duration(
+                    minutes: t.durationMinutes > 0 ? t.durationMinutes : 60,
+                  ),
+                ),
+          ),
+    ]..sort((a, b) => a.start.compareTo(b.start));
+
+    // Helper: find next slot not overlapping any immovable obstacle
+    DateTime avoidObstacles(DateTime start, Duration dur) {
+      var cur = start;
+      var shifted = true;
+      while (shifted) {
+        shifted = false;
+        final end = cur.add(dur);
+        for (final obs in immovableObstacles) {
+          if (cur.isBefore(obs.end) && obs.start.isBefore(end)) {
+            cur = obs.end;
+            shifted = true;
+          }
+        }
+      }
+      return cur;
+    }
+
+    final targetDur = targetTask.endTime != null
+        ? targetTask.endTime!.difference(targetTask.startTime)
+        : Duration(
+            minutes: targetTask.durationMinutes > 0
+                ? targetTask.durationMinutes
+                : 60,
+          );
+
+    final adjustedStart = avoidObstacles(targetStart, targetDur);
+    final adjustedEnd = adjustedStart.add(targetDur);
+
+    // Verify target task fits within remaining schedule capacity
+    if (adjustedEnd.isAfter(effectiveLimit)) {
+      return const ConflictResolutionResult(
+        updatedTasks: [],
+        summary: 'Insufficient remaining schedule capacity to ripple tasks.',
+        isSuccess: false,
+      );
+    }
+
+    final updatedMap = <String, TaskItem>{};
+    final updatedTarget = targetTask.copyWith(
+      startTime: adjustedStart,
+      endTime: adjustedEnd,
+    );
+    updatedMap[updatedTarget.id] = updatedTarget;
+
+    // 4. Cascade ONLY affected downstream tasks:
+    // Downstream tasks are non-fixed tasks scheduled at or after originalTargetStart
+    final downstreamTasks =
+        sameDayTasks
+            .where(
+              (t) =>
+                  t.id != targetTask!.id &&
+                  !t.isFixed &&
+                  !t.startTime.isBefore(originalTargetStart),
+            )
+            .toList()
+          ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+    var cursor = adjustedEnd;
+    for (final t in downstreamTasks) {
+      final tDur = t.endTime != null
+          ? t.endTime!.difference(t.startTime)
+          : Duration(minutes: t.durationMinutes > 0 ? t.durationMinutes : 60);
+
+      if (t.startTime.isBefore(cursor)) {
+        final newStart = avoidObstacles(cursor, tDur);
+        final newEnd = newStart.add(tDur);
+
+        if (newEnd.isAfter(effectiveLimit)) {
+          return const ConflictResolutionResult(
+            updatedTasks: [],
+            summary:
+                'Insufficient remaining schedule capacity to ripple tasks.',
+            isSuccess: false,
+          );
+        }
+
+        final moved = t.copyWith(startTime: newStart, endTime: newEnd);
+        updatedMap[moved.id] = moved;
+        cursor = newEnd;
+      } else {
+        final clearStart = avoidObstacles(t.startTime, tDur);
+        final clearEnd = clearStart.add(tDur);
+
+        if (clearEnd.isAfter(effectiveLimit)) {
+          return const ConflictResolutionResult(
+            updatedTasks: [],
+            summary:
+                'Insufficient remaining schedule capacity to ripple tasks.',
+            isSuccess: false,
+          );
+        }
+
+        if (clearStart != t.startTime) {
+          final moved = t.copyWith(startTime: clearStart, endTime: clearEnd);
+          updatedMap[moved.id] = moved;
+          cursor = clearEnd;
+        } else {
+          final tEnd = t.endTime ?? t.startTime.add(tDur);
+          if (tEnd.isAfter(cursor)) cursor = tEnd;
+        }
+      }
+    }
+
+    final changedTasks = updatedMap.values.toList();
+    return ConflictResolutionResult(
+      updatedTasks: changedTasks,
+      summary:
+          'Schedule autonomously rippled. ${changedTasks.length} task${changedTasks.length == 1 ? '' : 's'} smoothly repositioned.',
+      isSuccess: changedTasks.isNotEmpty,
+    );
   }
 
   // ── Diagnostic Evaluators ────────────────────────────────────────────────
@@ -796,4 +914,11 @@ class ConflictAnticipationService {
       }
     }
   }
+}
+
+class _TimeBlock {
+  final DateTime start;
+  final DateTime end;
+
+  const _TimeBlock(this.start, this.end);
 }
