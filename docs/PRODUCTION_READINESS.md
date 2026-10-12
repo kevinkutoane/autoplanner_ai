@@ -27,7 +27,7 @@
 | **Code Formatting** | Zero format diffs (`dart format --output=none --set-exit-if-changed`) | **PASS** | Verified format check with exit code 0 across all 168 files in `lib` and `test`. |
 | **Static Analysis** | Zero errors, zero warnings, zero infos with `--fatal-infos` | **PASS** | `flutter analyze lib test --fatal-infos` ran across all files with `No issues found!`. |
 | **Unit & Behavioral Tests** | 100% pass rate across entire suite | **PASS** | 650 passing tests across 51 test files (`flutter test`) with zero failures. |
-| **CI Exact-SHA Reproduction** | GitHub Actions passes on target commit without secrets | **PASS** | CI workflow `.github/workflows/ci.yml` enforces exact-SHA assertion, formatting, analyze --fatal-infos, flutter test --coverage, and dual debug/release APK builds uploading `autoplanner-ai-3.0.0-release`. |
+| **CI Exact-SHA Reproduction** | GitHub Actions passes on target commit without secrets | **PASS** | Verified on GitHub Actions run [#38213649835](https://github.com/kevinkutoane/autoplanner_ai/actions/runs/38213649835) (commit `461051b`): formatting gate, static analysis, all 650 unit/widget tests, debug APK, and release APK build passed with release artifact `autoplanner-ai-3.0.0-release` generated. |
 
 ---
 
