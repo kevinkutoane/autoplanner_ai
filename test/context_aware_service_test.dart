@@ -28,7 +28,7 @@ void main() {
     test(
       'findNextMicroWinWindow detects open calendar gap and fitting tasks',
       () {
-        final now = DateTime.now();
+        final now = DateTime(2026, 10, 12, 10, 0);
         // Event starts in 30 minutes
         final upcomingEvent = CalendarEvent(
           id: 'event-standup',
@@ -68,7 +68,7 @@ void main() {
         addTearDown(container.dispose);
 
         final service = container.read(contextAwareServiceProvider);
-        final window = service.findNextMicroWinWindow();
+        final window = service.findNextMicroWinWindow(now);
 
         expect(window, isNotNull);
         expect(window!.nextEventTitle, 'Daily Standup');

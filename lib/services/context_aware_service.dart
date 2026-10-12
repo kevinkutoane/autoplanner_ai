@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/models/task_model.dart';
@@ -54,8 +55,8 @@ class ContextAwareService {
   }
 
   /// Scans today's calendar and tasks to identify open time gaps before upcoming commitments.
-  ContextualWindow? findNextMicroWinWindow() {
-    final now = DateTime.now();
+  ContextualWindow? findNextMicroWinWindow([DateTime? currentTime]) {
+    final now = currentTime ?? clock.now();
     final events = _ref.read(calendarControllerProvider);
     final tasks = _ref.read(taskControllerProvider);
 
