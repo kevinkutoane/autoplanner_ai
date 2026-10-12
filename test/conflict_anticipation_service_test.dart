@@ -645,5 +645,224 @@ void main() {
       );
       expect(postSuccessConflicts.any((c) => c.id == conflict.id), isFalse);
     });
+
+    test('insert_buffer before meeting reschedules task earlier and guarantees >= 15m buffer without colliding with meeting', () {
+      final deepTask = TaskItem(
+        id: 'task_deep',
+        title: 'Deep Focus Work',
+        startTime: DateTime(2099, 6, 15, 14, 0),
+        endTime: DateTime(2099, 6, 15, 14, 55),
+        priority: 2,
+      );
+      final meeting = CalendarEvent(
+        id: 'client_meeting',
+        title: 'Client Stakeholder Review',
+        startTime: DateTime(2099, 6, 15, 15, 0),
+        endTime: DateTime(2099, 6, 15, 16, 0),
+      );
+
+      final conflicts = service.evaluateSchedule(
+        tasks: [deepTask],
+        calendarEvents: [meeting],
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      final transitConflict = conflicts.firstWhere(
+        (c) => c.type == ConflictType.transitBufferCompression,
+      );
+      expect(
+        transitConflict.resolutionAction.label,
+        'Re-Schedule Before Meeting',
+      );
+
+      final result = service.applyResolution(
+        transitConflict.resolutionAction,
+        tasks: [deepTask],
+        calendarEvents: [meeting],
+        workStartHour: 9,
+        workHoursPerDay: 8,
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      expect(result.isSuccess, isTrue);
+      expect(result.updatedTasks.length, 1);
+      final updated = result.updatedTasks.first;
+
+      // Must finish at least 15 min before the meeting (14:45 finish, 13:50 start)
+      expect(updated.startTime, DateTime(2099, 6, 15, 13, 50));
+      expect(updated.endTime, DateTime(2099, 6, 15, 14, 45));
+      expect(
+        meeting.startTime.difference(updated.endTime!).inMinutes,
+        greaterThanOrEqualTo(15),
+      );
+      expect(updated.endTime!.isBefore(meeting.startTime), isTrue);
+
+      // Re-evaluating schedule should confirm transit conflict is dismissed
+      final postConflicts = service.evaluateSchedule(
+        tasks: [updated],
+        calendarEvents: [meeting],
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+      expect(postConflicts.any((c) => c.id == transitConflict.id), isFalse);
+    });
+
+    test('insert_buffer before meeting fails cleanly and preserves fixed commitments when earlier fixed task blocks slot', () {
+      final fixedTask = TaskItem(
+        id: 'fixed_prep',
+        title: 'Executive Briefing',
+        startTime: DateTime(2099, 6, 15, 13, 0),
+        endTime: DateTime(2099, 6, 15, 14, 0),
+        isFixed: true,
+      );
+      final deepTask = TaskItem(
+        id: 'task_deep',
+        title: 'Deep Architecture Plan',
+        startTime: DateTime(2099, 6, 15, 14, 0),
+        endTime: DateTime(2099, 6, 15, 14, 55),
+        priority: 2,
+      );
+      final meeting = CalendarEvent(
+        id: 'board_meeting',
+        title: 'Board Meeting',
+        startTime: DateTime(2099, 6, 15, 15, 0),
+        endTime: DateTime(2099, 6, 15, 16, 0),
+      );
+
+      final conflicts = service.evaluateSchedule(
+        tasks: [fixedTask, deepTask],
+        calendarEvents: [meeting],
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      final transitConflict = conflicts.firstWhere(
+        (c) => c.type == ConflictType.transitBufferCompression,
+      );
+
+      final result = service.applyResolution(
+        transitConflict.resolutionAction,
+        tasks: [fixedTask, deepTask],
+        calendarEvents: [meeting],
+        workStartHour: 9,
+        workHoursPerDay: 8,
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      // Shifting 13:50-14:45 would collide with fixedTask (13:00-14:00)
+      expect(result.isSuccess, isFalse);
+      expect(result.updatedTasks, isEmpty);
+      expect(result.summary, contains('Insufficient time'));
+
+      // Fixed commitments and target tasks remain completely unchanged
+      expect(fixedTask.startTime, DateTime(2099, 6, 15, 13, 0));
+      expect(fixedTask.endTime, DateTime(2099, 6, 15, 14, 0));
+      expect(deepTask.startTime, DateTime(2099, 6, 15, 14, 0));
+      expect(deepTask.endTime, DateTime(2099, 6, 15, 14, 55));
+
+      // Conflict is not dismissed and remains visible in evaluateSchedule
+      final postConflicts = service.evaluateSchedule(
+        tasks: [fixedTask, deepTask],
+        calendarEvents: [meeting],
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+      expect(postConflicts.any((c) => c.id == transitConflict.id), isTrue);
+    });
+
+    test('insert_buffer before meeting fails cleanly when earlier calendar event blocks shifting earlier', () {
+      final priorEvent = CalendarEvent(
+        id: 'dentist',
+        title: 'Dentist Appointment',
+        startTime: DateTime(2099, 6, 15, 13, 30),
+        endTime: DateTime(2099, 6, 15, 14, 0),
+      );
+      final deepTask = TaskItem(
+        id: 'task_deep',
+        title: 'Deep Architecture Plan',
+        startTime: DateTime(2099, 6, 15, 14, 0),
+        endTime: DateTime(2099, 6, 15, 14, 55),
+        priority: 2,
+      );
+      final meeting = CalendarEvent(
+        id: 'board_meeting',
+        title: 'Board Meeting',
+        startTime: DateTime(2099, 6, 15, 15, 0),
+        endTime: DateTime(2099, 6, 15, 16, 0),
+      );
+
+      final conflicts = service.evaluateSchedule(
+        tasks: [deepTask],
+        calendarEvents: [priorEvent, meeting],
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      final transitConflict = conflicts.firstWhere(
+        (c) => c.type == ConflictType.transitBufferCompression,
+      );
+
+      final result = service.applyResolution(
+        transitConflict.resolutionAction,
+        tasks: [deepTask],
+        calendarEvents: [priorEvent, meeting],
+        workStartHour: 9,
+        workHoursPerDay: 8,
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      expect(result.isSuccess, isFalse);
+      expect(result.updatedTasks, isEmpty);
+
+      // Conflict remains visible
+      final postConflicts = service.evaluateSchedule(
+        tasks: [deepTask],
+        calendarEvents: [priorEvent, meeting],
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+      expect(postConflicts.any((c) => c.id == transitConflict.id), isTrue);
+    });
+
+    test('insert_buffer before meeting fails cleanly when shifting earlier breaches workStartHour', () {
+      final morningTask = TaskItem(
+        id: 'morning_task',
+        title: 'Briefing Doc',
+        startTime: DateTime(2099, 6, 15, 8, 45),
+        endTime: DateTime(2099, 6, 15, 9, 5),
+        priority: 2,
+      );
+      final meeting = CalendarEvent(
+        id: 'early_meeting',
+        title: 'Early Sync',
+        startTime: DateTime(2099, 6, 15, 9, 10),
+        endTime: DateTime(2099, 6, 15, 9, 45),
+      );
+
+      final conflicts = service.evaluateSchedule(
+        tasks: [morningTask],
+        calendarEvents: [meeting],
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      final transitConflict = conflicts.firstWhere(
+        (c) => c.type == ConflictType.transitBufferCompression,
+      );
+
+      // Shifting 20 min task before 09:10 with 15m buffer needs 08:35 start, before 09:00 workStartHour
+      final result = service.applyResolution(
+        transitConflict.resolutionAction,
+        tasks: [morningTask],
+        calendarEvents: [meeting],
+        workStartHour: 9,
+        workHoursPerDay: 8,
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+
+      expect(result.isSuccess, isFalse);
+      expect(result.updatedTasks, isEmpty);
+
+      final postConflicts = service.evaluateSchedule(
+        tasks: [morningTask],
+        calendarEvents: [meeting],
+        currentTime: DateTime(2099, 6, 15, 8, 0),
+      );
+      expect(postConflicts.any((c) => c.id == transitConflict.id), isTrue);
+    });
   });
 }

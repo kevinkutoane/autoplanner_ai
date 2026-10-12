@@ -26,8 +26,8 @@
 | :--- | :--- | :---: | :--- |
 | **Code Formatting** | Zero format diffs (`dart format --output=none --set-exit-if-changed`) | **PASS** | Verified format check with exit code 0 across all 168 files in `lib` and `test`. |
 | **Static Analysis** | Zero errors, zero warnings, zero infos with `--fatal-infos` | **PASS** | `flutter analyze lib test --fatal-infos` ran across all files with `No issues found!`. |
-| **Unit & Behavioral Tests** | 100% pass rate across entire suite | **PASS** | 650 passing tests across 51 test files (`flutter test`) with zero failures. |
-| **CI Exact-SHA Reproduction** | GitHub Actions passes on target commit without secrets | **PASS** | Verified on GitHub Actions run [#38213649835](https://github.com/kevinkutoane/autoplanner_ai/actions/runs/38213649835) (commit `461051b`): formatting gate, static analysis, all 650 unit/widget tests, debug APK, and release APK build passed with release artifact `autoplanner-ai-3.0.0-release` generated. |
+| **Unit & Behavioral Tests** | 100% pass rate across entire suite | **PASS** | 654 passing tests across 51 test files (`flutter test`) with zero failures. |
+| **CI Exact-SHA Reproduction** | GitHub Actions passes on target commit without secrets | **PASS** | Verified on GitHub Actions run [#38215005268](https://github.com/kevinkutoane/autoplanner_ai/actions/runs/38215005268) (commit `9a14946`): formatting gate, static analysis, all unit/widget tests, debug APK, and release APK build passed with release artifact `autoplanner-ai-3.0.0-release` generated. |
 
 ---
 
@@ -61,6 +61,7 @@
 | **Overload Handling** | Excess workload -> valid partial schedule | **PASS** | 10 hours of work in an 8-hour window cleanly splits into placed tasks and `unplacedTasks` list without invalid overlaps. |
 | **Cycle Safety** | Circular dependencies terminate safely | **PASS** | Circular dependencies (A -> B -> A) detected by `DependencyGraphService`, terminate safely without hang/infinite loop, and emit diagnostics. |
 | **Task Splitting** | Conservation of duration & chunk links | **PASS** | Splittable tasks conserve total duration, create consecutive chunk IDs, maintain `parentTaskId`, and preserve buffer. |
+| **Hard Meeting Constraint in Buffer Insertion** | Task ends >= buffer before meeting or explicit failure | **PASS** | `ConflictAnticipationService` `insert_buffer` treats conflicting calendar events as immovable constraints, rescheduling task earlier to guarantee >= 15m buffer, checking earlier tasks, calendar events, and `workStartHour` for collisions, returning explicit failure without mutating tasks or dismissing conflicts when capacity is insufficient. Tested in `test/conflict_anticipation_service_test.dart`. |
 
 ---
 
@@ -133,12 +134,12 @@
 
 ## Summary Verdict
 
-* **Total Readiness Criteria Evaluated**: 49
-* **PASS**: 49 (Empirically verified on Android hardware/emulators and automated test suites)
+* **Total Readiness Criteria Evaluated**: 50
+* **PASS**: 50 (Empirically verified on Android hardware/emulators and automated test suites)
 * **FAIL**: 0
 * **BLOCKED**: 0
 * **DEFERRED / MANAGED DEBT**: 9 (Formally tracked in `docs/ARCHITECTURE_DEBT.md`, including toolchain deprecation warnings)
-* **Automated Test Coverage**: 650 passing tests across 51 test files (100% pass rate)
+* **Automated Test Coverage**: 654 passing tests across 51 test files (100% pass rate)
 * **Classification**: **CONTROLLED USER-TESTING READINESS (v3.0.0+1) — CERTIFIED**
 * **Readiness Status**: Certified for controlled beta testing and user pilot trials on Android. Public store release and General Availability (GA) certification are intentionally distinguished and deferred until completion of pilot feedback, cloud backend deployment, and iOS hardware verification.
 
@@ -153,4 +154,5 @@
 | **Day-0 Cold Start Experience** | First-run onboarding starter card | **PASS** | `SampleStarterPlanCard` guides new users with circadian, anchor, and dip demonstrations; tested in `test/sample_starter_plan_test.dart`. |
 | **Settings Panel Streamlining** | Zero RenderFlex overflows across all device densities | **PASS** | Streamlined sound/vibrate controls into responsive `_SwitchTile`s; updated version display to `3.0.0+1`. |
 | **Auto-Ripple Ordering & Obstacle Safety** | Preserve earlier tasks and fixed commitments | **PASS** | `ConflictAnticipationService` auto-ripple preserves earlier tasks, shifts target task past collisions and external events, respects fixed commitments, returns explicit capacity failures, and dismisses conflicts only upon verified success. |
+| **Hard Meeting Boundary in Buffer Insertion** | Protect meeting boundaries and prevent collisions during buffer insertion | **PASS** | Corrected P1 defect where `insert_buffer` advanced tasks into meetings. Enforces meeting boundary as immovable constraint, moves task earlier to preserve >= 15m gap, checks earlier tasks/calendar events, and leaves conflicts visible upon capacity shortage. Tested in `test/conflict_anticipation_service_test.dart`. |
 

@@ -178,6 +178,7 @@ class ConflictAnticipationService {
 
       case 'insert_buffer':
         final taskId = action.params['taskId'] as String?;
+        final conflictEventId = action.params['conflictEventId'] as String?;
         final bufferMins =
             action.params['bufferMinutes'] as int? ?? minTransitBufferMinutes;
 
@@ -204,26 +205,132 @@ class ConflictAnticipationService {
           break;
         }
 
-        final updated = <TaskItem>[];
-        var found = false;
-        for (final t in tasks) {
-          if (t.id == taskId) {
-            found = true;
-            final newStart = t.startTime.add(Duration(minutes: bufferMins));
-            final newEnd = t.endTime?.add(Duration(minutes: bufferMins));
-            updated.add(t.copyWith(startTime: newStart, endTime: newEnd));
-          } else if (found && !t.isCompleted && !t.isFixed) {
-            final newStart = t.startTime.add(Duration(minutes: bufferMins));
-            final newEnd = t.endTime?.add(Duration(minutes: bufferMins));
-            updated.add(t.copyWith(startTime: newStart, endTime: newEnd));
+        if (conflictEventId != null) {
+          // Task-before-meeting branch: protect meeting boundary as a hard immovable constraint
+          final conflictEvent = calendarEvents
+              .where((e) => e.id == conflictEventId)
+              .firstOrNull;
+          if (conflictEvent == null) {
+            result = const ConflictResolutionResult(
+              updatedTasks: [],
+              summary: 'Conflicting calendar event not found.',
+              isSuccess: false,
+            );
+            break;
           }
+
+          final targetDur = targetTask.endTime != null
+              ? targetTask.endTime!.difference(targetTask.startTime)
+              : Duration(
+                  minutes: targetTask.durationMinutes > 0
+                      ? targetTask.durationMinutes
+                      : 60,
+                );
+
+          // Shift target task earlier so it finishes at least bufferMins before meeting
+          final newEnd = conflictEvent.startTime.subtract(
+            Duration(minutes: bufferMins),
+          );
+          final newStart = newEnd.subtract(targetDur);
+
+          final taskDay = conflictEvent.startTime;
+          final workStart = DateTime(
+            taskDay.year,
+            taskDay.month,
+            taskDay.day,
+            workStartHour,
+          );
+
+          var hasCollision = false;
+
+          // Check workday capacity boundary
+          if (newStart.isBefore(workStart)) {
+            hasCollision = true;
+          }
+
+          // Check collisions with other calendar events on that day
+          if (!hasCollision) {
+            for (final ev in calendarEvents) {
+              if (ev.id == conflictEvent.id || ev.isAllDay) continue;
+              if (ev.startTime.year != taskDay.year ||
+                  ev.startTime.month != taskDay.month ||
+                  ev.startTime.day != taskDay.day) {
+                continue;
+              }
+              if (newStart.isBefore(ev.endTime) &&
+                  ev.startTime.isBefore(newEnd)) {
+                hasCollision = true;
+                break;
+              }
+            }
+          }
+
+          // Check collisions with other tasks on that day
+          if (!hasCollision) {
+            for (final t in tasks) {
+              if (t.id == targetTask.id) continue;
+              if (t.startTime.year != taskDay.year ||
+                  t.startTime.month != taskDay.month ||
+                  t.startTime.day != taskDay.day) {
+                continue;
+              }
+              final tDur = t.endTime != null
+                  ? t.endTime!.difference(t.startTime)
+                  : Duration(
+                      minutes: t.durationMinutes > 0 ? t.durationMinutes : 60,
+                    );
+              final tEnd = t.endTime ?? t.startTime.add(tDur);
+
+              if (newStart.isBefore(tEnd) && t.startTime.isBefore(newEnd)) {
+                hasCollision = true;
+                break;
+              }
+            }
+          }
+
+          if (hasCollision) {
+            result = ConflictResolutionResult(
+              updatedTasks: const [],
+              summary:
+                  'Insufficient time before "${conflictEvent.title}" to allocate a $bufferMins min travel buffer.',
+              isSuccess: false,
+            );
+            break;
+          }
+
+          final updatedTarget = targetTask.copyWith(
+            startTime: newStart,
+            endTime: newEnd,
+          );
+          result = ConflictResolutionResult(
+            updatedTasks: [updatedTarget],
+            summary:
+                'Rescheduled "${targetTask.title}" before "${conflictEvent.title}" with a $bufferMins min travel buffer.',
+            isSuccess: true,
+          );
+        } else {
+          // Standard downstream buffer insertion for task-to-task gaps
+          final updated = <TaskItem>[];
+          var found = false;
+          for (final t in tasks) {
+            if (t.id == taskId) {
+              found = true;
+              final newStart = t.startTime.add(Duration(minutes: bufferMins));
+              final newEnd = t.endTime?.add(Duration(minutes: bufferMins));
+              updated.add(t.copyWith(startTime: newStart, endTime: newEnd));
+            } else if (found && !t.isCompleted && !t.isFixed) {
+              final newStart = t.startTime.add(Duration(minutes: bufferMins));
+              final newEnd = t.endTime?.add(Duration(minutes: bufferMins));
+              updated.add(t.copyWith(startTime: newStart, endTime: newEnd));
+            }
+          }
+          result = ConflictResolutionResult(
+            updatedTasks: updated,
+            summary:
+                'Inserted $bufferMins min buffer and adjusted downstream tasks.',
+            isSuccess: updated.isNotEmpty,
+          );
         }
-        result = ConflictResolutionResult(
-          updatedTasks: updated,
-          summary:
-              'Inserted $bufferMins min buffer and adjusted downstream tasks.',
-          isSuccess: updated.isNotEmpty,
-        );
         break;
 
       case 'reschedule_task':

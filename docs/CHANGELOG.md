@@ -8,6 +8,11 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ### Auto-Ripple Ordering, Conflict Dismissal Lifecycle & Responsive Layout Hardening
 
+- **Hard Meeting Constraint in `insert_buffer` Resolution (`ConflictAnticipationService`)**:
+  - Resolved P1 defect where "Re-Schedule Before Meeting" advanced tasks forward into subsequent meetings rather than protecting meeting boundaries.
+  - Implemented backward rescheduling to guarantee a >= 15-minute restorative/travel buffer prior to the conflicting calendar event (`conflictEventId`).
+  - Added collision detection across earlier tasks and calendar commitments on that day, ensuring immovable commitments and prior tasks are never overwritten or overlapped.
+  - Added workday capacity boundary checking (`workStartHour`); returns explicit failure (`isSuccess: false`) without mutating tasks or dismissing conflicts when insufficient capacity exists.
 - **Auto-Ripple Ordering & Collision Avoidance (`ConflictAnticipationService`)**:
   - Implemented origin boundary checking: tasks scheduled prior to the selected task's original start time remain strictly untouched and preserved.
   - Target task cleanly moves after its conflicting task or external calendar event.
@@ -23,7 +28,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - **Release Toolchain & CI Artifact Alignment**:
   - Added `-dontwarn com.google.android.play.core.**` to `android/app/proguard-rules.pro`, resolving R8 minification errors for release APK builds.
   - Aligned release APK artifact name in `.github/workflows/ci.yml` to `autoplanner-ai-3.0.0-release`.
-  - Total automated test suite expanded to **650 passing tests across 51 test files** (100% pass rate).
+  - Total automated test suite expanded to **654 passing tests across 51 test files** (100% pass rate).
 
 ---
 
