@@ -26,8 +26,8 @@
 | :--- | :--- | :---: | :--- |
 | **Code Formatting** | Zero format diffs (`dart format --output=none --set-exit-if-changed`) | **PASS** | Verified format check with exit code 0 across all 168 files in `lib` and `test`. |
 | **Static Analysis** | Zero errors, zero warnings, zero infos with `--fatal-infos` | **PASS** | `flutter analyze lib test --fatal-infos` ran across all files with `No issues found!`. |
-| **Unit & Behavioral Tests** | 100% pass rate across entire suite | **PASS** | 654 passing tests across 51 test files (`flutter test`) with zero failures. |
-| **CI Exact-SHA Reproduction** | GitHub Actions passes on target commit without secrets | **PASS** | Verified on GitHub Actions run [#38219413921](https://github.com/kevinkutoane/autoplanner_ai/actions/runs/38219413921) (commit `dccee46`): formatting gate, static analysis, all 654 unit/widget tests, debug APK, and release APK build passed with release artifact `autoplanner-ai-3.0.0-release` generated. |
+| **Unit & Behavioral Tests** | 100% pass rate across entire suite | **PASS** | 658 passing tests across 51 test files (`flutter test`) with zero failures. |
+| **CI Exact-SHA Reproduction** | GitHub Actions passes on target commit without secrets | **PASS** | Verified on GitHub Actions run [#38219413921](https://github.com/kevinkutoane/autoplanner_ai/actions/runs/38219413921) (commit `dccee46`): formatting gate, static analysis, all 654 unit/widget tests, debug APK, and release APK build passed with release artifact `autoplanner-ai-3.0.0-release` generated. Will be updated to latest commit once pushed. |
 
 ---
 
@@ -61,7 +61,7 @@
 | **Overload Handling** | Excess workload -> valid partial schedule | **PASS** | 10 hours of work in an 8-hour window cleanly splits into placed tasks and `unplacedTasks` list without invalid overlaps. |
 | **Cycle Safety** | Circular dependencies terminate safely | **PASS** | Circular dependencies (A -> B -> A) detected by `DependencyGraphService`, terminate safely without hang/infinite loop, and emit diagnostics. |
 | **Task Splitting** | Conservation of duration & chunk links | **PASS** | Splittable tasks conserve total duration, create consecutive chunk IDs, maintain `parentTaskId`, and preserve buffer. |
-| **Hard Meeting Constraint in Buffer Insertion** | Task ends >= buffer before meeting or explicit failure | **PASS** | `ConflictAnticipationService` `insert_buffer` treats conflicting calendar events as immovable constraints, rescheduling task earlier to guarantee >= 15m buffer, checking earlier tasks, calendar events, and `workStartHour` for collisions, returning explicit failure without mutating tasks or dismissing conflicts when capacity is insufficient. Tested in `test/conflict_anticipation_service_test.dart`. |
+| **Hard Meeting Constraint in Buffer Insertion** | Task ends >= buffer before meeting or explicit failure | **PASS** | `ConflictAnticipationService` `insert_buffer` treats conflicting calendar events as immovable constraints, rescheduling task earlier to guarantee >= 15m buffer, enforcing a current-time guard (cannot reschedule started tasks or place into past), performing iterative backward search across earlier feasible openings, and maintaining >= 10m buffers with adjacent commitments while respecting `workStartHour`. Tested in `test/conflict_anticipation_service_test.dart`. |
 
 ---
 

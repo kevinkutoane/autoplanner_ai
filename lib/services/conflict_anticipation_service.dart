@@ -85,6 +85,7 @@ class ConflictAnticipationService {
   final ScheduleDriftService _driftService;
 
   static const int minTransitBufferMinutes = 15;
+  static const int minTaskBufferMinutes = 10;
   static const int deadlineWarningThresholdMinutes = 30;
 
   final Set<String> _dismissedConflictIds = {};
@@ -219,6 +220,17 @@ class ConflictAnticipationService {
             break;
           }
 
+          // Current-time guard: cannot reschedule a task that has already started
+          if (targetTask.startTime.isBefore(now)) {
+            result = ConflictResolutionResult(
+              updatedTasks: const [],
+              summary:
+                  'Cannot reschedule "${targetTask.title}" because it has already started.',
+              isSuccess: false,
+            );
+            break;
+          }
+
           final targetDur = targetTask.endTime != null
               ? targetTask.endTime!.difference(targetTask.startTime)
               : Duration(
@@ -226,12 +238,6 @@ class ConflictAnticipationService {
                       ? targetTask.durationMinutes
                       : 60,
                 );
-
-          // Shift target task earlier so it finishes at least bufferMins before meeting
-          final newEnd = conflictEvent.startTime.subtract(
-            Duration(minutes: bufferMins),
-          );
-          final newStart = newEnd.subtract(targetDur);
 
           final taskDay = conflictEvent.startTime;
           final workStart = DateTime(
@@ -241,54 +247,111 @@ class ConflictAnticipationService {
             workStartHour,
           );
 
-          var hasCollision = false;
+          // Current-time and workday capacity guard:
+          // If task is today and 'now' is past workStart, earliest valid start is 'now'.
+          final isSameDay =
+              now.year == taskDay.year &&
+              now.month == taskDay.month &&
+              now.day == taskDay.day;
+          final isPastDay = taskDay.isBefore(
+            DateTime(now.year, now.month, now.day),
+          );
+          final effectiveEarliest =
+              (isPastDay || (isSameDay && now.isAfter(workStart)))
+              ? now
+              : workStart;
 
-          // Check workday capacity boundary
-          if (newStart.isBefore(workStart)) {
-            hasCollision = true;
-          }
+          // Required travel/decompression buffer before the meeting
+          final latestAllowedEnd = conflictEvent.startTime.subtract(
+            Duration(minutes: bufferMins),
+          );
 
-          // Check collisions with other calendar events on that day
-          if (!hasCollision) {
-            for (final ev in calendarEvents) {
-              if (ev.id == conflictEvent.id || ev.isAllDay) continue;
-              if (ev.startTime.year != taskDay.year ||
-                  ev.startTime.month != taskDay.month ||
-                  ev.startTime.day != taskDay.day) {
-                continue;
+          // Collect all immovable commitments on taskDay (other calendar events & other tasks)
+          final occupiedBlocks = <_TimeBlock>[
+            for (final ev in calendarEvents)
+              if (!ev.isAllDay &&
+                  ev.startTime.year == taskDay.year &&
+                  ev.startTime.month == taskDay.month &&
+                  ev.startTime.day == taskDay.day &&
+                  ev.id != conflictEvent.id)
+                _TimeBlock(ev.startTime, ev.endTime),
+            for (final t in tasks)
+              if (t.id != targetTask.id &&
+                  t.startTime.year == taskDay.year &&
+                  t.startTime.month == taskDay.month &&
+                  t.startTime.day == taskDay.day)
+                _TimeBlock(
+                  t.startTime,
+                  t.endTime ??
+                      t.startTime.add(
+                        Duration(
+                          minutes: t.durationMinutes > 0
+                              ? t.durationMinutes
+                              : 60,
+                        ),
+                      ),
+                ),
+          ]..sort((a, b) => a.start.compareTo(b.start));
+
+          // Helper to check if a candidate interval [start, end] clashes with any obstacle
+          // either via direct overlap OR by violating minTaskBufferMinutes gap.
+          _TimeBlock? findClashingObstacle(DateTime start, DateTime end) {
+            _TimeBlock? latestClash;
+            for (final obs in occupiedBlocks) {
+              var isClash = false;
+              // 1. Direct overlap
+              if (start.isBefore(obs.end) && obs.start.isBefore(end)) {
+                isClash = true;
               }
-              if (newStart.isBefore(ev.endTime) &&
-                  ev.startTime.isBefore(newEnd)) {
-                hasCollision = true;
-                break;
+              // 2. Buffer violation with preceding obstacle
+              else if (!obs.end.isAfter(start) &&
+                  start.difference(obs.end).inMinutes < minTaskBufferMinutes) {
+                isClash = true;
+              }
+              // 3. Buffer violation with succeeding obstacle
+              else if (!end.isAfter(obs.start) &&
+                  obs.start.difference(end).inMinutes < minTaskBufferMinutes) {
+                isClash = true;
+              }
+
+              if (isClash) {
+                if (latestClash == null ||
+                    obs.start.isAfter(latestClash.start)) {
+                  latestClash = obs;
+                }
               }
             }
+            return latestClash;
           }
 
-          // Check collisions with other tasks on that day
-          if (!hasCollision) {
-            for (final t in tasks) {
-              if (t.id == targetTask.id) continue;
-              if (t.startTime.year != taskDay.year ||
-                  t.startTime.month != taskDay.month ||
-                  t.startTime.day != taskDay.day) {
-                continue;
-              }
-              final tDur = t.endTime != null
-                  ? t.endTime!.difference(t.startTime)
-                  : Duration(
-                      minutes: t.durationMinutes > 0 ? t.durationMinutes : 60,
-                    );
-              final tEnd = t.endTime ?? t.startTime.add(tDur);
+          // Search backwards from latestAllowedEnd for the latest feasible free slot
+          DateTime? foundStart;
+          DateTime? foundEnd;
+          var candidateEnd = latestAllowedEnd;
+          var candidateStart = candidateEnd.subtract(targetDur);
 
-              if (newStart.isBefore(tEnd) && t.startTime.isBefore(newEnd)) {
-                hasCollision = true;
-                break;
-              }
+          while (!candidateStart.isBefore(effectiveEarliest)) {
+            // Also ensure candidateEnd preserves bufferMins before conflictEvent
+            if (conflictEvent.startTime.difference(candidateEnd).inMinutes <
+                bufferMins) {
+              break;
             }
+
+            final clash = findClashingObstacle(candidateStart, candidateEnd);
+            if (clash == null) {
+              foundStart = candidateStart;
+              foundEnd = candidateEnd;
+              break;
+            }
+
+            // Step earlier: position candidateEnd before the clashing obstacle with minimum buffer
+            candidateEnd = clash.start.subtract(
+              const Duration(minutes: minTaskBufferMinutes),
+            );
+            candidateStart = candidateEnd.subtract(targetDur);
           }
 
-          if (hasCollision) {
+          if (foundStart == null || foundEnd == null) {
             result = ConflictResolutionResult(
               updatedTasks: const [],
               summary:
@@ -299,8 +362,8 @@ class ConflictAnticipationService {
           }
 
           final updatedTarget = targetTask.copyWith(
-            startTime: newStart,
-            endTime: newEnd,
+            startTime: foundStart,
+            endTime: foundEnd,
           );
           result = ConflictResolutionResult(
             updatedTasks: [updatedTarget],
@@ -877,7 +940,7 @@ class ConflictAnticipationService {
       for (final event in events) {
         final gapMinutes = event.startTime.difference(taskEnd).inMinutes;
         if (gapMinutes >= 0 &&
-            gapMinutes < 10 &&
+            gapMinutes < minTransitBufferMinutes &&
             (task.tags.contains('deep_work') || task.priority >= 2)) {
           outConflicts.add(
             AnticipatedConflict(

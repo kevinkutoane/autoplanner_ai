@@ -25,10 +25,16 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - **Responsive Layout Hardening**:
   - Resolved RenderFlex overflow on `PlanMyWeekSheet` action button by wrapping child content in `Flexible` with `maxLines: 1` and responsive `ConstrainedBox` bounds.
   - Added automated widget tests validating zero overflows and actionable controls across `ConflictAnticipationCard`, `ScheduleDriftCard`, and `PlanMyWeekSheet` under constrained 320px viewports and 1.5x text scaling.
+- **Conflict Resolution Hardening & Comprehensive Edge-Case Certification (`ConflictAnticipationService`)**:
+  - Added current-time guard: prevented rescheduling tasks that have already started (`targetTask.startTime.isBefore(now)`) or placing candidate slots into the past (`effectiveEarliest = max(workStart, now)`).
+  - Implemented iterative backward slot search: if the immediate 15-minute slot before a meeting is blocked by an existing commitment, the algorithm iteratively searches progressively earlier feasible gaps on that day instead of aborting after a single attempt.
+  - Enforced 10-minute minimum inter-task buffer: candidate slots must maintain >= 10-minute buffers (`minTaskBufferMinutes`) with preceding and succeeding adjacent commitments.
+  - Aligned transit buffer compression detection threshold: updated `_detectTransitBufferCompression` to flag gaps `< minTransitBufferMinutes` (15m) rather than hard-coded `< 10`, ensuring gaps of 10–14 minutes are surfaced.
 - **Release Toolchain & CI Artifact Alignment**:
   - Added `-dontwarn com.google.android.play.core.**` to `android/app/proguard-rules.pro`, resolving R8 minification errors for release APK builds.
   - Aligned release APK artifact name in `.github/workflows/ci.yml` to `autoplanner-ai-3.0.0-release`.
-  - Total automated test suite expanded to **654 passing tests across 51 test files** (100% pass rate).
+  - Total automated test suite expanded to **658 passing tests across 51 test files** (100% pass rate).
+
 
 ---
 
