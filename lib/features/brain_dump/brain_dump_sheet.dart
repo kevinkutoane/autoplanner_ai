@@ -195,9 +195,11 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
           }
         },
         listenOptions: stt.SpeechListenOptions(
+          listenMode: stt.ListenMode.dictation,
           partialResults: true,
-          listenFor: const Duration(seconds: 90),
-          pauseFor: const Duration(seconds: 4),
+          listenFor: const Duration(seconds: 120),
+          pauseFor: const Duration(seconds: 5),
+          cancelOnError: false,
         ),
       );
     } catch (_) {
@@ -513,10 +515,19 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
     } catch (e) {
       if (mounted) {
         setState(() => _processing = false);
+        final errStr = e.toString();
+        final errText = errStr.contains('SocketException') ||
+                errStr.contains('Network error')
+            ? 'Network error contacting AI service. Check your connection or API key.'
+            : (errStr.contains('API_KEY_INVALID') ||
+                    errStr.contains('unregistered')
+                ? 'Invalid Gemini API key. Please check your key in Settings.'
+                : 'Could not complete brain dump: ${errStr.split('\n').first}');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not complete brain dump. Please try again.'),
-            duration: Duration(seconds: 3),
+          SnackBar(
+            content: Text(errText),
+            backgroundColor: kCoral,
+            duration: const Duration(seconds: 4),
           ),
         );
       }

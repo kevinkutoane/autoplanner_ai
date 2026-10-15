@@ -180,97 +180,25 @@ class SettingsScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  // ── Appearance & Feel ────────────────────────────────
+                  // ── 1. AI & Intelligence ────────────────────────────
                   Stagger(
                     index: 0,
                     child: SectionLabel(
-                      icon: Icons.palette_rounded,
-                      label: 'Appearance & Feel',
-                      color: kIndigo,
+                      icon: Icons.auto_awesome_rounded,
+                      label: 'AI & Intelligence',
+                      color: kCoral,
                     ),
                   ),
                   Stagger(
                     index: 1,
                     child: GlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Theme',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                    color: isDark ? Colors.white : kDark0,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    _ThemeOption(
-                                      icon: Icons.brightness_auto_rounded,
-                                      label: 'System',
-                                      mode: ThemeMode.system,
-                                      selected: settings.themeMode,
-                                      onTap: () => ctrl.updateThemeMode(
-                                        ThemeMode.system,
-                                      ),
-                                      isDark: isDark,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    _ThemeOption(
-                                      icon: Icons.light_mode_rounded,
-                                      label: 'Light',
-                                      mode: ThemeMode.light,
-                                      selected: settings.themeMode,
-                                      onTap: () =>
-                                          ctrl.updateThemeMode(ThemeMode.light),
-                                      isDark: isDark,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    _ThemeOption(
-                                      icon: Icons.dark_mode_rounded,
-                                      label: 'Dark',
-                                      mode: ThemeMode.dark,
-                                      selected: settings.themeMode,
-                                      onTap: () =>
-                                          ctrl.updateThemeMode(ThemeMode.dark),
-                                      isDark: isDark,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          _GlassDivider(),
-                          _SwitchTile(
-                            icon: Icons.vibration_rounded,
-                            title: 'Haptic feedback',
-                            subtitle: 'Subtle micro-vibrations on taps and task completions',
-                            value: settings.hapticsEnabled,
-                            onChanged: (v) => ctrl.updateHapticsEnabled(v),
-                          ),
-                          const _GlassDivider(),
-                          _SwitchTile(
-                            icon: Icons.celebration_rounded,
-                            title: 'Achievement celebrations',
-                            subtitle: 'Visual fireworks when hitting streak and level milestones',
-                            value: settings.confettiCelebrationsEnabled,
-                            onChanged: (v) =>
-                                ctrl.updateConfettiCelebrationsEnabled(v),
-                          ),
-                        ],
-                      ),
+                      child: AIEngineCard(settings: settings, ctrl: ctrl),
                     ),
                   ),
 
                   const SizedBox(height: 16),
 
-                  // ── Work & Rhythm ─────────────────────────────────────
+                  // ── 2. Work & Rhythm ─────────────────────────────────
                   Stagger(
                     index: 2,
                     child: SectionLabel(
@@ -296,7 +224,7 @@ class SettingsScreen extends ConsumerWidget {
                             onChanged: (v) =>
                                 ctrl.updateWorkHoursPerDay(v.round()),
                           ),
-                          _GlassDivider(),
+                          const _GlassDivider(),
                           _ListTile(
                             icon: Icons.alarm_outlined,
                             title: 'Work starts at',
@@ -305,7 +233,7 @@ class SettingsScreen extends ConsumerWidget {
                             onTap: () =>
                                 _pickStartTime(context, settings, ctrl),
                           ),
-                          _GlassDivider(),
+                          const _GlassDivider(),
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                             child: Row(
@@ -408,7 +336,7 @@ class SettingsScreen extends ConsumerWidget {
                               ],
                             ),
                           ),
-                          _GlassDivider(),
+                          const _GlassDivider(),
                           _ProductivityPersonaCard(
                             settings: settings,
                             ctrl: ctrl,
@@ -420,77 +348,25 @@ class SettingsScreen extends ConsumerWidget {
 
                   const SizedBox(height: 16),
 
-                  // ── AI Engine & Gateway ───────────────────────────────
+                  // ── 3. Reminders & Sync ──────────────────────────────
                   Stagger(
                     index: 4,
                     child: SectionLabel(
-                      icon: Icons.psychology_rounded,
-                      label: 'AI Gateway & Autonomous Engine',
-                      color: kCoral,
+                      icon: Icons.notifications_active_rounded,
+                      label: 'Reminders & Sync',
+                      color: kIndigo,
                     ),
                   ),
                   Stagger(
                     index: 5,
                     child: GlassCard(
-                      child: AIEngineCard(settings: settings, ctrl: ctrl),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // ── Security ──────────────────────────────────────────
-                  Stagger(
-                    index: 6,
-                    child: SectionLabel(
-                      icon: Icons.lock_outline_rounded,
-                      label: 'Security',
-                      color: kIndigo,
-                    ),
-                  ),
-                  Stagger(
-                    index: 7,
-                    child: GlassCard(
-                      child: _SecurityTile(settings: settings, ctrl: ctrl),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // ── Notifications & Rituals ───────────────────────────
-                  Stagger(
-                    index: 8,
-                    child: SectionLabel(
-                      icon: Icons.notifications_active_rounded,
-                      label: 'Notifications & Rituals',
-                      color: kCoral,
-                    ),
-                  ),
-                  Stagger(
-                    index: 9,
-                    child: GlassCard(
-                      child: _NotificationCenterCard(
-                        settings: settings,
-                        ctrl: ctrl,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // ── Integrations ──────────────────────────────────────
-                  Stagger(
-                    index: 14,
-                    child: SectionLabel(
-                      icon: Icons.sync_alt_rounded,
-                      label: 'Integrations',
-                      color: kCyan,
-                    ),
-                  ),
-                  Stagger(
-                    index: 15,
-                    child: GlassCard(
                       child: Column(
                         children: [
+                          _NotificationCenterCard(
+                            settings: settings,
+                            ctrl: ctrl,
+                          ),
+                          const _GlassDivider(),
                           _GoogleCalendarTile(settings: settings, ctrl: ctrl),
                         ],
                       ),
@@ -499,75 +375,121 @@ class SettingsScreen extends ConsumerWidget {
 
                   const SizedBox(height: 16),
 
-                  // ── About ─────────────────────────────────────────────
+                  // ── 4. App Preferences & Security ────────────────────
                   Stagger(
-                    index: 12,
+                    index: 6,
                     child: SectionLabel(
-                      icon: Icons.info_outline,
-                      label: 'About',
+                      icon: Icons.tune_rounded,
+                      label: 'App Preferences & Security',
+                      color: const Color(0xFF9D97FF),
+                    ),
+                  ),
+                  Stagger(
+                    index: 7,
+                    child: GlassCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Theme',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                    color: isDark ? Colors.white : kDark0,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    _ThemeOption(
+                                      icon: Icons.brightness_auto_rounded,
+                                      label: 'System',
+                                      mode: ThemeMode.system,
+                                      selected: settings.themeMode,
+                                      onTap: () => ctrl.updateThemeMode(
+                                        ThemeMode.system,
+                                      ),
+                                      isDark: isDark,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    _ThemeOption(
+                                      icon: Icons.light_mode_rounded,
+                                      label: 'Light',
+                                      mode: ThemeMode.light,
+                                      selected: settings.themeMode,
+                                      onTap: () =>
+                                          ctrl.updateThemeMode(ThemeMode.light),
+                                      isDark: isDark,
+                                    ),
+                                    const SizedBox(width: 10),
+                                    _ThemeOption(
+                                      icon: Icons.dark_mode_rounded,
+                                      label: 'Dark',
+                                      mode: ThemeMode.dark,
+                                      selected: settings.themeMode,
+                                      onTap: () =>
+                                          ctrl.updateThemeMode(ThemeMode.dark),
+                                      isDark: isDark,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const _GlassDivider(),
+                          _SwitchTile(
+                            icon: Icons.vibration_rounded,
+                            title: 'Haptic feedback',
+                            subtitle:
+                                'Subtle micro-vibrations on taps and task completions',
+                            value: settings.hapticsEnabled,
+                            onChanged: (v) => ctrl.updateHapticsEnabled(v),
+                          ),
+                          const _GlassDivider(),
+                          _SwitchTile(
+                            icon: Icons.celebration_rounded,
+                            title: 'Achievement celebrations',
+                            subtitle:
+                                'Visual fireworks when hitting streak and level milestones',
+                            value: settings.confettiCelebrationsEnabled,
+                            onChanged: (v) =>
+                                ctrl.updateConfettiCelebrationsEnabled(v),
+                          ),
+                          const _GlassDivider(),
+                          _SecurityTile(settings: settings, ctrl: ctrl),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // ── 5. Help & Data ───────────────────────────────────
+                  Stagger(
+                    index: 8,
+                    child: SectionLabel(
+                      icon: Icons.help_outline_rounded,
+                      label: 'Help & Data',
                       color: kAmber,
                     ),
                   ),
                   Stagger(
-                    index: 13,
+                    index: 9,
                     child: GlassCard(
                       child: Column(
                         children: [
                           _ListTile(
-                            icon: Icons.info_outlined,
-                            title: 'Version',
-                            trailing: const Text(
-                              '3.0.0+1',
-                              style: TextStyle(
-                                color: kCyan,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          _GlassDivider(),
-                          _ListTile(
-                            icon: Icons.auto_awesome_outlined,
-                            title: 'AI Engine',
-                            trailing: const Text(
-                              'Gemini 2.5 Flash',
-                              style: TextStyle(
-                                color: kCyan,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          _GlassDivider(),
-                          _ListTile(
-                            icon: Icons.code_outlined,
-                            title: 'Built with',
-                            trailing: const Text(
-                              'Flutter + Riverpod',
-                              style: TextStyle(
-                                color: kCyan,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          _GlassDivider(),
-                          _ListTile(
-                            icon: Icons.bar_chart_rounded,
-                            title: 'Weekly Review',
-                            subtitle: 'AI-powered summary of your week',
-                            trailing: const Icon(Icons.chevron_right, size: 18),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const WeeklyReviewScreen(),
-                              ),
-                            ),
-                          ),
-
-                          _GlassDivider(),
-                          _ListTile(
                             icon: Icons.help_outline_rounded,
                             title: 'Help & Guide',
-                            subtitle: 'How the app works, feature guide & FAQ',
-                            trailing: const Icon(Icons.chevron_right, size: 18),
+                            subtitle:
+                                'How the app works, feature guide & FAQ',
+                            trailing:
+                                const Icon(Icons.chevron_right, size: 18),
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -575,12 +497,13 @@ class SettingsScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          _GlassDivider(),
+                          const _GlassDivider(),
                           _ListTile(
                             icon: Icons.tour_outlined,
                             title: 'Replay Tour',
                             subtitle: 'Watch the onboarding walkthrough again',
-                            trailing: const Icon(Icons.chevron_right, size: 18),
+                            trailing:
+                                const Icon(Icons.chevron_right, size: 18),
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -589,50 +512,61 @@ class SettingsScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // ── Data / Backup ──────────────────────────────────────
-                  Stagger(
-                    index: 12,
-                    child: SectionLabel(
-                      icon: Icons.save_alt_rounded,
-                      label: 'Data',
-                      color: kCoral,
-                    ),
-                  ),
-                  Stagger(
-                    index: 13,
-                    child: GlassCard(
-                      child: Column(
-                        children: [
+                          const _GlassDivider(),
+                          _ListTile(
+                            icon: Icons.bar_chart_rounded,
+                            title: 'Weekly Review',
+                            subtitle: 'AI-powered summary of your week',
+                            trailing:
+                                const Icon(Icons.chevron_right, size: 18),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const WeeklyReviewScreen(),
+                              ),
+                            ),
+                          ),
+                          const _GlassDivider(),
                           _ListTile(
                             icon: Icons.upload_rounded,
                             title: 'Export backup',
                             subtitle: 'Save all data as a JSON file',
-                            trailing: const Icon(Icons.chevron_right, size: 18),
+                            trailing:
+                                const Icon(Icons.chevron_right, size: 18),
                             onTap: () => _exportBackup(context),
                           ),
-                          _GlassDivider(),
+                          const _GlassDivider(),
                           _ListTile(
                             icon: Icons.download_rounded,
                             title: 'Import backup',
-                            subtitle: 'Restore data from a JSON backup file',
-                            trailing: const Icon(Icons.chevron_right, size: 18),
+                            subtitle:
+                                'Restore data from a JSON backup file',
+                            trailing:
+                                const Icon(Icons.chevron_right, size: 18),
                             onTap: () => _importBackup(context),
                           ),
-                          _GlassDivider(),
+                          const _GlassDivider(),
                           _ListTile(
                             icon: Icons.restart_alt_rounded,
                             title: 'Reset all settings',
-                            subtitle: 'Restore defaults — does not delete tasks or notes',
+                            subtitle:
+                                'Restore defaults — does not delete tasks or notes',
                             titleColor: kCoral,
                             iconColor: kCoral,
                             onTap: () => _confirmReset(context, ctrl),
+                          ),
+                          const _GlassDivider(),
+                          const _ListTile(
+                            icon: Icons.info_outlined,
+                            title: 'Version',
+                            subtitle: 'Gemini 1.5 Flash · Local AES-256 Storage',
+                            trailing: Text(
+                              '3.0.0+1',
+                              style: TextStyle(
+                                color: kCyan,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ],
                       ),

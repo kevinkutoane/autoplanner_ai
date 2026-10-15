@@ -784,7 +784,7 @@ class _AIEngineCardState extends State<AIEngineCard> {
                 ),
                 Text(
                   widget.settings.geminiApiKey.isNotEmpty
-                      ? '••••••••${widget.settings.geminiApiKey.length > 4 ? widget.settings.geminiApiKey.substring(widget.settings.geminiApiKey.length - 4) : ''} (Connected)'
+                      ? '••••••••${widget.settings.geminiApiKey.length > 4 ? widget.settings.geminiApiKey.substring(widget.settings.geminiApiKey.length - 4) : ''} · Active (Gemini 1.5 Flash)'
                       : 'Free key from Google AI Studio. Stored privately on your device.',
                   style: TextStyle(
                     fontSize: 10.5,

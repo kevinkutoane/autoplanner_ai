@@ -111,11 +111,19 @@
                                        │
                                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Phase 4.0 — Production Release Certification & Shipping Readiness (v3.0.0 GA) [COMPLETED] │
+│ Phase 4.0 — User-Testing Readiness & Android Pilot (v3.0.0+1) [COMPLETED]   │
 │ • Release Packaging & ProGuard/R8 Native Background Hardening                │
 │ • Day-0 Cold Start Experience (Interactive Starter Plan Card)                │
-│ • Settings UX Streamlining & RenderFlex Elimination                          │
-│ • Full Quality Gate & General Availability Store Certification               │
+│ • Settings UX Streamlining & 5-Section Reorganization                        │
+│ • Controlled Android Pilot Quality Gate & Test Certification                 │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Phase 4.1 — User Pilot Trials, Public Store Certification & GA [PLANNED]    │
+│ • Controlled 5-User Pilot Trials & Feedback Synthesis                        │
+│ • Hosted Cloud Run AI Gateway Deployment & Authentication                    │
+│ • iOS Hardware QA, Apple Store Provisioning & Multi-Platform Launch         │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 

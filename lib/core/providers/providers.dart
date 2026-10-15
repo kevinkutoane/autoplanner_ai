@@ -81,7 +81,24 @@ final aiProviderProvider = Provider<AIProvider>((ref) {
     return MockAIProvider();
   }
 
-  // 1. Cloud AI Gateway mode
+  // Determine available direct Gemini key (secure storage key or .env key)
+  final key = settings.geminiApiKey.isNotEmpty
+      ? settings.geminiApiKey
+      : (appConfig.geminiApiKey.isNotEmpty ? appConfig.geminiApiKey : null);
+
+  final isLocalDefaultGateway = settings.cloudGatewayUrl.isEmpty ||
+      settings.cloudGatewayUrl == 'http://127.0.0.1:8000';
+
+  // 1. Direct Gemini BYOK mode: explicit choice OR key provided while gateway remains on default localhost
+  if (settings.aiConnectionMode == 'direct_gemini' ||
+      settings.aiConnectionMode == 'gemini_byok' ||
+      (settings.aiConnectionMode == 'cloud_gateway' && key != null && key.isNotEmpty && isLocalDefaultGateway)) {
+    if (key != null && key.isNotEmpty) {
+      return GeminiProvider(apiKey: key);
+    }
+  }
+
+  // 2. Cloud AI Gateway mode (when explicitly configured or when custom gateway URL is supplied)
   if (settings.aiConnectionMode == 'cloud_gateway') {
     final gatewayUrl = settings.cloudGatewayUrl.isNotEmpty
         ? settings.cloudGatewayUrl
@@ -89,22 +106,23 @@ final aiProviderProvider = Provider<AIProvider>((ref) {
               ? appConfig.aiGatewayUrl
               : 'http://127.0.0.1:8000');
     final parsed = Uri.tryParse(gatewayUrl);
-    if (parsed != null && parsed.hasScheme) {
-      return CloudAIProvider(gatewayBaseUrl: parsed);
+    if (parsed != null && parsed.hasScheme && (!isLocalDefaultGateway || (key == null || key.isEmpty))) {
+      return CloudAIProvider(
+        gatewayBaseUrl: parsed,
+        clientVersion: '3.0.0+1',
+      );
+    }
+    if (key != null && key.isNotEmpty) {
+      return GeminiProvider(apiKey: key);
     }
     return MockAIProvider();
   }
 
-  // 2. Direct Gemini BYOK mode
-  // Prefer the user-supplied key from secure storage; fall back to .env.
-  final key = settings.geminiApiKey.isNotEmpty
-      ? settings.geminiApiKey
-      : (appConfig.geminiApiKey.isNotEmpty ? appConfig.geminiApiKey : null);
-  if (key == null || key.isEmpty) {
-    // Fall back cleanly to MockAIProvider instead of failing with unregistered caller exceptions
-    return MockAIProvider();
+  // 3. Fallback: prefer direct Gemini if key available, else MockAIProvider
+  if (key != null && key.isNotEmpty) {
+    return GeminiProvider(apiKey: key);
   }
-  return GeminiProvider(apiKey: key);
+  return MockAIProvider();
 });
 
 /// Autonomous schedule drift detection and ripple engine provider.

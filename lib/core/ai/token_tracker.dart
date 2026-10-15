@@ -14,7 +14,7 @@ class AILogEntry extends HiveObject {
   @HiveField(0)
   String id;
 
-  /// Name of the model that produced the response (e.g. `'gemini-2.5-flash'`).
+  /// Name of the model that produced the response (e.g. `'gemini-1.5-flash'`).
   @HiveField(1)
   String model;
 

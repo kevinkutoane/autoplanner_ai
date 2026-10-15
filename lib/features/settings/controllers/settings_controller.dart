@@ -269,12 +269,17 @@ class SettingsController extends Notifier<AppSettings> {
   }
 
   Future<void> updateGeminiApiKey(String key) async {
-    if (key.trim().isEmpty) {
+    final trimmed = key.trim();
+    if (trimmed.isEmpty) {
       await SecureKeyService.deleteGeminiApiKey();
       state = state.copyWith(geminiApiKey: '');
     } else {
-      await SecureKeyService.saveGeminiApiKey(key.trim());
-      state = state.copyWith(geminiApiKey: key.trim());
+      await SecureKeyService.saveGeminiApiKey(trimmed);
+      await _box.put(AppSettings.kAiConnectionMode, 'direct_gemini');
+      state = state.copyWith(
+        geminiApiKey: trimmed,
+        aiConnectionMode: 'direct_gemini',
+      );
     }
   }
 

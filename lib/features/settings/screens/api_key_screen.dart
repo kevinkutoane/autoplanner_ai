@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
+import '../../../core/ai/gemini_provider.dart';
 import '../controllers/settings_controller.dart';
 
 class ApiKeyScreen extends ConsumerStatefulWidget {
@@ -411,16 +412,28 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
   // ── Actions ──────────────────────────────────────────────────────────────
 
   Future<void> _test() async {
+    final testKey = _keyCtrl.text.trim();
+    if (testKey.isEmpty) {
+      setState(() {
+        _testing = false;
+        _testResult = false;
+      });
+      return;
+    }
     setState(() {
       _testing = true;
       _testResult = null;
     });
     try {
-      await ref.read(aiServiceProvider).generateDailyInsight([], []);
+      final testProvider = GeminiProvider(
+        apiKey: testKey,
+        modelName: 'gemini-1.5-flash',
+      );
+      final res = await testProvider.complete('Ping');
       if (mounted) {
         setState(() {
           _testing = false;
-          _testResult = true;
+          _testResult = res.text.isNotEmpty;
         });
       }
     } catch (_) {

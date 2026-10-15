@@ -45,7 +45,7 @@ class CloudAIProvider implements AIProvider {
     http.Client? httpClient,
     this.authTokenProvider,
     this.modelName = 'autoplanner-cloud-gateway',
-    this.clientVersion = '2.3.1+1',
+    this.clientVersion = '3.0.0+1',
   }) : _httpClient = httpClient ?? http.Client();
 
   @override
