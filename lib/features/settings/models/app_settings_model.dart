@@ -239,9 +239,14 @@ class AppSettings {
     int? driftGraceMinutes,
     bool? hasDismissedStarterPlan,
   }) {
-    final effectiveMode = aiConnectionMode ??
+    final effectiveMode =
+        aiConnectionMode ??
         (useMockAI != null
-            ? (useMockAI ? 'offline_mock' : (this.aiConnectionMode == 'offline_mock' ? 'direct_gemini' : this.aiConnectionMode))
+            ? (useMockAI
+                  ? 'offline_mock'
+                  : (this.aiConnectionMode == 'offline_mock'
+                        ? 'direct_gemini'
+                        : this.aiConnectionMode))
             : this.aiConnectionMode);
 
     return AppSettings(
@@ -452,7 +457,8 @@ class AppSettings {
     hapticsEnabled: (map[kHapticsEnabled] as bool?) ?? true,
     confettiCelebrationsEnabled:
         (map[kConfettiCelebrationsEnabled] as bool?) ?? true,
-    aiConnectionMode: (map[kAiConnectionMode] as String?) ??
+    aiConnectionMode:
+        (map[kAiConnectionMode] as String?) ??
         ((map[kUseMockAI] as bool?) == true ? 'offline_mock' : 'cloud_gateway'),
     cloudGatewayUrl:
         (map[kCloudGatewayUrl] as String?) ?? 'http://127.0.0.1:8000',

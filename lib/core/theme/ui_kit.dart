@@ -343,10 +343,7 @@ class GlassCard extends StatelessWidget {
             ),
           ),
           padding: padding,
-          child: Material(
-            type: MaterialType.transparency,
-            child: child,
-          ),
+          child: Material(type: MaterialType.transparency, child: child),
         ),
       ),
     );
@@ -407,10 +404,7 @@ class VibrantGlassCard extends StatelessWidget {
         ],
       ),
       padding: padding,
-      child: Material(
-        type: MaterialType.transparency,
-        child: child,
-      ),
+      child: Material(type: MaterialType.transparency, child: child),
     );
 
     if (onTap != null) {

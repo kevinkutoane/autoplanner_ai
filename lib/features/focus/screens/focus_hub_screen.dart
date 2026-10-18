@@ -225,9 +225,7 @@ class FocusHubScreen extends ConsumerWidget {
                                         style: TextStyle(
                                           fontWeight: FontWeight.w800,
                                           fontSize: 14.5,
-                                          color: isDark
-                                              ? Colors.white
-                                              : kDark0,
+                                          color: isDark ? Colors.white : kDark0,
                                         ),
                                       ),
                                       const SizedBox(width: 8),
@@ -264,8 +262,8 @@ class FocusHubScreen extends ConsumerWidget {
                                 color: isGoalAchieved
                                     ? kEmerald
                                     : (isDark
-                                        ? Colors.white70
-                                        : Colors.black87),
+                                          ? Colors.white70
+                                          : Colors.black87),
                               ),
                             ),
                           ],

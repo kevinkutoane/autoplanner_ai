@@ -1,9 +1,9 @@
 # AutoPlanner AI — Beta Testing & Real-Device QA Protocol
 
-> **Phase**: 2.3.1 Release Candidate (Conditional) → Private Beta
-> **Current RC Candidate**: `6154882a509b1d9d8d9bfce6404402b603fcfbc4`  
+> **Phase**: 4.0 Release Candidate → Private Beta (v3.0.0+1 Pilot)  
+> **Current RC Candidate**: v3.0.0+1 candidate (`build/app/outputs/flutter-apk/app-release.apk`)  
 > **Document Status**: Authoritative QA Test Matrix  
-> **Target Platforms**: Android 12+ (minSdk 21, targetSdk 35) & iOS 15+  
+> **Target Platforms**: Android 12+ (compileSdk 37, minSdk managed, targetSdk managed) & iOS 15+  
 > **Test Environment**: Physical Devices (Primary) & High-Fidelity Emulators (Secondary)
 
 ---

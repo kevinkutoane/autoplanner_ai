@@ -301,7 +301,10 @@ void main() {
       expect(find.text('AI Assistant Connection'), findsOneWidget);
       expect(find.text('Gemini Key'), findsOneWidget);
       expect(find.text('Offline Mode'), findsOneWidget);
-      expect(find.textContaining('Connected via Custom Gateway'), findsOneWidget);
+      expect(
+        find.textContaining('Connected via Custom Gateway'),
+        findsOneWidget,
+      );
       expect(find.text('Automatic Schedule Catch-Up'), findsOneWidget);
 
       // Expand Advanced Settings section

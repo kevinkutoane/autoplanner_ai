@@ -516,13 +516,14 @@ class _BrainDumpSheetState extends ConsumerState<BrainDumpSheet>
       if (mounted) {
         setState(() => _processing = false);
         final errStr = e.toString();
-        final errText = errStr.contains('SocketException') ||
+        final errText =
+            errStr.contains('SocketException') ||
                 errStr.contains('Network error')
             ? 'Network error contacting AI service. Check your connection or API key.'
             : (errStr.contains('API_KEY_INVALID') ||
-                    errStr.contains('unregistered')
-                ? 'Invalid Gemini API key. Please check your key in Settings.'
-                : 'Could not complete brain dump: ${errStr.split('\n').first}');
+                      errStr.contains('unregistered')
+                  ? 'Invalid Gemini API key. Please check your key in Settings.'
+                  : 'Could not complete brain dump: ${errStr.split('\n').first}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errText),

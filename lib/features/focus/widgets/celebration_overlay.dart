@@ -38,8 +38,7 @@ class _CelebrationOverlayState extends ConsumerState<CelebrationOverlay>
       duration: const Duration(milliseconds: 2500),
     )..forward();
 
-    final showConfetti =
-        ref.read(settingsProvider).confettiCelebrationsEnabled;
+    final showConfetti = ref.read(settingsProvider).confettiCelebrationsEnabled;
     if (!showConfetti) return;
 
     // Spawn 75 colorful confetti particles

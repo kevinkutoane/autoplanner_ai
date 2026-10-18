@@ -117,7 +117,11 @@ class SettingsController extends Notifier<AppSettings> {
   // ── AI settings ──────────────────────────────────────────────────
 
   Future<void> updateUseMockAI(bool v) async {
-    final mode = v ? 'offline_mock' : (state.aiConnectionMode == 'offline_mock' ? 'direct_gemini' : state.aiConnectionMode);
+    final mode = v
+        ? 'offline_mock'
+        : (state.aiConnectionMode == 'offline_mock'
+              ? 'direct_gemini'
+              : state.aiConnectionMode);
     await updateAIConnectionMode(mode);
   }
 
@@ -230,11 +234,13 @@ class SettingsController extends Notifier<AppSettings> {
       await NotificationService().cancelStreakShield();
     } else {
       try {
-        final currentStreak =
-            ref.read(gamificationServiceProvider).currentStreak;
+        final currentStreak = ref
+            .read(gamificationServiceProvider)
+            .currentStreak;
         if (currentStreak > 0) {
-          await NotificationService()
-              .scheduleStreakShield(currentStreak: currentStreak);
+          await NotificationService().scheduleStreakShield(
+            currentStreak: currentStreak,
+          );
         }
       } catch (_) {}
     }

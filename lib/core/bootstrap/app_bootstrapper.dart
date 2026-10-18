@@ -111,7 +111,9 @@ class AppBootstrapper {
 
     // Derive device-unique encryption key stored in OS keychain
     final hiveKeyBytes = await SecureKeyService.getOrCreateHiveEncryptionKey();
-    final hiveCipher = HiveAesCipher(hiveKeyBytes);    // 4. Pre-open encrypted data boxes in parallel with safe recovery
+    final hiveCipher = HiveAesCipher(
+      hiveKeyBytes,
+    ); // 4. Pre-open encrypted data boxes in parallel with safe recovery
     await Future.wait([
       openBoxSafe<TaskItem>('tasksBox', hiveCipher),
       openBoxSafe<NoteItem>('notesBox', hiveCipher),
@@ -133,15 +135,20 @@ class AppBootstrapper {
       tokenTracker.init(cipher: hiveCipher).catchError((e) {
         if (kDebugMode) debugPrint('TokenTracker init failed: $e');
       }),
-      memoryService.init(cipher: hiveCipher).then((_) {
-        // Run stale memory decay in background without blocking startup
-        unawaited(memoryService.decayStaleMemories().catchError((e) {
-          if (kDebugMode) debugPrint('MemoryService decay failed: $e');
-          return 0;
-        }));
-      }).catchError((e) {
-        if (kDebugMode) debugPrint('MemoryService init failed: $e');
-      }),
+      memoryService
+          .init(cipher: hiveCipher)
+          .then((_) {
+            // Run stale memory decay in background without blocking startup
+            unawaited(
+              memoryService.decayStaleMemories().catchError((e) {
+                if (kDebugMode) debugPrint('MemoryService decay failed: $e');
+                return 0;
+              }),
+            );
+          })
+          .catchError((e) {
+            if (kDebugMode) debugPrint('MemoryService init failed: $e');
+          }),
       notificationService.init().catchError((e) {
         if (kDebugMode) debugPrint('Notification init skipped: $e');
       }),
@@ -191,10 +198,8 @@ class AppBootstrapper {
         );
       }
 
-      final streakRemindersEnabled = settingsBox.get(
-        'streakRemindersEnabled',
-        defaultValue: true,
-      ) as bool;
+      final streakRemindersEnabled =
+          settingsBox.get('streakRemindersEnabled', defaultValue: true) as bool;
       if (streakRemindersEnabled) {
         try {
           final gamificationBox = Hive.box<dynamic>('gamificationBox');

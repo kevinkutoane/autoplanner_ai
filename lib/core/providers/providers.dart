@@ -105,7 +105,8 @@ final aiProviderProvider = Provider<AIProvider>((ref) {
               : 'http://127.0.0.1:8000');
     final parsed = Uri.tryParse(gatewayUrl);
     final host = parsed?.host.toLowerCase() ?? '';
-    final isLocalGateway = settings.cloudGatewayUrl.isEmpty ||
+    final isLocalGateway =
+        settings.cloudGatewayUrl.isEmpty ||
         host == 'localhost' ||
         host == '127.0.0.1' ||
         host == '10.0.2.2';
@@ -117,10 +118,7 @@ final aiProviderProvider = Provider<AIProvider>((ref) {
     }
 
     if (parsed != null && parsed.hasScheme) {
-      return CloudAIProvider(
-        gatewayBaseUrl: parsed,
-        clientVersion: '3.0.0+1',
-      );
+      return CloudAIProvider(gatewayBaseUrl: parsed, clientVersion: '3.0.0+1');
     }
     if (key != null && key.isNotEmpty) {
       return GeminiProvider(apiKey: key);

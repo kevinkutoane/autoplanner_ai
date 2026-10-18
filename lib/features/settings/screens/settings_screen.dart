@@ -266,10 +266,34 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   child: Row(
                     children: [
-                      _buildTabButton(0, 'AI Engine', Icons.auto_awesome_rounded, kCoral, isDark),
-                      _buildTabButton(1, 'Schedule', Icons.schedule_rounded, kCyan, isDark),
-                      _buildTabButton(2, 'Alerts', Icons.notifications_active_rounded, kIndigo, isDark),
-                      _buildTabButton(3, 'System', Icons.tune_rounded, const Color(0xFF9D97FF), isDark),
+                      _buildTabButton(
+                        0,
+                        'AI Engine',
+                        Icons.auto_awesome_rounded,
+                        kCoral,
+                        isDark,
+                      ),
+                      _buildTabButton(
+                        1,
+                        'Schedule',
+                        Icons.schedule_rounded,
+                        kCyan,
+                        isDark,
+                      ),
+                      _buildTabButton(
+                        2,
+                        'Alerts',
+                        Icons.notifications_active_rounded,
+                        kIndigo,
+                        isDark,
+                      ),
+                      _buildTabButton(
+                        3,
+                        'System',
+                        Icons.tune_rounded,
+                        const Color(0xFF9D97FF),
+                        isDark,
+                      ),
                     ],
                   ),
                 ),
@@ -329,13 +353,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               icon: Icons.alarm_outlined,
                               title: 'Work starts at',
                               subtitle: settings.workStartLabel,
-                              trailing: const Icon(Icons.chevron_right, size: 18),
+                              trailing: const Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                              ),
                               onTap: () =>
                                   _pickStartTime(context, settings, ctrl),
                             ),
                             const _GlassDivider(),
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                12,
+                                16,
+                                12,
+                              ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -356,7 +388,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                           'Work days',
                                           style: TextStyle(
                                             fontSize: 14,
-                                            color: isDark ? Colors.white : kDark0,
+                                            color: isDark
+                                                ? Colors.white
+                                                : kDark0,
                                           ),
                                         ),
                                         const SizedBox(height: 8),
@@ -401,7 +435,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                                             ? Colors.white
                                                                   .withAlpha(15)
                                                             : Colors.black
-                                                                  .withAlpha(7)),
+                                                                  .withAlpha(
+                                                                    7,
+                                                                  )),
                                                   borderRadius:
                                                       BorderRadius.circular(20),
                                                   border: Border.all(
@@ -459,7 +495,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     Stagger(
                       index: 3,
                       child: GlassCard(
-                        child: _GoogleCalendarTile(settings: settings, ctrl: ctrl),
+                        child: _GoogleCalendarTile(
+                          settings: settings,
+                          ctrl: ctrl,
+                        ),
                       ),
                     ),
                   ] else if (_selectedTab == 2) ...[
@@ -498,7 +537,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                14,
+                                16,
+                                14,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -529,8 +573,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         label: 'Light',
                                         mode: ThemeMode.light,
                                         selected: settings.themeMode,
-                                        onTap: () =>
-                                            ctrl.updateThemeMode(ThemeMode.light),
+                                        onTap: () => ctrl.updateThemeMode(
+                                          ThemeMode.light,
+                                        ),
                                         isDark: isDark,
                                       ),
                                       const SizedBox(width: 10),
@@ -539,8 +584,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                         label: 'Dark',
                                         mode: ThemeMode.dark,
                                         selected: settings.themeMode,
-                                        onTap: () =>
-                                            ctrl.updateThemeMode(ThemeMode.dark),
+                                        onTap: () => ctrl.updateThemeMode(
+                                          ThemeMode.dark,
+                                        ),
                                         isDark: isDark,
                                       ),
                                     ],
@@ -552,8 +598,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             _SwitchTile(
                               icon: Icons.vibration_rounded,
                               title: 'Haptic feedback',
-                              subtitle:
-                                  'Subtle micro-vibrations on taps and task completions',
+                              subtitle: 'Subtle micro-vibrations on taps and task completions',
                               value: settings.hapticsEnabled,
                               onChanged: (v) => ctrl.updateHapticsEnabled(v),
                             ),
@@ -561,8 +606,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             _SwitchTile(
                               icon: Icons.celebration_rounded,
                               title: 'Achievement celebrations',
-                              subtitle:
-                                  'Visual fireworks when hitting streak and level milestones',
+                              subtitle: 'Visual fireworks when hitting streak and level milestones',
                               value: settings.confettiCelebrationsEnabled,
                               onChanged: (v) =>
                                   ctrl.updateConfettiCelebrationsEnabled(v),
@@ -595,8 +639,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               title: 'Help & Guide',
                               subtitle:
                                   'How the app works, feature guide & FAQ',
-                              trailing:
-                                  const Icon(Icons.chevron_right, size: 18),
+                              trailing: const Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                              ),
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -608,9 +654,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             _ListTile(
                               icon: Icons.tour_outlined,
                               title: 'Replay Tour',
-                              subtitle: 'Watch the onboarding walkthrough again',
-                              trailing:
-                                  const Icon(Icons.chevron_right, size: 18),
+                              subtitle:
+                                  'Watch the onboarding walkthrough again',
+                              trailing: const Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                              ),
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -624,8 +673,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               icon: Icons.bar_chart_rounded,
                               title: 'Weekly Review',
                               subtitle: 'AI-powered summary of your week',
-                              trailing:
-                                  const Icon(Icons.chevron_right, size: 18),
+                              trailing: const Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                              ),
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -638,26 +689,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               icon: Icons.upload_rounded,
                               title: 'Export backup',
                               subtitle: 'Save all data as a JSON file',
-                              trailing:
-                                  const Icon(Icons.chevron_right, size: 18),
+                              trailing: const Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                              ),
                               onTap: () => _exportBackup(context),
                             ),
                             const _GlassDivider(),
                             _ListTile(
                               icon: Icons.download_rounded,
                               title: 'Import backup',
-                              subtitle:
-                                  'Restore data from a JSON backup file',
-                              trailing:
-                                  const Icon(Icons.chevron_right, size: 18),
+                              subtitle: 'Restore data from a JSON backup file',
+                              trailing: const Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                              ),
                               onTap: () => _importBackup(context),
                             ),
                             const _GlassDivider(),
                             _ListTile(
                               icon: Icons.restart_alt_rounded,
                               title: 'Reset all settings',
-                              subtitle:
-                                  'Restore defaults — does not delete tasks or notes',
+                              subtitle: 'Restore defaults — does not delete tasks or notes',
                               titleColor: kCoral,
                               iconColor: kCoral,
                               onTap: () => _confirmReset(context, ctrl),
@@ -666,7 +719,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             const _ListTile(
                               icon: Icons.info_outlined,
                               title: 'Version',
-                              subtitle: 'Gemini 1.5 Flash · Local AES-256 Storage',
+                              subtitle:
+                                  'Gemini 1.5 Flash · Local AES-256 Storage',
                               trailing: Text(
                                 '3.0.0+1',
                                 style: TextStyle(
@@ -975,9 +1029,14 @@ class _SliderTile extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withAlpha(16) : Colors.black.withAlpha(8),
+                  color: isDark
+                      ? Colors.white.withAlpha(16)
+                      : Colors.black.withAlpha(8),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isDark ? Colors.white.withAlpha(20) : Colors.black12,

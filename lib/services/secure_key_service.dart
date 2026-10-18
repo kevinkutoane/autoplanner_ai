@@ -8,9 +8,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// Google OAuth tokens).
 class SecureKeyService {
   static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      resetOnError: true,
-    ),
+    aOptions: AndroidOptions(resetOnError: true),
   );
 
   static const _kGeminiKey = 'gemini_api_key';

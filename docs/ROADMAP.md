@@ -299,7 +299,7 @@
      - Resolved visual congestion and RenderFlex overflow issues on narrow viewports and accessibility font scales.
      - Streamlined sound & vibration controls into responsive `_SwitchTile`s; unified version display to `3.0.0+1`.
   6. **Automated Verification**:
-     - Expanded test suite to **650 passing automated tests across 51 test files** (100% pass rate).
+     - Expanded test suite to **658 passing automated tests across 51 test files** (100% pass rate).
      - Clean static analysis with `--fatal-infos` (0 issues).
      - Verified clean debug and release APK compilation (`flutter build apk --debug`, `flutter build apk --release`).
 

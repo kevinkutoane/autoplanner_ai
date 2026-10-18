@@ -249,7 +249,8 @@ class _AIEngineCardState extends State<AIEngineCard> {
                   mode: 'direct_gemini',
                   title: 'Gemini Key',
                   icon: Icons.key_rounded,
-                  selected: currentMode == 'direct_gemini' ||
+                  selected:
+                      currentMode == 'direct_gemini' ||
                       (currentMode != 'offline_mock' &&
                           currentMode != 'cloud_gateway'),
                   isDark: isDark,
@@ -292,10 +293,15 @@ class _AIEngineCardState extends State<AIEngineCard> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => widget.ctrl.updateAIConnectionMode('direct_gemini'),
+                    onTap: () =>
+                        widget.ctrl.updateAIConnectionMode('direct_gemini'),
                     child: const Text(
                       'Use Gemini',
-                      style: TextStyle(fontSize: 11, color: kCyan, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: kCyan,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -446,101 +452,110 @@ class _AIEngineCardState extends State<AIEngineCard> {
                   : Colors.black.withAlpha(4),
               borderRadius: BorderRadius.circular(12),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Column(
                   children: [
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    secondary: Icon(
-                      Icons.receipt_long_outlined,
-                      color: isDark ? Colors.white60 : Colors.black54,
-                      size: 18,
-                    ),
-                    title: Text(
-                      'Log AI Operations',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : kDark0,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Records prompt telemetry & token usage',
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        color: isDark ? Colors.white38 : Colors.black38,
-                      ),
-                    ),
-                    value: widget.settings.enableAILogging,
-                    onChanged: (v) => widget.ctrl.updateEnableAILogging(v),
-                    activeThumbColor: kIndigo,
-                  ),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    leading: Icon(
-                      Icons.token_outlined,
-                      color: isDark ? Colors.white60 : Colors.black54,
-                      size: 18,
-                    ),
-                    title: Text(
-                      'Daily Token Limit',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : kDark0,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '${_formatTokens(widget.settings.maxTokensPerDay)} tokens / day',
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        color: isDark ? Colors.white38 : Colors.black38,
-                      ),
-                    ),
-                    trailing: const Icon(Icons.chevron_right, size: 16),
-                    onTap: () => _showTokenPicker(context),
-                  ),
-                  Divider(
-                    height: 16,
-                    color: isDark ? Colors.white12 : Colors.black12,
-                  ),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.dns_outlined,
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      secondary: Icon(
+                        Icons.receipt_long_outlined,
                         color: isDark ? Colors.white60 : Colors.black54,
                         size: 18,
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Custom Gateway Server (Self-Hosted)',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white : kDark0,
-                          ),
+                      title: Text(
+                        'Log AI Operations',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : kDark0,
                         ),
                       ),
-                      if (currentMode != 'cloud_gateway')
-                        TextButton(
-                          onPressed: () => widget.ctrl.updateAIConnectionMode('cloud_gateway'),
-                          child: const Text(
-                            'Activate',
-                            style: TextStyle(fontSize: 11, color: kCyan, fontWeight: FontWeight.bold),
+                      subtitle: Text(
+                        'Records prompt telemetry & token usage',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          color: isDark ? Colors.white38 : Colors.black38,
+                        ),
+                      ),
+                      value: widget.settings.enableAILogging,
+                      onChanged: (v) => widget.ctrl.updateEnableAILogging(v),
+                      activeThumbColor: kIndigo,
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      leading: Icon(
+                        Icons.token_outlined,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                        size: 18,
+                      ),
+                      title: Text(
+                        'Daily Token Limit',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : kDark0,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${_formatTokens(widget.settings.maxTokensPerDay)} tokens / day',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          color: isDark ? Colors.white38 : Colors.black38,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right, size: 16),
+                      onTap: () => _showTokenPicker(context),
+                    ),
+                    Divider(
+                      height: 16,
+                      color: isDark ? Colors.white12 : Colors.black12,
+                    ),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.dns_outlined,
+                          color: isDark ? Colors.white60 : Colors.black54,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Custom Gateway Server (Self-Hosted)',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : kDark0,
+                            ),
                           ),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  _buildGatewayConfigSection(isDark),
-                ],
+                        if (currentMode != 'cloud_gateway')
+                          TextButton(
+                            onPressed: () => widget.ctrl.updateAIConnectionMode(
+                              'cloud_gateway',
+                            ),
+                            child: const Text(
+                              'Activate',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: kCyan,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    _buildGatewayConfigSection(isDark),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
         ],
       ),
     );
@@ -668,7 +683,9 @@ class _AIEngineCardState extends State<AIEngineCard> {
                   GestureDetector(
                     onTap: () {
                       _urlController.text = 'http://127.0.0.1:8000';
-                      widget.ctrl.updateCloudGatewayUrl('http://127.0.0.1:8000');
+                      widget.ctrl.updateCloudGatewayUrl(
+                        'http://127.0.0.1:8000',
+                      );
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
