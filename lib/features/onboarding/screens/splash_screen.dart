@@ -43,7 +43,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     _entryAC = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2400),
+      duration: const Duration(milliseconds: 800),
     );
 
     _logoFade = CurvedAnimation(
@@ -79,7 +79,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _entryAC.forward();
 
     Future.wait([
-      Future.delayed(const Duration(milliseconds: 2800)),
+      Future.delayed(const Duration(milliseconds: 850)),
       ref.read(settingsProvider.notifier).ensureInitialized(),
     ]).then((_) => _navigate());
   }

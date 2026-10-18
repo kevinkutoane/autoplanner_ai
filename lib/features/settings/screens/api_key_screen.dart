@@ -289,7 +289,7 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (settings.useMockAI) ...[
+                        if (settings.isMockAI) ...[
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -310,7 +310,7 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'Mock AI is ON — disable it in AI Settings to use your key.',
+                                    'Offline Assistant Mode is active. Switch to Gemini Key mode in Settings to use your key.',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: kAmber,

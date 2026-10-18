@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/providers.dart';
 import '../../../core/theme/ui_kit.dart';
 import '../../../services/gamification_service.dart';
 import '../../coach/widgets/achievements_sheet.dart';
@@ -15,7 +16,9 @@ class FocusHubScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(taskControllerProvider);
     final profile = ref.watch(gamificationServiceProvider);
+    final settings = ref.watch(settingsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final now = DateTime.now();
 
     final pendingTasks = tasks.where((t) => !t.isCompleted).toList()
       ..sort((a, b) => b.priority.compareTo(a.priority));
@@ -24,6 +27,28 @@ class FocusHubScreen extends ConsumerWidget {
         .where((t) => t.isCompleted && t.actualDurationMinutes != null)
         .fold<int>(0, (sum, t) => sum + t.actualDurationMinutes!);
     final deepWorkHours = (totalDeepWorkMinutes / 60.0).toStringAsFixed(1);
+
+    final todayCompletedTasks = tasks.where((t) {
+      if (!t.isCompleted || t.actualDurationMinutes == null) return false;
+      if (t.completedAt != null) {
+        return t.completedAt!.year == now.year &&
+            t.completedAt!.month == now.month &&
+            t.completedAt!.day == now.day;
+      }
+      return t.startTime.year == now.year &&
+          t.startTime.month == now.month &&
+          t.startTime.day == now.day;
+    });
+    final todayDeepWorkMinutes = todayCompletedTasks.fold<int>(
+      0,
+      (sum, t) => sum + (t.actualDurationMinutes ?? 0),
+    );
+    final goalMinutes = settings.dailyFocusGoalMinutes > 0
+        ? settings.dailyFocusGoalMinutes
+        : 120;
+    final goalProgress = (todayDeepWorkMinutes / goalMinutes).clamp(0.0, 1.0);
+    final goalPercent = (goalProgress * 100).toInt();
+    final isGoalAchieved = todayDeepWorkMinutes >= goalMinutes;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -161,7 +186,108 @@ class FocusHubScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
+
+                  // Daily Focus Goal Card
+                  VibrantGlassCard(
+                    glowColor: isGoalAchieved ? kEmerald : kNeonCyan,
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                gradient: isGoalAchieved
+                                    ? kGradientEmeraldBurst
+                                    : kGradientCyberCyan,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                isGoalAchieved
+                                    ? Icons.check_circle_rounded
+                                    : Icons.timer_outlined,
+                                color: const Color(0xFF0C0A1A),
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Daily Focus Goal',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14.5,
+                                          color: isDark
+                                              ? Colors.white
+                                              : kDark0,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      GlowBadge(
+                                        label: isGoalAchieved
+                                            ? 'Target Met 🎯'
+                                            : '$goalPercent%',
+                                        color: isGoalAchieved
+                                            ? kEmerald
+                                            : kElectricAmber,
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    isGoalAchieved
+                                        ? 'Crushed your $goalMinutes min deep-work goal today! 🚀'
+                                        : '${goalMinutes - todayDeepWorkMinutes} mins remaining to reach your $goalMinutes min goal',
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      color: isDark
+                                          ? Colors.white60
+                                          : Colors.black54,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              '${todayDeepWorkMinutes}m / ${goalMinutes}m',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                                color: isGoalAchieved
+                                    ? kEmerald
+                                    : (isDark
+                                        ? Colors.white70
+                                        : Colors.black87),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: LinearProgressIndicator(
+                            value: goalProgress,
+                            minHeight: 7,
+                            backgroundColor: isDark
+                                ? Colors.white10
+                                : Colors.black12,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isGoalAchieved ? kEmerald : kCyan,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
 
                   // Context-Aware Micro-Wins
                   const MicroWinsCard(),

@@ -236,6 +236,22 @@ main()
     - Analytics (`#06B6D4`), Settings (`#64748B`), Omnibar (`#6366F1`), Help (`#14B8A6`)
   - Frosted glass container with high-contrast icon badges and direct navigation routing.
 
+### 10. Startup Lifecycle, Performance & Zero-Placeholder Architecture
+- **Concurrent Asynchronous Hive Initialization (`AppBootstrapper`)**:
+  - Replaced legacy sequential box-opening calls with non-blocking concurrent `Future.wait([...])` across 8 encrypted Hive boxes.
+  - Concurrently bootstrapped `TokenTracker`, `MemoryService`, and `NotificationService`.
+  - Non-blocking stale memory decay (`memoryService.decayStaleMemories()`): executed asynchronously in the background via `unawaited()`, eliminating main-thread cold-start blocking.
+- **Lazy Tab Mounting (`AppShell`)**:
+  - Replaced eager construction of all 11 complex sub-screens with an on-demand `_activatedIndices` cache. Only tab 0 (`DashboardScreen`) is instantiated upon cold start, preventing unneeded Riverpod listener attachment and widget tree inflation until the user navigates.
+- **Streamlined Cold Start Delays (`SplashScreen`)**:
+  - Reduced cold start artificially imposed timer from 2800ms to 850ms, with entrance animations tightened from 2400ms to 800ms for a rapid, responsive launch feel.
+- **Unified AI Mode Architecture & Zero Placeholders**:
+  - Unified legacy `useMockAI` into `aiConnectionMode` (`'cloud_gateway'`, `'direct_gemini'`, `'offline_mock'`), retaining backwards-compatible accessors.
+  - Removed dead `coachingStyle` setting across all models, controllers, and screens.
+  - Connected `dailyFocusGoalMinutes` directly into `FocusHubScreen` to dynamically drive target deep work progress and milestone badge triggers.
+  - Connected `streakRemindersEnabled` to `NotificationService.scheduleStreakShield(currentStreak)` and restored all scheduled rituals on boot.
+  - Centralized global haptic preferences in `AppHaptics` and connected `confettiCelebrationsEnabled` to `CelebrationOverlay` with lightweight `particlesOnly` mode.
+
 ---
 
 ## 🗄️ Hive Data Schema

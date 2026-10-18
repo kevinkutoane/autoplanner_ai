@@ -8,7 +8,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// Google OAuth tokens).
 class SecureKeyService {
   static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(resetOnError: false),
+    aOptions: AndroidOptions(
+      resetOnError: true,
+    ),
   );
 
   static const _kGeminiKey = 'gemini_api_key';
@@ -17,12 +19,25 @@ class SecureKeyService {
 
   // ── Gemini API key ──────────────────────────────────────────────────
 
-  static Future<String?> getGeminiApiKey() => _storage.read(key: _kGeminiKey);
+  static Future<String?> getGeminiApiKey() async {
+    try {
+      return await _storage.read(key: _kGeminiKey);
+    } catch (_) {
+      return null;
+    }
+  }
 
-  static Future<void> saveGeminiApiKey(String key) =>
-      _storage.write(key: _kGeminiKey, value: key);
+  static Future<void> saveGeminiApiKey(String key) async {
+    try {
+      await _storage.write(key: _kGeminiKey, value: key);
+    } catch (_) {}
+  }
 
-  static Future<void> deleteGeminiApiKey() => _storage.delete(key: _kGeminiKey);
+  static Future<void> deleteGeminiApiKey() async {
+    try {
+      await _storage.delete(key: _kGeminiKey);
+    } catch (_) {}
+  }
 
   // ── Hive AES encryption key ─────────────────────────────────────────
 

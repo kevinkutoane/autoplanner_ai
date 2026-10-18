@@ -150,7 +150,7 @@ void main() {
         final provider = container.read(aiProviderProvider);
         expect(provider, isA<GeminiProvider>());
         final gemini = provider as GeminiProvider;
-        expect(gemini.modelName, 'gemini-2.5-flash');
+        expect(gemini.modelName, 'gemini-1.5-flash');
       },
     );
   });
@@ -299,11 +299,17 @@ void main() {
       );
 
       expect(find.text('AI Assistant Connection'), findsOneWidget);
-      expect(find.text('Custom Server'), findsOneWidget);
       expect(find.text('Gemini Key'), findsOneWidget);
       expect(find.text('Offline Mode'), findsOneWidget);
-      expect(find.text('Gateway URL'), findsOneWidget);
+      expect(find.textContaining('Connected via Custom Gateway'), findsOneWidget);
       expect(find.text('Automatic Schedule Catch-Up'), findsOneWidget);
+
+      // Expand Advanced Settings section
+      await tester.tap(find.text('AI Telemetry & Token Safeguards'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Custom Gateway Server (Self-Hosted)'), findsOneWidget);
+      expect(find.text('Gateway URL'), findsOneWidget);
       expect(find.text('Ping'), findsOneWidget);
     });
   });

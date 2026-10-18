@@ -20,7 +20,6 @@ void main() {
       expect(s.notificationVibrateEnabled, isTrue);
       expect(s.chronotype, equals('early_bird'));
       expect(s.dailyFocusGoalMinutes, equals(120));
-      expect(s.coachingStyle, equals('balanced'));
       expect(s.userMotto, isEmpty);
       expect(s.hapticsEnabled, isTrue);
       expect(s.confettiCelebrationsEnabled, isTrue);
@@ -40,7 +39,6 @@ void main() {
         notificationVibrateEnabled: false,
         chronotype: 'night_owl',
         dailyFocusGoalMinutes: 180,
-        coachingStyle: 'direct',
         userMotto: 'Keep ship rolling',
         hapticsEnabled: false,
         confettiCelebrationsEnabled: false,
@@ -57,7 +55,6 @@ void main() {
       expect(updated.notificationVibrateEnabled, isFalse);
       expect(updated.chronotype, equals('night_owl'));
       expect(updated.dailyFocusGoalMinutes, equals(180));
-      expect(updated.coachingStyle, equals('direct'));
       expect(updated.userMotto, equals('Keep ship rolling'));
       expect(updated.hapticsEnabled, isFalse);
       expect(updated.confettiCelebrationsEnabled, isFalse);
@@ -70,7 +67,6 @@ void main() {
         reminderLeadTimeMinutes: 30,
         chronotype: 'balanced',
         dailyFocusGoalMinutes: 90,
-        coachingStyle: 'empathetic',
         userMotto: 'Progress over perfection',
         hapticsEnabled: true,
       );
@@ -83,7 +79,6 @@ void main() {
       expect(revived.reminderLeadTimeMinutes, equals(30));
       expect(revived.chronotype, equals('balanced'));
       expect(revived.dailyFocusGoalMinutes, equals(90));
-      expect(revived.coachingStyle, equals('empathetic'));
       expect(revived.userMotto, equals('Progress over perfection'));
       expect(revived.hapticsEnabled, isTrue);
     });

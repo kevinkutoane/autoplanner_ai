@@ -21,13 +21,18 @@ class AppSettings {
 
   /// 7-element bitmask for Mon–Sun; `true` = that weekday is a work day.
   final List<bool> workDays;
-  final bool useMockAI;
   final bool enableAILogging;
   final int maxTokensPerDay;
   final bool isOnboardingDone;
 
   /// AI connection mode: 'cloud_gateway' | 'direct_gemini' | 'offline_mock'.
   final String aiConnectionMode;
+
+  /// Whether AI operations run locally in offline assistant simulation mode.
+  bool get isMockAI => aiConnectionMode == 'offline_mock';
+
+  /// Backward-compatibility getter for legacy call sites.
+  bool get useMockAI => isMockAI;
 
   /// Custom or local AI Gateway base URL.
   final String cloudGatewayUrl;
@@ -98,9 +103,6 @@ class AppSettings {
   /// Daily focus / deep work target in minutes (e.g. 60, 90, 120, 180).
   final int dailyFocusGoalMinutes;
 
-  /// AI Coach style: 'direct', 'balanced', or 'empathetic'.
-  final String coachingStyle;
-
   /// User personal motto or mantra shown on profile.
   final String userMotto;
 
@@ -120,7 +122,7 @@ class AppSettings {
     required this.workHoursPerDay,
     required this.workStartHour,
     required this.workDays,
-    required this.useMockAI,
+    bool? useMockAI,
     required this.enableAILogging,
     required this.maxTokensPerDay,
     this.isOnboardingDone = false,
@@ -143,16 +145,15 @@ class AppSettings {
     this.notificationVibrateEnabled = true,
     this.chronotype = 'early_bird',
     this.dailyFocusGoalMinutes = 120,
-    this.coachingStyle = 'balanced',
     this.userMotto = '',
     this.hapticsEnabled = true,
     this.confettiCelebrationsEnabled = true,
-    this.aiConnectionMode = 'direct_gemini',
+    String aiConnectionMode = 'cloud_gateway',
     this.cloudGatewayUrl = 'http://127.0.0.1:8000',
     this.autoRippleDrift = true,
     this.driftGraceMinutes = 10,
     this.hasDismissedStarterPlan = false,
-  });
+  }) : aiConnectionMode = useMockAI == true ? 'offline_mock' : aiConnectionMode;
 
   /// Whether user has dismissed the starter pack on cold start.
   final bool hasDismissedStarterPlan;
@@ -166,7 +167,6 @@ class AppSettings {
     workHoursPerDay: 8,
     workStartHour: 9,
     workDays: [true, true, true, true, true, false, false], // Mon-Fri
-    useMockAI: false,
     enableAILogging: true,
     maxTokensPerDay: 100000,
     isOnboardingDone: false,
@@ -189,11 +189,10 @@ class AppSettings {
     notificationVibrateEnabled: true,
     chronotype: 'early_bird',
     dailyFocusGoalMinutes: 120,
-    coachingStyle: 'balanced',
     userMotto: '',
     hapticsEnabled: true,
     confettiCelebrationsEnabled: true,
-    aiConnectionMode: 'direct_gemini',
+    aiConnectionMode: 'cloud_gateway',
     cloudGatewayUrl: 'http://127.0.0.1:8000',
     autoRippleDrift: true,
     driftGraceMinutes: 10,
@@ -231,7 +230,6 @@ class AppSettings {
     bool? notificationVibrateEnabled,
     String? chronotype,
     int? dailyFocusGoalMinutes,
-    String? coachingStyle,
     String? userMotto,
     bool? hapticsEnabled,
     bool? confettiCelebrationsEnabled,
@@ -241,6 +239,11 @@ class AppSettings {
     int? driftGraceMinutes,
     bool? hasDismissedStarterPlan,
   }) {
+    final effectiveMode = aiConnectionMode ??
+        (useMockAI != null
+            ? (useMockAI ? 'offline_mock' : (this.aiConnectionMode == 'offline_mock' ? 'direct_gemini' : this.aiConnectionMode))
+            : this.aiConnectionMode);
+
     return AppSettings(
       userName: userName ?? this.userName,
       userEmail: userEmail ?? this.userEmail,
@@ -250,7 +253,6 @@ class AppSettings {
       workHoursPerDay: workHoursPerDay ?? this.workHoursPerDay,
       workStartHour: workStartHour ?? this.workStartHour,
       workDays: workDays ?? this.workDays,
-      useMockAI: useMockAI ?? this.useMockAI,
       enableAILogging: enableAILogging ?? this.enableAILogging,
       maxTokensPerDay: maxTokensPerDay ?? this.maxTokensPerDay,
       isOnboardingDone: isOnboardingDone ?? this.isOnboardingDone,
@@ -285,12 +287,11 @@ class AppSettings {
       chronotype: chronotype ?? this.chronotype,
       dailyFocusGoalMinutes:
           dailyFocusGoalMinutes ?? this.dailyFocusGoalMinutes,
-      coachingStyle: coachingStyle ?? this.coachingStyle,
       userMotto: userMotto ?? this.userMotto,
       hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
       confettiCelebrationsEnabled:
           confettiCelebrationsEnabled ?? this.confettiCelebrationsEnabled,
-      aiConnectionMode: aiConnectionMode ?? this.aiConnectionMode,
+      aiConnectionMode: effectiveMode,
       cloudGatewayUrl: cloudGatewayUrl ?? this.cloudGatewayUrl,
       autoRippleDrift: autoRippleDrift ?? this.autoRippleDrift,
       driftGraceMinutes: driftGraceMinutes ?? this.driftGraceMinutes,
@@ -337,7 +338,6 @@ class AppSettings {
   // ── Productivity & sensory constants ──
   static const String kChronotype = 'chronotype';
   static const String kDailyFocusGoalMinutes = 'dailyFocusGoalMinutes';
-  static const String kCoachingStyle = 'coachingStyle';
   static const String kUserMotto = 'userMotto';
   static const String kHapticsEnabled = 'hapticsEnabled';
   static const String kConfettiCelebrationsEnabled =
@@ -345,6 +345,7 @@ class AppSettings {
 
   // ── AI Gateway & Autonomous Drift constants ──
   static const String kAiConnectionMode = 'aiConnectionMode';
+  static const String kGeminiApiKey = 'geminiApiKey';
   static const String kCloudGatewayUrl = 'cloudGatewayUrl';
   static const String kAutoRippleDrift = 'autoRippleDrift';
   static const String kDriftGraceMinutes = 'driftGraceMinutes';
@@ -379,7 +380,7 @@ class AppSettings {
     kWorkHoursPerDay: workHoursPerDay,
     kWorkStartHour: workStartHour,
     kWorkDays: workDays.map((e) => e.toString()).join(','),
-    kUseMockAI: useMockAI,
+    kUseMockAI: isMockAI,
     kEnableAILogging: enableAILogging,
     kMaxTokensPerDay: maxTokensPerDay,
     kOnboardingSeen: isOnboardingDone,
@@ -401,11 +402,11 @@ class AppSettings {
     kNotificationVibrateEnabled: notificationVibrateEnabled,
     kChronotype: chronotype,
     kDailyFocusGoalMinutes: dailyFocusGoalMinutes,
-    kCoachingStyle: coachingStyle,
     kUserMotto: userMotto,
     kHapticsEnabled: hapticsEnabled,
     kConfettiCelebrationsEnabled: confettiCelebrationsEnabled,
     kAiConnectionMode: aiConnectionMode,
+    kGeminiApiKey: geminiApiKey,
     kCloudGatewayUrl: cloudGatewayUrl,
     kAutoRippleDrift: autoRippleDrift,
     kDriftGraceMinutes: driftGraceMinutes,
@@ -421,10 +422,10 @@ class AppSettings {
     workHoursPerDay: (map[kWorkHoursPerDay] as int?) ?? 8,
     workStartHour: (map[kWorkStartHour] as int?) ?? 9,
     workDays: _parseWorkDays(map[kWorkDays] as String?),
-    useMockAI: (map[kUseMockAI] as bool?) ?? false,
     enableAILogging: (map[kEnableAILogging] as bool?) ?? true,
     maxTokensPerDay: (map[kMaxTokensPerDay] as int?) ?? 100000,
     isOnboardingDone: (map[kOnboardingSeen] as bool?) ?? false,
+    geminiApiKey: (map[kGeminiApiKey] as String?) ?? '',
     requireBiometrics: (map[kRequireBiometrics] as bool?) ?? false,
     morningBriefingEnabled: (map[kMorningBriefingEnabled] as bool?) ?? false,
     morningBriefingHour: (map[kMorningBriefingHour] as int?) ?? 8,
@@ -447,12 +448,12 @@ class AppSettings {
         (map[kNotificationVibrateEnabled] as bool?) ?? true,
     chronotype: (map[kChronotype] as String?) ?? 'early_bird',
     dailyFocusGoalMinutes: (map[kDailyFocusGoalMinutes] as int?) ?? 120,
-    coachingStyle: (map[kCoachingStyle] as String?) ?? 'balanced',
     userMotto: (map[kUserMotto] as String?) ?? '',
     hapticsEnabled: (map[kHapticsEnabled] as bool?) ?? true,
     confettiCelebrationsEnabled:
         (map[kConfettiCelebrationsEnabled] as bool?) ?? true,
-    aiConnectionMode: (map[kAiConnectionMode] as String?) ?? 'cloud_gateway',
+    aiConnectionMode: (map[kAiConnectionMode] as String?) ??
+        ((map[kUseMockAI] as bool?) == true ? 'offline_mock' : 'cloud_gateway'),
     cloudGatewayUrl:
         (map[kCloudGatewayUrl] as String?) ?? 'http://127.0.0.1:8000',
     autoRippleDrift: (map[kAutoRippleDrift] as bool?) ?? true,

@@ -160,7 +160,8 @@ Customize AutoPlanner to match how you naturally work best:
   - **Early Bird**: Peak focus in the early morning (8 AM – 11 AM).
   - **Night Owl**: Peak focus in the late afternoon and evening (3 PM – 8 PM).
   - **Balanced**: Consistent energy throughout the midday.
-- **Coach Persona**: Choose your coaching tone: *Encouraging Cheerleader*, *No-Nonsense Direct*, or *Calm & Mindful*.
+- **Daily Focus Goal**: Set your target deep work minutes (e.g. 1h, 2h, 3h). This actively drives your Daily Focus Goal progress card in the Focus Hub, celebrating milestones when achieved.
+- **Personal Mantra**: Set an inspiring motto that appears on your personal profile banner.
 
 ### Google Calendar Integration
 - Link your Google account under **Calendar Sync**.
@@ -172,17 +173,15 @@ Customize AutoPlanner to match how you naturally work best:
 
 In **Settings > AI Assistant Connection**, you can choose how your smart scheduling is powered:
 
-| Mode | Best For | Internet Needed? | Cost |
-| :--- | :--- | :---: | :---: |
-| **Google Gemini Key** | Recommended for personalized, state-of-the-art AI parsing & coaching | Yes | Free (Personal API Key) |
-| **Offline Mode** | Maximum privacy, zero setup, battery saving, airplane mode | No | 100% Free |
-| **Custom Server** | Self-hosted instances or private team gateways | Local/Private | Self-hosted |
+- **Gemini Key (BYOK)**: Recommended for personalized, state-of-the-art AI parsing, smart reschedule suggestions, and AI coach responses using Google's Gemini models with your free personal API key.
+- **Offline Mode**: 100% on-device heuristic scheduling and assistant simulation with zero latency, zero internet required, and maximum battery life.
+- **Custom Gateway Server (Advanced)**: Accessible under *AI Telemetry & Token Safeguards* for self-hosted developer gateways or local Python servers (`http://localhost:8000`).
 
 ### How to get a Free Google Gemini API Key:
 1. Visit [Google AI Studio](https://aistudio.google.com/).
 2. Sign in with your Google account.
 3. Click **"Get API key"** and copy your key.
-4. Open AutoPlanner, go to **Settings > Gemini API Key**, paste your key, and tap **Save Key**.
+4. Open AutoPlanner, select **Gemini Key (BYOK)**, paste your key, and tap **Save Key**.
 5. Your key is stored securely inside your device's encrypted hardware vault and is never sent to any third-party server.
 
 ---

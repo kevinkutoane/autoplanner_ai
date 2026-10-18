@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -16,6 +17,8 @@ import '../models/note_model.dart';
 import '../models/project_model.dart';
 import '../models/calendar_event_model.dart';
 import '../models/memory_entry_model.dart';
+import '../models/gamification_model.dart';
+import '../theme/ui_kit.dart';
 import '../ai/token_tracker.dart';
 import '../providers/providers.dart';
 import '../../services/memory_service.dart';
@@ -108,44 +111,51 @@ class AppBootstrapper {
 
     // Derive device-unique encryption key stored in OS keychain
     final hiveKeyBytes = await SecureKeyService.getOrCreateHiveEncryptionKey();
-    final hiveCipher = HiveAesCipher(hiveKeyBytes);
+    final hiveCipher = HiveAesCipher(hiveKeyBytes);    // 4. Pre-open encrypted data boxes in parallel with safe recovery
+    await Future.wait([
+      openBoxSafe<TaskItem>('tasksBox', hiveCipher),
+      openBoxSafe<NoteItem>('notesBox', hiveCipher),
+      openBoxSafe<GoalItem>('goalsBox', hiveCipher),
+      openBoxSafe<ProjectItem>('projectsBox', hiveCipher),
+      openBoxSafe<CalendarEvent>('calendarBox', hiveCipher),
+      openBoxSafe<dynamic>('settingsBox', hiveCipher),
+      openBoxSafe<AppEvent>('appEventsBox', hiveCipher),
+      openBoxSafe<dynamic>('gamificationBox', hiveCipher),
+    ]);
 
-    // 4. Pre-open encrypted data boxes with safe recovery
-    await openBoxSafe<TaskItem>('tasksBox', hiveCipher);
-    await openBoxSafe<NoteItem>('notesBox', hiveCipher);
-    await openBoxSafe<GoalItem>('goalsBox', hiveCipher);
-    await openBoxSafe<ProjectItem>('projectsBox', hiveCipher);
-    await openBoxSafe<CalendarEvent>('calendarBox', hiveCipher);
-    await openBoxSafe<dynamic>('settingsBox', hiveCipher);
-    await openBoxSafe<AppEvent>('appEventsBox', hiveCipher);
-    await openBoxSafe<dynamic>('gamificationBox', hiveCipher);
-
-    // 5. Initialize services that require Hive
+    // 5. Initialize services in parallel
     final tokenTracker = TokenTracker();
-    try {
-      await tokenTracker.init(cipher: hiveCipher);
-    } catch (e) {
-      if (kDebugMode) debugPrint('TokenTracker init failed: $e');
-    }
-
     final memoryService = MemoryService();
-    try {
-      await memoryService.init(cipher: hiveCipher);
-      await memoryService.decayStaleMemories();
-    } catch (e) {
-      if (kDebugMode) debugPrint('MemoryService init failed: $e');
-    }
-
     final notificationService = NotificationService();
-    try {
-      await notificationService.init();
-    } catch (e) {
-      if (kDebugMode) debugPrint('Notification init skipped: $e');
-    }
+    final googleAuthService = GoogleAuthService();
 
-    // 6. Restore morning briefing & Google Calendar auth
+    await Future.wait([
+      tokenTracker.init(cipher: hiveCipher).catchError((e) {
+        if (kDebugMode) debugPrint('TokenTracker init failed: $e');
+      }),
+      memoryService.init(cipher: hiveCipher).then((_) {
+        // Run stale memory decay in background without blocking startup
+        unawaited(memoryService.decayStaleMemories().catchError((e) {
+          if (kDebugMode) debugPrint('MemoryService decay failed: $e');
+          return 0;
+        }));
+      }).catchError((e) {
+        if (kDebugMode) debugPrint('MemoryService init failed: $e');
+      }),
+      notificationService.init().catchError((e) {
+        if (kDebugMode) debugPrint('Notification init skipped: $e');
+      }),
+      googleAuthService.tryRestoreSession().catchError((e) {
+        if (kDebugMode) debugPrint('GoogleAuth restore skipped: $e');
+      }),
+    ]);
+
+    // 6. Restore scheduled notifications & sensory preferences
     try {
       final settingsBox = Hive.box<dynamic>('settingsBox');
+      AppHaptics.enabled =
+          settingsBox.get('hapticsEnabled', defaultValue: true) as bool;
+
       final briefingEnabled = settingsBox.get(
         'morningBriefingEnabled',
         defaultValue: false,
@@ -155,18 +165,60 @@ class AppBootstrapper {
       final briefingMinute =
           settingsBox.get('morningBriefingMinute', defaultValue: 0) as int;
       if (briefingEnabled) {
-        await notificationService.scheduleMorningBriefing(
-          hour: briefingHour,
-          minute: briefingMinute,
-          body: 'Good morning! Tap to review your plan for the day.',
+        unawaited(
+          notificationService.scheduleMorningBriefing(
+            hour: briefingHour,
+            minute: briefingMinute,
+            body: 'Good morning! Tap to review your plan for the day.',
+          ),
         );
       }
+
+      final shutdownEnabled = settingsBox.get(
+        'eveningShutdownReminderEnabled',
+        defaultValue: false,
+      ) as bool;
+      final shutdownHour =
+          settingsBox.get('eveningShutdownHour', defaultValue: 21) as int;
+      final shutdownMinute =
+          settingsBox.get('eveningShutdownMinute', defaultValue: 0) as int;
+      if (shutdownEnabled) {
+        unawaited(
+          notificationService.scheduleEveningShutdown(
+            hour: shutdownHour,
+            minute: shutdownMinute,
+          ),
+        );
+      }
+
+      final streakRemindersEnabled = settingsBox.get(
+        'streakRemindersEnabled',
+        defaultValue: true,
+      ) as bool;
+      if (streakRemindersEnabled) {
+        try {
+          final gamificationBox = Hive.box<dynamic>('gamificationBox');
+          final rawProfile = gamificationBox.get('user_gamification_profile');
+          if (rawProfile != null) {
+            final profile = rawProfile is String
+                ? GamificationProfile.fromJson(rawProfile)
+                : GamificationProfile.fromMap(
+                    Map<String, dynamic>.from(rawProfile as Map),
+                  );
+            if (profile.currentStreak > 0) {
+              unawaited(
+                notificationService.scheduleStreakShield(
+                  currentStreak: profile.currentStreak,
+                ),
+              );
+            }
+          }
+        } catch (_) {}
+      }
     } catch (e) {
-      if (kDebugMode) debugPrint('Morning briefing restore failed: $e');
+      if (kDebugMode) debugPrint('Notification & settings restore failed: $e');
     }
 
-    final googleAuthService = GoogleAuthService();
-    await googleAuthService.tryRestoreSession();
     final calendarSyncService = CalendarSyncService(
       googleAuth: googleAuthService,
     );

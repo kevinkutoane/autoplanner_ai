@@ -39,7 +39,10 @@ class LevelUpDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        CelebrationOverlay(title: '', subtitle: '', onDismiss: () {}),
+        CelebrationOverlay(
+          particlesOnly: true,
+          onDismiss: () => Navigator.of(context).pop(),
+        ),
         Center(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28),

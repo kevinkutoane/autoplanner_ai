@@ -98,11 +98,15 @@ class _AIEngineCardState extends State<AIEngineCard> {
       }
     } catch (e) {
       stopwatch.stop();
+      var msg = 'Unreachable (${e.runtimeType})';
+      if (rawUrl.contains('127.0.0.1') || rawUrl.contains('localhost')) {
+        msg = 'Unreachable: On Android emulator use http://10.0.2.2:8000';
+      }
       setState(() {
         _isPinging = false;
         _pingSuccess = false;
         _pingLatencyMs = null;
-        _pingStatus = 'Unreachable (${e.runtimeType})';
+        _pingStatus = msg;
       });
     }
   }
@@ -125,44 +129,47 @@ class _AIEngineCardState extends State<AIEngineCard> {
       ),
       builder: (_) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Daily Token Limit',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : kDark0,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ..._tokenOptions.map((opt) {
-                  final selected = widget.settings.maxTokensPerDay == opt;
-                  return ListTile(
-                    title: Text(
-                      '${_formatTokens(opt)} tokens / day',
-                      style: TextStyle(
-                        fontWeight: selected
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: selected
-                            ? kIndigo
-                            : (isDark ? Colors.white70 : Colors.black87),
-                      ),
+          child: Material(
+            color: Colors.transparent,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Daily Token Limit',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : kDark0,
                     ),
-                    trailing: selected
-                        ? const Icon(Icons.check_rounded, color: kIndigo)
-                        : null,
-                    onTap: () {
-                      widget.ctrl.updateMaxTokensPerDay(opt);
-                      Navigator.pop(context);
-                    },
-                  );
-                }),
-              ],
+                  ),
+                  const SizedBox(height: 12),
+                  ..._tokenOptions.map((opt) {
+                    final selected = widget.settings.maxTokensPerDay == opt;
+                    return ListTile(
+                      title: Text(
+                        '${_formatTokens(opt)} tokens / day',
+                        style: TextStyle(
+                          fontWeight: selected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: selected
+                              ? kIndigo
+                              : (isDark ? Colors.white70 : Colors.black87),
+                        ),
+                      ),
+                      trailing: selected
+                          ? const Icon(Icons.check_rounded, color: kIndigo)
+                          : null,
+                      onTap: () {
+                        widget.ctrl.updateMaxTokensPerDay(opt);
+                        Navigator.pop(context);
+                      },
+                    );
+                  }),
+                ],
+              ),
             ),
           ),
         );
@@ -227,7 +234,7 @@ class _AIEngineCardState extends State<AIEngineCard> {
 
           const SizedBox(height: 12),
 
-          // 3-way Architecture Switcher
+          // 2-way Consumer Switcher (Gemini Key vs Offline Assistant)
           Container(
             padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
@@ -242,23 +249,16 @@ class _AIEngineCardState extends State<AIEngineCard> {
                   mode: 'direct_gemini',
                   title: 'Gemini Key',
                   icon: Icons.key_rounded,
-                  selected: currentMode == 'direct_gemini',
+                  selected: currentMode == 'direct_gemini' ||
+                      (currentMode != 'offline_mock' &&
+                          currentMode != 'cloud_gateway'),
                   isDark: isDark,
                 ),
                 _buildModeTab(
                   mode: 'offline_mock',
                   title: 'Offline Mode',
                   icon: Icons.offline_bolt_rounded,
-                  selected:
-                      currentMode == 'offline_mock' ||
-                      widget.settings.useMockAI,
-                  isDark: isDark,
-                ),
-                _buildModeTab(
-                  mode: 'cloud_gateway',
-                  title: 'Custom Server',
-                  icon: Icons.dns_rounded,
-                  selected: currentMode == 'cloud_gateway',
+                  selected: currentMode == 'offline_mock',
                   isDark: isDark,
                 ),
               ],
@@ -269,11 +269,42 @@ class _AIEngineCardState extends State<AIEngineCard> {
 
           // Dynamic Body based on Mode
           if (currentMode == 'cloud_gateway') ...[
-            _buildGatewayConfigSection(isDark),
-          ] else if (currentMode == 'direct_gemini') ...[
-            _buildByokSection(isDark),
-          ] else ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: kIndigo.withAlpha(25),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: kIndigo.withAlpha(50)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.dns_rounded, size: 16, color: kIndigo),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Connected via Custom Gateway (${widget.settings.cloudGatewayUrl})',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.white70 : Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => widget.ctrl.updateAIConnectionMode('direct_gemini'),
+                    child: const Text(
+                      'Use Gemini',
+                      style: TextStyle(fontSize: 11, color: kCyan, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (currentMode == 'offline_mock') ...[
             _buildMockSection(isDark),
+          ] else ...[
+            _buildByokSection(isDark),
           ],
 
           const SizedBox(height: 14),
@@ -409,16 +440,15 @@ class _AIEngineCardState extends State<AIEngineCard> {
 
           if (_showAdvanced) ...[
             const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withAlpha(5)
-                    : Colors.black.withAlpha(4),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
+            Material(
+              color: isDark
+                  ? Colors.white.withAlpha(5)
+                  : Colors.black.withAlpha(4),
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Column(
+                  children: [
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     dense: true,
@@ -472,10 +502,45 @@ class _AIEngineCardState extends State<AIEngineCard> {
                     trailing: const Icon(Icons.chevron_right, size: 16),
                     onTap: () => _showTokenPicker(context),
                   ),
+                  Divider(
+                    height: 16,
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.dns_outlined,
+                        color: isDark ? Colors.white60 : Colors.black54,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Custom Gateway Server (Self-Hosted)',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : kDark0,
+                          ),
+                        ),
+                      ),
+                      if (currentMode != 'cloud_gateway')
+                        TextButton(
+                          onPressed: () => widget.ctrl.updateAIConnectionMode('cloud_gateway'),
+                          child: const Text(
+                            'Activate',
+                            style: TextStyle(fontSize: 11, color: kCyan, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  _buildGatewayConfigSection(isDark),
                 ],
               ),
             ),
-          ],
+          ),
+        ],
         ],
       ),
     );
@@ -492,11 +557,6 @@ class _AIEngineCardState extends State<AIEngineCard> {
       child: GestureDetector(
         onTap: () {
           widget.ctrl.updateAIConnectionMode(mode);
-          if (mode == 'offline_mock') {
-            widget.ctrl.updateUseMockAI(true);
-          } else {
-            widget.ctrl.updateUseMockAI(false);
-          }
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
@@ -563,7 +623,11 @@ class _AIEngineCardState extends State<AIEngineCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 6,
             children: [
               Text(
                 'Gateway URL',
@@ -573,31 +637,61 @@ class _AIEngineCardState extends State<AIEngineCard> {
                   color: isDark ? Colors.white70 : Colors.black87,
                 ),
               ),
-              const Spacer(),
-              // Preset chip
-              GestureDetector(
-                onTap: () {
-                  _urlController.text = 'http://127.0.0.1:8000';
-                  widget.ctrl.updateCloudGatewayUrl('http://127.0.0.1:8000');
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: kCyan.withAlpha(25),
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: const Text(
-                    'Local :8000',
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: kCyan,
-                      fontWeight: FontWeight.w600,
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      _urlController.text = 'http://10.0.2.2:8000';
+                      widget.ctrl.updateCloudGatewayUrl('http://10.0.2.2:8000');
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: kCyan.withAlpha(35),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'Emulator :8000',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: kCyan,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  GestureDetector(
+                    onTap: () {
+                      _urlController.text = 'http://127.0.0.1:8000';
+                      widget.ctrl.updateCloudGatewayUrl('http://127.0.0.1:8000');
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withAlpha(20)
+                            : Colors.black.withAlpha(15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'Desktop :8000',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

@@ -5,10 +5,10 @@
 [![Flutter](https://img.shields.io/badge/Flutter-%5E3.47.2-02569B?logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-%5E3.13.x-0175C2?logo=dart)](https://dart.dev)
 [![AI Engine](https://img.shields.io/badge/AI-Gemini%201.5%20Flash-4285F4?logo=google)](https://aistudio.google.com)
-[![Tests](https://img.shields.io/badge/Tests-654%20Passing-brightgreen)](test/)
+[![Tests](https://img.shields.io/badge/Tests-650%2B%20Passing-brightgreen)](test/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Version:** 3.0.0+1 · **Target Platform:** Android (Verified) · **State:** Riverpod · **Persistence:** Encrypted Hive (AES-256)
+**Version:** 3.1.0 · **Target Platform:** Android (Verified) · **State:** Riverpod · **Persistence:** Encrypted Hive (AES-256)
 
 ---
 
@@ -18,12 +18,13 @@ Explore the technical and architectural documentation:
 
 | Document | Purpose |
 | --- | --- |
+| 📖 [USER_GUIDE.md](docs/USER_GUIDE.md) | End-user manual, feature workflows, settings, and daily habit guide |
 | 🛡️ [PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md) | Release Candidate verification matrix, empirical certification evidence, and quality checklist |
 | 🧪 [BETA_TESTING_GUIDE.md](docs/BETA_TESTING_GUIDE.md) | Comprehensive beta test cases, real-device QA matrix, and defect severity classification |
 | 🧱 [ARCHITECTURE_DEBT.md](docs/ARCHITECTURE_DEBT.md) | Formally tracked non-blocking architectural debt, impact, risks, and deferral rationale |
 | 🏗️ [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Complete system architecture map, runtime data flows, AI safety boundary, and Hive schema |
 | 📋 [PHASE_1_2_SPEC.md](docs/PHASE_1_2_SPEC.md) | Technical specification and verification details for the Smart Scheduling Engine |
-| 🗺️ [ROADMAP.md](docs/ROADMAP.md) | Strategic product & engineering roadmap from Phase 1.1 to 2.3.1 Release Candidate |
+| 🗺️ [ROADMAP.md](docs/ROADMAP.md) | Strategic product & engineering roadmap from Phase 1.1 to 3.1.0 |
 | 📜 [CHANGELOG.md](docs/CHANGELOG.md) | Full release notes and historical change record |
 | 🤝 [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Developer guidelines, coding standards, test instructions, and PR checklist |
 

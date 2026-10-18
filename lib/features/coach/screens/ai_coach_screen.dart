@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -43,6 +44,7 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
     _scrollToBottom();
 
     final aiService = ref.read(aiServiceProvider);
+    final settings = ref.read(settingsProvider);
 
     try {
       final response = await aiService.chatWithCoach(text, _messages);
@@ -51,8 +53,13 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
         _isLoading = false;
       });
       _scrollToBottom();
-    } catch (_) {
-      final fallbackResponse = _generateOfflineCoachFallback(text);
+    } catch (e) {
+      if (kDebugMode) debugPrint('AI Coach error: $e');
+      final fallbackResponse = _generateOfflineCoachFallback(
+        text,
+        isOfflineMode: settings.isMockAI,
+        errorMessage: e.toString(),
+      );
       setState(() {
         _messages.add({'role': 'assistant', 'content': fallbackResponse});
         _isLoading = false;
@@ -61,7 +68,11 @@ class _AiCoachScreenState extends ConsumerState<AiCoachScreen> {
     }
   }
 
-  String _generateOfflineCoachFallback(String input) {
+  String _generateOfflineCoachFallback(
+    String input, {
+    bool isOfflineMode = false,
+    String? errorMessage,
+  }) {
     final lower = input.toLowerCase();
 
     String coachingAdvice;
@@ -129,10 +140,11 @@ Remember: **High performers don't manage time — they manage energy and attenti
 What priority or task would you like to tackle next?''';
     }
 
-    return '''$coachingAdvice
+    final footer = isOfflineMode
+        ? '\n\n---\n*💡 Note: Running in Offline Assistant Mode.*'
+        : '';
 
----
-*💡 Note: Running in Offline Assistant Mode. To enable live conversational AI, connect your Gemini Key or start your server in Settings.*''';
+    return '$coachingAdvice$footer';
   }
 
   void _scrollToBottom() {

@@ -114,6 +114,32 @@ const kGradientSettings = LinearGradient(
   end: Alignment.bottomRight,
 );
 
+/// Centralized haptic feedback controller that respects the user's
+/// [AppSettings.hapticsEnabled] setting across the entire application.
+class AppHaptics {
+  static bool enabled = true;
+
+  static void lightImpact() {
+    if (enabled) HapticFeedback.lightImpact();
+  }
+
+  static void mediumImpact() {
+    if (enabled) HapticFeedback.mediumImpact();
+  }
+
+  static void heavyImpact() {
+    if (enabled) HapticFeedback.heavyImpact();
+  }
+
+  static void selectionClick() {
+    if (enabled) HapticFeedback.selectionClick();
+  }
+
+  static void vibrate() {
+    if (enabled) HapticFeedback.vibrate();
+  }
+}
+
 // ── Animated orb background ─────────────────────────────────────────────────
 class OrbBackground extends StatefulWidget {
   final Widget child;
@@ -317,7 +343,10 @@ class GlassCard extends StatelessWidget {
             ),
           ),
           padding: padding,
-          child: child,
+          child: Material(
+            type: MaterialType.transparency,
+            child: child,
+          ),
         ),
       ),
     );
@@ -378,7 +407,10 @@ class VibrantGlassCard extends StatelessWidget {
         ],
       ),
       padding: padding,
-      child: child,
+      child: Material(
+        type: MaterialType.transparency,
+        child: child,
+      ),
     );
 
     if (onTap != null) {
@@ -786,7 +818,7 @@ class _GradBtnState extends State<GradBtn> with SingleTickerProviderStateMixin {
         onTapDown: (_) => _c.forward(),
         onTapUp: (_) {
           _c.reverse();
-          HapticFeedback.lightImpact();
+          AppHaptics.lightImpact();
           widget.onTap?.call();
         },
         onTapCancel: () => _c.reverse(),
@@ -862,7 +894,7 @@ class GhostBtn extends StatelessWidget {
       label: label,
       child: GestureDetector(
         onTap: () {
-          HapticFeedback.lightImpact();
+          AppHaptics.lightImpact();
           onTap?.call();
         },
         child: Container(
@@ -934,7 +966,7 @@ class GlassChip extends StatelessWidget {
       label: label,
       child: GestureDetector(
         onTap: () {
-          HapticFeedback.selectionClick();
+          AppHaptics.selectionClick();
           onTap();
         },
         child: AnimatedContainer(

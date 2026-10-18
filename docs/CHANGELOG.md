@@ -4,6 +4,33 @@ All notable changes to AutoPlanner AI are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/).
 
+## [3.1.0] — 2026-10-15
+
+### Codebase Cleanup, Startup & Runtime Optimization, Zero-Placeholder Architecture
+
+- **Cold Start & Bootstrapper Concurrency (`AppBootstrapper`)**:
+  - Replaced legacy sequential Hive box open calls with concurrent `Future.wait([...])` across 8 encrypted boxes, cutting cold-start disk I/O time dramatically.
+  - Concurrently initialized `TokenTracker`, `MemoryService`, and `NotificationService`.
+  - Offloaded memory decay (`decayStaleMemories()`) to asynchronous background `unawaited()` execution, unblocking main thread startup before `runApp`.
+- **Streamlined Splash Experience (`SplashScreen`)**:
+  - Reduced cold start artificial delay from 2800ms to 850ms, with entrance animations tightened from 2400ms to 800ms for a rapid, responsive first impression.
+- **Lazy Tab Mounting (`AppShell`)**:
+  - Implemented on-demand tab mounting using `_activatedIndices`. Only the primary Dashboard mounts on launch instead of eagerly constructing all 11 complex screens and their provider listeners.
+- **Settings Architecture Simplification & Dead Code Elimination**:
+  - Consolidated redundant `useMockAI` setting into `aiConnectionMode` (`'cloud_gateway'`, `'direct_gemini'`, `'offline_mock'`), preserving a backwards-compatible getter.
+  - Removed dead placeholder `coachingStyle` setting across models, controllers, and screens.
+  - Reorganized AI Engine card into a consumer-friendly 2-way toggle (`direct_gemini` vs `offline_mock`), nesting self-hosted gateway configuration into collapsible advanced settings.
+  - Removed lingering development scratch files (`check_radio.dart`, `fix_underscores.dart`, `notes_screen.dart.backup`).
+- **Feature Wiring & Zero Lingering Placeholders**:
+  - Connected `dailyFocusGoalMinutes` setting directly to `FocusHubScreen`, displaying real-time daily deep work progress, percentage, remaining minutes, and target achievement badges.
+  - Connected `streakRemindersEnabled` to `NotificationService.scheduleStreakShield(currentStreak)` and restored morning briefing, evening shutdown, and streak shield notifications on app launch in `AppBootstrapper`.
+  - Centralized global haptic preferences into `AppHaptics` and connected `confettiCelebrationsEnabled` to `CelebrationOverlay` with lightweight `particlesOnly` mode for `LevelUpDialog`.
+- **Quality & Certification**:
+  - 100% clean static analysis (`dart analyze lib test` reports 0 issues).
+  - All test suites passing.
+
+---
+
 ## [3.0.0+1] — 2026-10-12
 
 ### Auto-Ripple Ordering, Conflict Dismissal Lifecycle & Responsive Layout Hardening

@@ -14,11 +14,83 @@ import 'help_screen.dart';
 import '../widgets/ai_engine_card.dart';
 import '../../analytics/screens/weekly_review_screen.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  int _selectedTab = 0;
+
+  Widget _buildTabButton(
+    int index,
+    String label,
+    IconData icon,
+    Color activeColor,
+    bool isDark,
+  ) {
+    final isSelected = _selectedTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedTab = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            gradient: isSelected
+                ? LinearGradient(
+                    colors: [activeColor, activeColor.withAlpha(200)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: isSelected ? null : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: activeColor.withAlpha(80),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isSelected
+                    ? Colors.white
+                    : (isDark ? Colors.white60 : Colors.black54),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected
+                      ? Colors.white
+                      : (isDark ? Colors.white60 : Colors.black54),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final ctrl = ref.read(settingsProvider.notifier);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -175,403 +247,439 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
 
+            // ── Segmented Category Tabs ────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withAlpha(12)
+                        : Colors.black.withAlpha(6),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withAlpha(18)
+                          : Colors.black.withAlpha(8),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildTabButton(0, 'AI Engine', Icons.auto_awesome_rounded, kCoral, isDark),
+                      _buildTabButton(1, 'Schedule', Icons.schedule_rounded, kCyan, isDark),
+                      _buildTabButton(2, 'Alerts', Icons.notifications_active_rounded, kIndigo, isDark),
+                      _buildTabButton(3, 'System', Icons.tune_rounded, const Color(0xFF9D97FF), isDark),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
             // ── Body ────────────────────────────────────────────────────
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  // ── 1. AI & Intelligence ────────────────────────────
-                  Stagger(
-                    index: 0,
-                    child: SectionLabel(
-                      icon: Icons.auto_awesome_rounded,
-                      label: 'AI & Intelligence',
-                      color: kCoral,
+                  if (_selectedTab == 0) ...[
+                    // ── 1. AI & Intelligence ────────────────────────────
+                    Stagger(
+                      index: 0,
+                      child: SectionLabel(
+                        icon: Icons.auto_awesome_rounded,
+                        label: 'AI & Intelligence',
+                        color: kCoral,
+                      ),
                     ),
-                  ),
-                  Stagger(
-                    index: 1,
-                    child: GlassCard(
-                      child: AIEngineCard(settings: settings, ctrl: ctrl),
+                    Stagger(
+                      index: 1,
+                      child: GlassCard(
+                        child: AIEngineCard(settings: settings, ctrl: ctrl),
+                      ),
                     ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // ── 2. Work & Rhythm ─────────────────────────────────
-                  Stagger(
-                    index: 2,
-                    child: SectionLabel(
-                      icon: Icons.schedule_rounded,
-                      label: 'Work & Rhythm',
-                      color: kCyan,
+                  ] else if (_selectedTab == 1) ...[
+                    // ── 2. Work & Rhythm ─────────────────────────────────
+                    Stagger(
+                      index: 0,
+                      child: SectionLabel(
+                        icon: Icons.schedule_rounded,
+                        label: 'Work & Rhythm',
+                        color: kCyan,
+                      ),
                     ),
-                  ),
-                  Stagger(
-                    index: 3,
-                    child: GlassCard(
-                      child: Column(
-                        children: [
-                          _SliderTile(
-                            icon: Icons.timer_outlined,
-                            title: 'Work hours / day',
-                            subtitle: '${settings.workHoursPerDay} hours',
-                            value: settings.workHoursPerDay.toDouble(),
-                            min: 1,
-                            max: 16,
-                            divisions: 15,
-                            label: '${settings.workHoursPerDay}h',
-                            onChanged: (v) =>
-                                ctrl.updateWorkHoursPerDay(v.round()),
-                          ),
-                          const _GlassDivider(),
-                          _ListTile(
-                            icon: Icons.alarm_outlined,
-                            title: 'Work starts at',
-                            subtitle: settings.workStartLabel,
-                            trailing: const Icon(Icons.chevron_right, size: 18),
-                            onTap: () =>
-                                _pickStartTime(context, settings, ctrl),
-                          ),
-                          const _GlassDivider(),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  Icons.date_range_outlined,
-                                  size: 20,
-                                  color: isDark
-                                      ? Colors.white54
-                                      : Colors.black45,
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Work days',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: isDark ? Colors.white : kDark0,
+                    Stagger(
+                      index: 1,
+                      child: GlassCard(
+                        child: Column(
+                          children: [
+                            _SliderTile(
+                              icon: Icons.timer_outlined,
+                              title: 'Work hours / day',
+                              subtitle: '${settings.workHoursPerDay} hours',
+                              value: settings.workHoursPerDay.toDouble(),
+                              min: 1,
+                              max: 16,
+                              divisions: 15,
+                              label: '${settings.workHoursPerDay}h',
+                              onChanged: (v) =>
+                                  ctrl.updateWorkHoursPerDay(v.round()),
+                            ),
+                            const _GlassDivider(),
+                            _ListTile(
+                              icon: Icons.alarm_outlined,
+                              title: 'Work starts at',
+                              subtitle: settings.workStartLabel,
+                              trailing: const Icon(Icons.chevron_right, size: 18),
+                              onTap: () =>
+                                  _pickStartTime(context, settings, ctrl),
+                            ),
+                            const _GlassDivider(),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
+                                    Icons.date_range_outlined,
+                                    size: 20,
+                                    color: isDark
+                                        ? Colors.white54
+                                        : Colors.black45,
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Work days',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: isDark ? Colors.white : kDark0,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Wrap(
-                                        spacing: 6,
-                                        runSpacing: 6,
-                                        children: List.generate(7, (i) {
-                                          const labels = [
-                                            'Mon',
-                                            'Tue',
-                                            'Wed',
-                                            'Thu',
-                                            'Fri',
-                                            'Sat',
-                                            'Sun',
-                                          ];
-                                          final active = settings.workDays[i];
-                                          return GestureDetector(
-                                            onTap: () {
-                                              final updated = List<bool>.from(
-                                                settings.workDays,
-                                              );
-                                              updated[i] = !active;
-                                              ctrl.updateWorkDays(updated);
-                                            },
-                                            child: AnimatedContainer(
-                                              duration: const Duration(
-                                                milliseconds: 200,
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 12,
-                                                    vertical: 6,
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 6,
+                                          runSpacing: 6,
+                                          children: List.generate(7, (i) {
+                                            const labels = [
+                                              'Mon',
+                                              'Tue',
+                                              'Wed',
+                                              'Thu',
+                                              'Fri',
+                                              'Sat',
+                                              'Sun',
+                                            ];
+                                            final active = settings.workDays[i];
+                                            return GestureDetector(
+                                              onTap: () {
+                                                final updated = List<bool>.from(
+                                                  settings.workDays,
+                                                );
+                                                updated[i] = !active;
+                                                ctrl.updateWorkDays(updated);
+                                              },
+                                              child: AnimatedContainer(
+                                                duration: const Duration(
+                                                  milliseconds: 200,
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 6,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  gradient: active
+                                                      ? kGradientMain
+                                                      : null,
+                                                  color: active
+                                                      ? null
+                                                      : (isDark
+                                                            ? Colors.white
+                                                                  .withAlpha(15)
+                                                            : Colors.black
+                                                                  .withAlpha(7)),
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                  border: Border.all(
+                                                    color: active
+                                                        ? Colors.transparent
+                                                        : (isDark
+                                                              ? Colors.white24
+                                                              : Colors.black12),
                                                   ),
-                                              decoration: BoxDecoration(
-                                                gradient: active
-                                                    ? kGradientMain
-                                                    : null,
-                                                color: active
-                                                    ? null
-                                                    : (isDark
-                                                          ? Colors.white
-                                                                .withAlpha(15)
-                                                          : Colors.black
-                                                                .withAlpha(7)),
-                                                borderRadius:
-                                                    BorderRadius.circular(20),
-                                                border: Border.all(
-                                                  color: active
-                                                      ? Colors.transparent
-                                                      : (isDark
-                                                            ? Colors.white24
-                                                            : Colors.black12),
+                                                ),
+                                                child: Text(
+                                                  labels[i],
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: active
+                                                        ? Colors.white
+                                                        : (isDark
+                                                              ? Colors.white70
+                                                              : const Color(
+                                                                  0xFF4A4A5A,
+                                                                )),
+                                                  ),
                                                 ),
                                               ),
-                                              child: Text(
-                                                labels[i],
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: active
-                                                      ? Colors.white
-                                                      : (isDark
-                                                            ? Colors.white70
-                                                            : const Color(
-                                                                0xFF4A4A5A,
-                                                              )),
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        }),
+                                            );
+                                          }),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const _GlassDivider(),
+                            _ProductivityPersonaCard(
+                              settings: settings,
+                              ctrl: ctrl,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    Stagger(
+                      index: 2,
+                      child: SectionLabel(
+                        icon: Icons.calendar_today_rounded,
+                        label: 'External Calendars',
+                        color: kCyan,
+                      ),
+                    ),
+                    Stagger(
+                      index: 3,
+                      child: GlassCard(
+                        child: _GoogleCalendarTile(settings: settings, ctrl: ctrl),
+                      ),
+                    ),
+                  ] else if (_selectedTab == 2) ...[
+                    // ── 3. Notification Center ───────────────────────────
+                    Stagger(
+                      index: 0,
+                      child: SectionLabel(
+                        icon: Icons.notifications_active_rounded,
+                        label: 'Reminders & Notifications',
+                        color: kIndigo,
+                      ),
+                    ),
+                    Stagger(
+                      index: 1,
+                      child: GlassCard(
+                        child: _NotificationCenterCard(
+                          settings: settings,
+                          ctrl: ctrl,
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    // ── 4. App Preferences & Security ────────────────────
+                    Stagger(
+                      index: 0,
+                      child: SectionLabel(
+                        icon: Icons.tune_rounded,
+                        label: 'App Preferences & Security',
+                        color: const Color(0xFF9D97FF),
+                      ),
+                    ),
+                    Stagger(
+                      index: 1,
+                      child: GlassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Theme',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                      color: isDark ? Colors.white : kDark0,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      _ThemeOption(
+                                        icon: Icons.brightness_auto_rounded,
+                                        label: 'System',
+                                        mode: ThemeMode.system,
+                                        selected: settings.themeMode,
+                                        onTap: () => ctrl.updateThemeMode(
+                                          ThemeMode.system,
+                                        ),
+                                        isDark: isDark,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      _ThemeOption(
+                                        icon: Icons.light_mode_rounded,
+                                        label: 'Light',
+                                        mode: ThemeMode.light,
+                                        selected: settings.themeMode,
+                                        onTap: () =>
+                                            ctrl.updateThemeMode(ThemeMode.light),
+                                        isDark: isDark,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      _ThemeOption(
+                                        icon: Icons.dark_mode_rounded,
+                                        label: 'Dark',
+                                        mode: ThemeMode.dark,
+                                        selected: settings.themeMode,
+                                        onTap: () =>
+                                            ctrl.updateThemeMode(ThemeMode.dark),
+                                        isDark: isDark,
                                       ),
                                     ],
                                   ),
+                                ],
+                              ),
+                            ),
+                            const _GlassDivider(),
+                            _SwitchTile(
+                              icon: Icons.vibration_rounded,
+                              title: 'Haptic feedback',
+                              subtitle:
+                                  'Subtle micro-vibrations on taps and task completions',
+                              value: settings.hapticsEnabled,
+                              onChanged: (v) => ctrl.updateHapticsEnabled(v),
+                            ),
+                            const _GlassDivider(),
+                            _SwitchTile(
+                              icon: Icons.celebration_rounded,
+                              title: 'Achievement celebrations',
+                              subtitle:
+                                  'Visual fireworks when hitting streak and level milestones',
+                              value: settings.confettiCelebrationsEnabled,
+                              onChanged: (v) =>
+                                  ctrl.updateConfettiCelebrationsEnabled(v),
+                            ),
+                            const _GlassDivider(),
+                            _SecurityTile(settings: settings, ctrl: ctrl),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // ── 5. Help & Data ───────────────────────────────────
+                    Stagger(
+                      index: 2,
+                      child: SectionLabel(
+                        icon: Icons.help_outline_rounded,
+                        label: 'Help & Data',
+                        color: kAmber,
+                      ),
+                    ),
+                    Stagger(
+                      index: 3,
+                      child: GlassCard(
+                        child: Column(
+                          children: [
+                            _ListTile(
+                              icon: Icons.help_outline_rounded,
+                              title: 'Help & Guide',
+                              subtitle:
+                                  'How the app works, feature guide & FAQ',
+                              trailing:
+                                  const Icon(Icons.chevron_right, size: 18),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const HelpScreen(),
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                          const _GlassDivider(),
-                          _ProductivityPersonaCard(
-                            settings: settings,
-                            ctrl: ctrl,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // ── 3. Reminders & Sync ──────────────────────────────
-                  Stagger(
-                    index: 4,
-                    child: SectionLabel(
-                      icon: Icons.notifications_active_rounded,
-                      label: 'Reminders & Sync',
-                      color: kIndigo,
-                    ),
-                  ),
-                  Stagger(
-                    index: 5,
-                    child: GlassCard(
-                      child: Column(
-                        children: [
-                          _NotificationCenterCard(
-                            settings: settings,
-                            ctrl: ctrl,
-                          ),
-                          const _GlassDivider(),
-                          _GoogleCalendarTile(settings: settings, ctrl: ctrl),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // ── 4. App Preferences & Security ────────────────────
-                  Stagger(
-                    index: 6,
-                    child: SectionLabel(
-                      icon: Icons.tune_rounded,
-                      label: 'App Preferences & Security',
-                      color: const Color(0xFF9D97FF),
-                    ),
-                  ),
-                  Stagger(
-                    index: 7,
-                    child: GlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Theme',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                    color: isDark ? Colors.white : kDark0,
-                                  ),
+                            const _GlassDivider(),
+                            _ListTile(
+                              icon: Icons.tour_outlined,
+                              title: 'Replay Tour',
+                              subtitle: 'Watch the onboarding walkthrough again',
+                              trailing:
+                                  const Icon(Icons.chevron_right, size: 18),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const OnboardingScreen(isReplay: true),
                                 ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    _ThemeOption(
-                                      icon: Icons.brightness_auto_rounded,
-                                      label: 'System',
-                                      mode: ThemeMode.system,
-                                      selected: settings.themeMode,
-                                      onTap: () => ctrl.updateThemeMode(
-                                        ThemeMode.system,
-                                      ),
-                                      isDark: isDark,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    _ThemeOption(
-                                      icon: Icons.light_mode_rounded,
-                                      label: 'Light',
-                                      mode: ThemeMode.light,
-                                      selected: settings.themeMode,
-                                      onTap: () =>
-                                          ctrl.updateThemeMode(ThemeMode.light),
-                                      isDark: isDark,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    _ThemeOption(
-                                      icon: Icons.dark_mode_rounded,
-                                      label: 'Dark',
-                                      mode: ThemeMode.dark,
-                                      selected: settings.themeMode,
-                                      onTap: () =>
-                                          ctrl.updateThemeMode(ThemeMode.dark),
-                                      isDark: isDark,
-                                    ),
-                                  ],
+                              ),
+                            ),
+                            const _GlassDivider(),
+                            _ListTile(
+                              icon: Icons.bar_chart_rounded,
+                              title: 'Weekly Review',
+                              subtitle: 'AI-powered summary of your week',
+                              trailing:
+                                  const Icon(Icons.chevron_right, size: 18),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const WeeklyReviewScreen(),
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                          const _GlassDivider(),
-                          _SwitchTile(
-                            icon: Icons.vibration_rounded,
-                            title: 'Haptic feedback',
-                            subtitle:
-                                'Subtle micro-vibrations on taps and task completions',
-                            value: settings.hapticsEnabled,
-                            onChanged: (v) => ctrl.updateHapticsEnabled(v),
-                          ),
-                          const _GlassDivider(),
-                          _SwitchTile(
-                            icon: Icons.celebration_rounded,
-                            title: 'Achievement celebrations',
-                            subtitle:
-                                'Visual fireworks when hitting streak and level milestones',
-                            value: settings.confettiCelebrationsEnabled,
-                            onChanged: (v) =>
-                                ctrl.updateConfettiCelebrationsEnabled(v),
-                          ),
-                          const _GlassDivider(),
-                          _SecurityTile(settings: settings, ctrl: ctrl),
-                        ],
+                            const _GlassDivider(),
+                            _ListTile(
+                              icon: Icons.upload_rounded,
+                              title: 'Export backup',
+                              subtitle: 'Save all data as a JSON file',
+                              trailing:
+                                  const Icon(Icons.chevron_right, size: 18),
+                              onTap: () => _exportBackup(context),
+                            ),
+                            const _GlassDivider(),
+                            _ListTile(
+                              icon: Icons.download_rounded,
+                              title: 'Import backup',
+                              subtitle:
+                                  'Restore data from a JSON backup file',
+                              trailing:
+                                  const Icon(Icons.chevron_right, size: 18),
+                              onTap: () => _importBackup(context),
+                            ),
+                            const _GlassDivider(),
+                            _ListTile(
+                              icon: Icons.restart_alt_rounded,
+                              title: 'Reset all settings',
+                              subtitle:
+                                  'Restore defaults — does not delete tasks or notes',
+                              titleColor: kCoral,
+                              iconColor: kCoral,
+                              onTap: () => _confirmReset(context, ctrl),
+                            ),
+                            const _GlassDivider(),
+                            const _ListTile(
+                              icon: Icons.info_outlined,
+                              title: 'Version',
+                              subtitle: 'Gemini 1.5 Flash · Local AES-256 Storage',
+                              trailing: Text(
+                                '3.0.0+1',
+                                style: TextStyle(
+                                  color: kCyan,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // ── 5. Help & Data ───────────────────────────────────
-                  Stagger(
-                    index: 8,
-                    child: SectionLabel(
-                      icon: Icons.help_outline_rounded,
-                      label: 'Help & Data',
-                      color: kAmber,
-                    ),
-                  ),
-                  Stagger(
-                    index: 9,
-                    child: GlassCard(
-                      child: Column(
-                        children: [
-                          _ListTile(
-                            icon: Icons.help_outline_rounded,
-                            title: 'Help & Guide',
-                            subtitle:
-                                'How the app works, feature guide & FAQ',
-                            trailing:
-                                const Icon(Icons.chevron_right, size: 18),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const HelpScreen(),
-                              ),
-                            ),
-                          ),
-                          const _GlassDivider(),
-                          _ListTile(
-                            icon: Icons.tour_outlined,
-                            title: 'Replay Tour',
-                            subtitle: 'Watch the onboarding walkthrough again',
-                            trailing:
-                                const Icon(Icons.chevron_right, size: 18),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const OnboardingScreen(isReplay: true),
-                              ),
-                            ),
-                          ),
-                          const _GlassDivider(),
-                          _ListTile(
-                            icon: Icons.bar_chart_rounded,
-                            title: 'Weekly Review',
-                            subtitle: 'AI-powered summary of your week',
-                            trailing:
-                                const Icon(Icons.chevron_right, size: 18),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const WeeklyReviewScreen(),
-                              ),
-                            ),
-                          ),
-                          const _GlassDivider(),
-                          _ListTile(
-                            icon: Icons.upload_rounded,
-                            title: 'Export backup',
-                            subtitle: 'Save all data as a JSON file',
-                            trailing:
-                                const Icon(Icons.chevron_right, size: 18),
-                            onTap: () => _exportBackup(context),
-                          ),
-                          const _GlassDivider(),
-                          _ListTile(
-                            icon: Icons.download_rounded,
-                            title: 'Import backup',
-                            subtitle:
-                                'Restore data from a JSON backup file',
-                            trailing:
-                                const Icon(Icons.chevron_right, size: 18),
-                            onTap: () => _importBackup(context),
-                          ),
-                          const _GlassDivider(),
-                          _ListTile(
-                            icon: Icons.restart_alt_rounded,
-                            title: 'Reset all settings',
-                            subtitle:
-                                'Restore defaults — does not delete tasks or notes',
-                            titleColor: kCoral,
-                            iconColor: kCoral,
-                            onTap: () => _confirmReset(context, ctrl),
-                          ),
-                          const _GlassDivider(),
-                          const _ListTile(
-                            icon: Icons.info_outlined,
-                            title: 'Version',
-                            subtitle: 'Gemini 1.5 Flash · Local AES-256 Storage',
-                            trailing: Text(
-                              '3.0.0+1',
-                              style: TextStyle(
-                                color: kCyan,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  ],
                 ]),
               ),
             ),
@@ -769,33 +877,37 @@ class _SwitchTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return SwitchListTile(
-      secondary: Icon(
-        icon,
-        size: 20,
-        color: isDark ? Colors.white60 : Colors.black54,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white : kDark0,
+    return Material(
+      type: MaterialType.transparency,
+      child: SwitchListTile(
+        tileColor: Colors.transparent,
+        secondary: Icon(
+          icon,
+          size: 20,
+          color: isDark ? Colors.white60 : Colors.black54,
         ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white : kDark0,
+          ),
+        ),
+        subtitle: subtitle != null
+            ? Text(
+                subtitle!,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                ),
+              )
+            : null,
+        value: value,
+        onChanged: onChanged,
+        activeThumbColor: kIndigo,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
-      subtitle: subtitle != null
-          ? Text(
-              subtitle!,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? Colors.white38 : Colors.black38,
-              ),
-            )
-          : null,
-      value: value,
-      onChanged: onChanged,
-      activeThumbColor: kIndigo,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     );
   }
 }
@@ -826,40 +938,81 @@ class _SliderTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return ListTile(
-      leading: Icon(
-        icon,
-        size: 20,
-        color: isDark ? Colors.white60 : Colors.black54,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: isDark ? Colors.white60 : Colors.black54,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : kDark0,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white38 : Colors.black38,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withAlpha(16) : Colors.black.withAlpha(8),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isDark ? Colors.white.withAlpha(20) : Colors.black12,
+                  ),
+                ),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: kIndigo,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 3.5,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+            ),
+            child: Slider(
+              value: value,
+              min: min,
+              max: max,
+              divisions: divisions,
+              label: label,
+              activeColor: kIndigo,
+              onChanged: onChanged,
+            ),
+          ),
+        ],
       ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white : kDark0,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          fontSize: 12,
-          color: isDark ? Colors.white38 : Colors.black38,
-        ),
-      ),
-      trailing: SizedBox(
-        width: 140,
-        child: Slider(
-          value: value,
-          min: min,
-          max: max,
-          divisions: divisions,
-          label: label,
-          activeColor: kIndigo,
-          onChanged: onChanged,
-        ),
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     );
   }
 }
@@ -1142,10 +1295,11 @@ class _NotificationCenterCardState
         ),
 
         _GlassDivider(),
-        ListTile(
-          leading: const Icon(Icons.notifications_active_rounded),
-          title: const Text('Send test notification'),
-          subtitle: const Text('Verify alerts reach this device'),
+        _ListTile(
+          icon: Icons.notifications_active_rounded,
+          title: 'Send test notification',
+          subtitle: 'Verify alerts reach this device',
+          trailing: const Icon(Icons.send_rounded, size: 16),
           onTap: () async {
             final messenger = ScaffoldMessenger.of(context);
             final notifService = ref.read(notificationServiceProvider);
@@ -1387,20 +1541,6 @@ class _ProductivityPersonaCard extends StatelessWidget {
       },
     ];
 
-    final coachingStyles = [
-      {'id': 'direct', 'label': 'Direct & Sharp', 'icon': Icons.bolt_rounded},
-      {
-        'id': 'balanced',
-        'label': 'Strategic',
-        'icon': Icons.track_changes_rounded,
-      },
-      {
-        'id': 'empathetic',
-        'label': 'Empathetic',
-        'icon': Icons.favorite_rounded,
-      },
-    ];
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       child: Column(
@@ -1546,85 +1686,6 @@ class _ProductivityPersonaCard extends StatelessWidget {
                               ? Colors.white
                               : (isDark ? Colors.white70 : Colors.black87),
                         ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-
-          const SizedBox(height: 16),
-          const _GlassDivider(),
-          const SizedBox(height: 12),
-
-          // 3. AI Coach Tone / Persona
-          Text(
-            'AI Coach Personality',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-              color: isDark ? Colors.white : kDark0,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: coachingStyles.map((style) {
-              final isSel = settings.coachingStyle == style['id'];
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: GestureDetector(
-                    onTap: () =>
-                        ctrl.updateCoachingStyle(style['id'] as String),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: isSel ? kGradientTeal : null,
-                        color: isSel
-                            ? null
-                            : (isDark
-                                  ? Colors.white.withAlpha(12)
-                                  : Colors.black.withAlpha(6)),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isSel
-                              ? Colors.transparent
-                              : (isDark ? Colors.white12 : Colors.black12),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            style['icon'] as IconData,
-                            size: 16,
-                            color: isSel
-                                ? Colors.white
-                                : (isDark ? Colors.white70 : Colors.black87),
-                          ),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              style['label'] as String,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: isSel
-                                    ? Colors.white
-                                    : (isDark
-                                          ? Colors.white70
-                                          : Colors.black87),
-                              ),
-                            ),
-                          ),
-                        ],
                       ),
                     ),
                   ),

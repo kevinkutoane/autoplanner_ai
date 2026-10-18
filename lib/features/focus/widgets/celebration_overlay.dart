@@ -1,25 +1,30 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/providers/providers.dart';
 
 /// A lightweight, 60fps canvas-based particle celebration effect for focus completion.
-class CelebrationOverlay extends StatefulWidget {
+class CelebrationOverlay extends ConsumerStatefulWidget {
   final VoidCallback onDismiss;
   final String title;
   final String subtitle;
+  final bool particlesOnly;
 
   const CelebrationOverlay({
     super.key,
     required this.onDismiss,
     this.title = 'Focus Session Complete! 🎉',
     this.subtitle = 'Great deep work session. Time logged.',
+    this.particlesOnly = false,
   });
 
   @override
-  State<CelebrationOverlay> createState() => _CelebrationOverlayState();
+  ConsumerState<CelebrationOverlay> createState() => _CelebrationOverlayState();
 }
 
-class _CelebrationOverlayState extends State<CelebrationOverlay>
+class _CelebrationOverlayState extends ConsumerState<CelebrationOverlay>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   final List<_Particle> _particles = [];
@@ -32,6 +37,10 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
       vsync: this,
       duration: const Duration(milliseconds: 2500),
     )..forward();
+
+    final showConfetti =
+        ref.read(settingsProvider).confettiCelebrationsEnabled;
+    if (!showConfetti) return;
 
     // Spawn 75 colorful confetti particles
     final colors = [
@@ -68,6 +77,21 @@ class _CelebrationOverlayState extends State<CelebrationOverlay>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.particlesOnly) {
+      return AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return CustomPaint(
+            size: Size.infinite,
+            painter: _ConfettiPainter(
+              particles: _particles,
+              progress: _controller.value,
+            ),
+          );
+        },
+      );
+    }
+
     return Material(
       color: Colors.black.withAlpha(210),
       child: Stack(

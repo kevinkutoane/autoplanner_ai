@@ -861,12 +861,6 @@ class _ProductivityPersonaCard extends StatelessWidget {
       _ => '⚖️ Balanced (Circadian Flow)',
     };
 
-    final coachingLabel = switch (settings.coachingStyle) {
-      'direct' => '⚡ Direct & Sharp',
-      'empathetic' => '🌱 Empathetic & Supportive',
-      _ => '🎯 Strategic & Balanced',
-    };
-
     final deepWorkLabel =
         '${settings.dailyFocusGoalMinutes ~/ 60}h ${settings.dailyFocusGoalMinutes % 60 > 0 ? "${settings.dailyFocusGoalMinutes % 60}m" : ""}';
 
@@ -951,14 +945,6 @@ class _ProductivityPersonaCard extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 10),
-            _PersonaPill(
-              icon: Icons.psychology_rounded,
-              title: 'AI Coach Persona',
-              value: coachingLabel,
-              color: const Color(0xFFF59E0B),
-              isDark: isDark,
             ),
           ],
         ),
@@ -1483,11 +1469,11 @@ class _AIPrefsContent extends StatelessWidget {
         Row(
           children: [
             _AIChip(
-              label: settings.useMockAI ? 'Mock' : 'Live AI',
-              icon: settings.useMockAI
-                  ? Icons.science_rounded
+              label: settings.isMockAI ? 'Offline AI' : 'Live AI',
+              icon: settings.isMockAI
+                  ? Icons.offline_bolt_rounded
                   : Icons.auto_awesome_rounded,
-              active: !settings.useMockAI,
+              active: !settings.isMockAI,
               activeGradient: const [Color(0xFF6C63FF), Color(0xFF00D4AA)],
               isDark: isDark,
             ),

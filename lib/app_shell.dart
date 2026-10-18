@@ -150,6 +150,7 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell>
     with WidgetsBindingObserver {
   int _currentIndex = 0;
+  late final Set<int> _activatedIndices;
 
   // True once the app has gone to background; cleared after successful unlock.
   bool _locked = false;
@@ -159,6 +160,7 @@ class _AppShellState extends ConsumerState<AppShell>
   void initState() {
     super.initState();
     _locked = widget.startLocked;
+    _activatedIndices = {_currentIndex};
     WidgetsBinding.instance.addObserver(this);
     // Run the first overdue check after the first frame so all providers
     // are fully initialised.
@@ -169,6 +171,15 @@ class _AppShellState extends ConsumerState<AppShell>
         _triggerUnlock();
       }
     });
+  }
+
+  void _setTab(int i) {
+    if (_currentIndex != i || !_activatedIndices.contains(i)) {
+      setState(() {
+        _currentIndex = i;
+        _activatedIndices.add(i);
+      });
+    }
   }
 
   @override
@@ -249,7 +260,7 @@ class _AppShellState extends ConsumerState<AppShell>
         currentIndex: _currentIndex,
         onTap: (i) {
           Navigator.pop(ctx);
-          setState(() => _currentIndex = i);
+          _setTab(i);
         },
       ),
     );
@@ -297,50 +308,69 @@ class _AppShellState extends ConsumerState<AppShell>
                       children: [
                         TickerMode(
                           enabled: _currentIndex == 0,
-                          child: DashboardScreen(
-                            onNavigateTo: (i) =>
-                                setState(() => _currentIndex = i),
-                          ),
+                          child: _activatedIndices.contains(0)
+                              ? DashboardScreen(onNavigateTo: _setTab)
+                              : const SizedBox.shrink(),
                         ),
                         TickerMode(
                           enabled: _currentIndex == 1,
-                          child: const PlannerScreen(),
+                          child: _activatedIndices.contains(1)
+                              ? const PlannerScreen()
+                              : const SizedBox.shrink(),
                         ),
                         TickerMode(
                           enabled: _currentIndex == 2,
-                          child: const FocusHubScreen(),
+                          child: _activatedIndices.contains(2)
+                              ? const FocusHubScreen()
+                              : const SizedBox.shrink(),
                         ),
                         TickerMode(
                           enabled: _currentIndex == 3,
-                          child: const AiCoachScreen(),
+                          child: _activatedIndices.contains(3)
+                              ? const AiCoachScreen()
+                              : const SizedBox.shrink(),
                         ),
                         TickerMode(
                           enabled: _currentIndex == 4,
-                          child: const CalendarScreen(),
+                          child: _activatedIndices.contains(4)
+                              ? const CalendarScreen()
+                              : const SizedBox.shrink(),
                         ),
                         TickerMode(
                           enabled: _currentIndex == 5,
-                          child: const GoalsScreen(),
+                          child: _activatedIndices.contains(5)
+                              ? const GoalsScreen()
+                              : const SizedBox.shrink(),
                         ),
                         TickerMode(
                           enabled: _currentIndex == 6,
-                          child: const MemoryScreen(),
+                          child: _activatedIndices.contains(6)
+                              ? const MemoryScreen()
+                              : const SizedBox.shrink(),
                         ),
                         TickerMode(
                           enabled: _currentIndex == 7,
-                          child: const NotesScreen(),
+                          child: _activatedIndices.contains(7)
+                              ? const NotesScreen()
+                              : const SizedBox.shrink(),
                         ),
                         TickerMode(
                           enabled: _currentIndex == 8,
-                          child: const ProjectsScreen(),
+                          child: _activatedIndices.contains(8)
+                              ? const ProjectsScreen()
+                              : const SizedBox.shrink(),
                         ),
                         TickerMode(
                           enabled: _currentIndex == 9,
-                          child: const AnalyticsScreen(),
+                          child: _activatedIndices.contains(9)
+                              ? const AnalyticsScreen()
+                              : const SizedBox.shrink(),
                         ),
                         TickerMode(
                           enabled: _currentIndex == 10,
-                          child: const SettingsScreen(),
+                          child: _activatedIndices.contains(10)
+                              ? const SettingsScreen()
+                              : const SizedBox.shrink(),
                         ),
                       ],
                     ),
@@ -349,7 +379,7 @@ class _AppShellState extends ConsumerState<AppShell>
               ),
               bottomNavigationBar: _GlassNavBar(
                 currentIndex: _currentIndex,
-                onTap: (i) => setState(() => _currentIndex = i),
+                onTap: _setTab,
                 onMoreTap: _showMoreSheet,
               ),
             ),

@@ -6,8 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/app_settings_model.dart';
+import '../../../core/theme/ui_kit.dart';
 import '../../../services/secure_key_service.dart';
 import '../../../services/notification_service.dart';
+import '../../../services/gamification_service.dart';
 
 /// Manages all user-adjustable settings with Hive persistence.
 /// The box stores individual key-value pairs — no type adapter required.
@@ -26,6 +28,7 @@ class SettingsController extends Notifier<AppSettings> {
       }
     }
 
+    AppHaptics.enabled = initialSettings.hapticsEnabled;
     _init();
     return initialSettings;
   }
@@ -41,10 +44,14 @@ class SettingsController extends Notifier<AppSettings> {
       if (_box.isNotEmpty) {
         state = AppSettings.fromMap(_box.toMap());
       }
-      // Load the user's Gemini API key from secure storage.
+      // Load the user's Gemini API key from secure storage, with fallback to encrypted box.
       final savedKey = await SecureKeyService.getGeminiApiKey();
       if (savedKey != null && savedKey.isNotEmpty) {
         state = state.copyWith(geminiApiKey: savedKey);
+        await _box.put(AppSettings.kGeminiApiKey, savedKey);
+      } else if (state.geminiApiKey.isNotEmpty) {
+        // Mirrored from hardware-encrypted Hive box — re-sync into secure storage
+        await SecureKeyService.saveGeminiApiKey(state.geminiApiKey);
       }
     } catch (e) {
       if (kDebugMode) debugPrint('SettingsController._init() failed: $e');
@@ -110,8 +117,8 @@ class SettingsController extends Notifier<AppSettings> {
   // ── AI settings ──────────────────────────────────────────────────
 
   Future<void> updateUseMockAI(bool v) async {
-    await _box.put(AppSettings.kUseMockAI, v);
-    state = state.copyWith(useMockAI: v);
+    final mode = v ? 'offline_mock' : (state.aiConnectionMode == 'offline_mock' ? 'direct_gemini' : state.aiConnectionMode);
+    await updateAIConnectionMode(mode);
   }
 
   Future<void> updateEnableAILogging(bool v) async {
@@ -221,6 +228,15 @@ class SettingsController extends Notifier<AppSettings> {
     state = state.copyWith(streakRemindersEnabled: v);
     if (!v) {
       await NotificationService().cancelStreakShield();
+    } else {
+      try {
+        final currentStreak =
+            ref.read(gamificationServiceProvider).currentStreak;
+        if (currentStreak > 0) {
+          await NotificationService()
+              .scheduleStreakShield(currentStreak: currentStreak);
+        }
+      } catch (_) {}
     }
   }
 
@@ -246,11 +262,6 @@ class SettingsController extends Notifier<AppSettings> {
     state = state.copyWith(dailyFocusGoalMinutes: v);
   }
 
-  Future<void> updateCoachingStyle(String v) async {
-    await _box.put(AppSettings.kCoachingStyle, v);
-    state = state.copyWith(coachingStyle: v);
-  }
-
   Future<void> updateUserMotto(String v) async {
     await _box.put(AppSettings.kUserMotto, v);
     state = state.copyWith(userMotto: v);
@@ -260,6 +271,7 @@ class SettingsController extends Notifier<AppSettings> {
 
   Future<void> updateHapticsEnabled(bool v) async {
     await _box.put(AppSettings.kHapticsEnabled, v);
+    AppHaptics.enabled = v;
     state = state.copyWith(hapticsEnabled: v);
   }
 
@@ -272,9 +284,11 @@ class SettingsController extends Notifier<AppSettings> {
     final trimmed = key.trim();
     if (trimmed.isEmpty) {
       await SecureKeyService.deleteGeminiApiKey();
+      await _box.delete(AppSettings.kGeminiApiKey);
       state = state.copyWith(geminiApiKey: '');
     } else {
       await SecureKeyService.saveGeminiApiKey(trimmed);
+      await _box.put(AppSettings.kGeminiApiKey, trimmed);
       await _box.put(AppSettings.kAiConnectionMode, 'direct_gemini');
       state = state.copyWith(
         geminiApiKey: trimmed,

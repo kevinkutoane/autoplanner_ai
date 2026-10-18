@@ -77,7 +77,7 @@ final settingsProvider = NotifierProvider<SettingsController, AppSettings>(
 
 final aiProviderProvider = Provider<AIProvider>((ref) {
   final settings = ref.watch(settingsProvider);
-  if (settings.useMockAI || settings.aiConnectionMode == 'offline_mock') {
+  if (settings.isMockAI) {
     return MockAIProvider();
   }
 
@@ -86,19 +86,17 @@ final aiProviderProvider = Provider<AIProvider>((ref) {
       ? settings.geminiApiKey
       : (appConfig.geminiApiKey.isNotEmpty ? appConfig.geminiApiKey : null);
 
-  final isLocalDefaultGateway = settings.cloudGatewayUrl.isEmpty ||
-      settings.cloudGatewayUrl == 'http://127.0.0.1:8000';
-
-  // 1. Direct Gemini BYOK mode: explicit choice OR key provided while gateway remains on default localhost
-  if (settings.aiConnectionMode == 'direct_gemini' ||
-      settings.aiConnectionMode == 'gemini_byok' ||
-      (settings.aiConnectionMode == 'cloud_gateway' && key != null && key.isNotEmpty && isLocalDefaultGateway)) {
-    if (key != null && key.isNotEmpty) {
+  // 1. Direct Gemini BYOK mode: explicit choice OR key provided on device
+  if (key != null && key.isNotEmpty) {
+    // If the user explicitly configured cloud_gateway with a non-default custom remote host,
+    // only route to CloudAIProvider if they explicitly set connection mode to cloud_gateway.
+    // Otherwise, BYOK key takes precedence.
+    if (settings.aiConnectionMode != 'cloud_gateway') {
       return GeminiProvider(apiKey: key);
     }
   }
 
-  // 2. Cloud AI Gateway mode (when explicitly configured or when custom gateway URL is supplied)
+  // 2. Cloud AI Gateway mode (when explicitly configured)
   if (settings.aiConnectionMode == 'cloud_gateway') {
     final gatewayUrl = settings.cloudGatewayUrl.isNotEmpty
         ? settings.cloudGatewayUrl
@@ -106,7 +104,19 @@ final aiProviderProvider = Provider<AIProvider>((ref) {
               ? appConfig.aiGatewayUrl
               : 'http://127.0.0.1:8000');
     final parsed = Uri.tryParse(gatewayUrl);
-    if (parsed != null && parsed.hasScheme && (!isLocalDefaultGateway || (key == null || key.isEmpty))) {
+    final host = parsed?.host.toLowerCase() ?? '';
+    final isLocalGateway = settings.cloudGatewayUrl.isEmpty ||
+        host == 'localhost' ||
+        host == '127.0.0.1' ||
+        host == '10.0.2.2';
+
+    // If a personal key is available and the gateway points to localhost/emulator,
+    // use the personal key directly rather than hitting an unreachable local server.
+    if (key != null && key.isNotEmpty && isLocalGateway) {
+      return GeminiProvider(apiKey: key);
+    }
+
+    if (parsed != null && parsed.hasScheme) {
       return CloudAIProvider(
         gatewayBaseUrl: parsed,
         clientVersion: '3.0.0+1',
