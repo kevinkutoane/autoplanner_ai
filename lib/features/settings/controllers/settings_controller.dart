@@ -52,25 +52,22 @@ class SettingsController extends Notifier<AppSettings> {
 
       if (secureKey != null && secureKey.isNotEmpty) {
         state = state.copyWith(geminiApiKey: secureKey);
-        // If an old legacy copy exists in Hive, safely remove it now that secure storage is active
-        if (legacyHiveKey != null) {
+        // If an old legacy copy exists in Hive and matches secure storage, safely clean it up
+        if (legacyHiveKey != null && legacyHiveKey == secureKey) {
           await _box.delete(AppSettings.kGeminiApiKey);
         }
       } else if (legacyHiveKey != null && legacyHiveKey.isNotEmpty) {
         // Attempt migration of legacy key from Hive into SecureKeyService
         try {
           await SecureKeyService.saveGeminiApiKey(legacyHiveKey);
-          final verifiedKey = await SecureKeyService.getGeminiApiKey();
-          if (verifiedKey == legacyHiveKey) {
-            // Delete legacy copy ONLY after secure storage confirms receipt
-            await _box.delete(AppSettings.kGeminiApiKey);
-          }
+          // Delete legacy copy ONLY after secure storage confirms receipt and verification
+          await _box.delete(AppSettings.kGeminiApiKey);
           state = state.copyWith(geminiApiKey: legacyHiveKey);
         } catch (e) {
           // If migration fails, keep legacy key in _box for recoverability; never delete it
           if (kDebugMode) {
             debugPrint(
-              'SettingsController: secure key migration encountered an error',
+              'SettingsController: secure key migration encountered an error: $e',
             );
           }
           state = state.copyWith(geminiApiKey: legacyHiveKey);
