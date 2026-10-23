@@ -110,7 +110,9 @@ class AppBootstrapper {
     }
 
     // Derive device-unique encryption key stored in OS keychain
-    final hiveKeyBytes = await SecureKeyService.getOrCreateHiveEncryptionKey();
+    final hiveKeyBytes = await SecureKeyService.getOrCreateHiveEncryptionKey(
+      hasExistingData: hasExistingEncryptedBoxes,
+    );
     final hiveCipher = HiveAesCipher(
       hiveKeyBytes,
     ); // 4. Pre-open encrypted data boxes in parallel with safe recovery
@@ -448,6 +450,39 @@ class AppBootstrapper {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Checks whether any non-empty encrypted Hive database files exist on disk.
+  /// Used to protect against catastrophic encryption key regeneration.
+  static Future<bool> hasExistingEncryptedBoxes([String? customDir]) async {
+    final dirPath = customDir ?? await _resolveBoxDir();
+    if (dirPath == null) return false;
+    const coreBoxes = [
+      'tasksbox.hive',
+      'tasksBox.hive',
+      'notesbox.hive',
+      'notesBox.hive',
+      'goalsbox.hive',
+      'goalsBox.hive',
+      'projectsbox.hive',
+      'projectsBox.hive',
+      'calendarbox.hive',
+      'calendarBox.hive',
+      'settingsbox.hive',
+      'settingsBox.hive',
+      'appeventsbox.hive',
+      'appEventsBox.hive',
+      'gamificationbox.hive',
+      'gamificationBox.hive',
+    ];
+    for (final filename in coreBoxes) {
+      final file = File('$dirPath/$filename');
+      if (await file.exists()) {
+        final len = await file.length();
+        if (len > 0) return true;
+      }
+    }
+    return false;
   }
 }
 
