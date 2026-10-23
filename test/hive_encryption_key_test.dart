@@ -61,6 +61,7 @@ void main() {
 
   tearDown(() async {
     SecureKeyService.resetStorageForTesting();
+    AppBootstrapper.boxDirResolverForTesting = null;
     if (tempDir.existsSync()) {
       await tempDir.delete(recursive: true);
     }
@@ -268,6 +269,141 @@ void main() {
         tempDir.path,
       );
       expect(exists, isFalse);
+    });
+
+    test('12. Unresolved data directory prevents key generation', () async {
+      AppBootstrapper.boxDirResolverForTesting = () async => null;
+      final storage = TestSecureStorageClient();
+      SecureKeyService.setStorageForTesting(storage);
+
+      await expectLater(
+        SecureKeyService.getOrCreateHiveEncryptionKey(
+          hasExistingData: AppBootstrapper.hasExistingEncryptedBoxes,
+        ),
+        throwsA(isA<SecureStorageException>()),
+      );
+      expect(storage.writeCount, equals(0));
+      expect(storage.values, isEmpty);
+    });
+
+    test('13. Resolver that throws prevents key generation', () async {
+      AppBootstrapper.boxDirResolverForTesting = () async =>
+          throw Exception('boom');
+      final storage = TestSecureStorageClient();
+      SecureKeyService.setStorageForTesting(storage);
+
+      await expectLater(
+        SecureKeyService.getOrCreateHiveEncryptionKey(
+          hasExistingData: AppBootstrapper.hasExistingEncryptedBoxes,
+        ),
+        throwsA(isA<SecureStorageException>()),
+      );
+      expect(storage.writeCount, equals(0));
+    });
+
+    test('14. Non-existent data directory prevents key generation', () async {
+      final missing = '${tempDir.path}/does_not_exist';
+      final storage = TestSecureStorageClient();
+      SecureKeyService.setStorageForTesting(storage);
+
+      await expectLater(
+        SecureKeyService.getOrCreateHiveEncryptionKey(
+          hasExistingData: () =>
+              AppBootstrapper.hasExistingEncryptedBoxes(missing),
+        ),
+        throwsA(isA<SecureStorageException>()),
+      );
+      expect(storage.writeCount, equals(0));
+    });
+
+    test('15. Missing existing-data check prevents key generation', () async {
+      final storage = TestSecureStorageClient();
+      SecureKeyService.setStorageForTesting(storage);
+
+      await expectLater(
+        SecureKeyService.getOrCreateHiveEncryptionKey(),
+        throwsA(
+          isA<SecureStorageException>().having(
+            (e) => e.message,
+            'message',
+            contains('no existing-data check'),
+          ),
+        ),
+      );
+      expect(storage.writeCount, equals(0));
+      expect(storage.values, isEmpty);
+    });
+
+    test('16. Throwing existing-data check prevents key generation', () async {
+      final storage = TestSecureStorageClient();
+      SecureKeyService.setStorageForTesting(storage);
+
+      await expectLater(
+        SecureKeyService.getOrCreateHiveEncryptionKey(
+          hasExistingData: () => throw Exception('io failure'),
+        ),
+        throwsA(isA<SecureStorageException>()),
+      );
+      expect(storage.writeCount, equals(0));
+    });
+
+    for (final name in [
+      'memoryBox',
+      'aiLogsBox',
+      'aiQueueBox',
+      'tasksBox',
+      'someFutureBox',
+    ]) {
+      test('17. Non-empty $name.hive prevents key generation', () async {
+        await File('${tempDir.path}/${name.toLowerCase()}.hive')
+            .writeAsBytes([1, 2, 3, 4]);
+        final storage = TestSecureStorageClient();
+        SecureKeyService.setStorageForTesting(storage);
+
+        await expectLater(
+          SecureKeyService.getOrCreateHiveEncryptionKey(
+            hasExistingData: () =>
+                AppBootstrapper.hasExistingEncryptedBoxes(tempDir.path),
+          ),
+          throwsA(
+            isA<SecureStorageException>().having(
+              (e) => e.message,
+              'message',
+              contains('Refusing to generate new Hive encryption key'),
+            ),
+          ),
+        );
+        expect(storage.writeCount, equals(0));
+        expect(storage.values, isEmpty);
+      });
+    }
+
+    test('18. Verifiably empty directory still permits generation', () async {
+      // Only an empty .hive file, a lock file and a backup are present.
+      await File('${tempDir.path}/tasksbox.hive').writeAsBytes([]);
+      await File('${tempDir.path}/tasksbox.lock').writeAsBytes([1, 2]);
+      await File('${tempDir.path}/x.corrupt.1.bak').writeAsBytes([1, 2]);
+      final storage = TestSecureStorageClient();
+      SecureKeyService.setStorageForTesting(storage);
+
+      final key = await SecureKeyService.getOrCreateHiveEncryptionKey(
+        hasExistingData: () =>
+            AppBootstrapper.hasExistingEncryptedBoxes(tempDir.path),
+      );
+      expect(key, hasLength(32));
+      expect(storage.writeCount, equals(1));
+    });
+
+    test('19. Valid stored key is returned without any data check', () async {
+      final existingKey = List<int>.generate(32, (i) => i);
+      final storage = TestSecureStorageClient(
+        initialValues: {'hive_encryption_key': base64Encode(existingKey)},
+      );
+      SecureKeyService.setStorageForTesting(storage);
+
+      final key = await SecureKeyService.getOrCreateHiveEncryptionKey();
+      expect(key, equals(existingKey));
+      expect(storage.writeCount, equals(0));
     });
   });
 }

@@ -182,8 +182,26 @@ class SecureKeyService {
       }
     }
 
-    // Key is absent in secure storage. Check if existing encrypted databases exist.
-    if (hasExistingData != null && await hasExistingData()) {
+    // Key is absent in secure storage. A replacement may only be generated
+    // when it has been positively established that no existing data needs
+    // the old key. Unknown state is treated as "data may exist".
+    if (hasExistingData == null) {
+      throw const SecureStorageException(
+        'Refusing to generate new Hive encryption key: no existing-data check '
+        'was supplied, so a fresh installation cannot be established.',
+      );
+    }
+    final bool existing;
+    try {
+      existing = await hasExistingData();
+    } catch (e) {
+      throw SecureStorageException(
+        'Refusing to generate new Hive encryption key: existing app data '
+        'state could not be established.',
+        cause: e,
+      );
+    }
+    if (existing) {
       throw const SecureStorageException(
         'Refusing to generate new Hive encryption key: secure storage returned no key '
         'but existing encrypted database files were detected on disk. '

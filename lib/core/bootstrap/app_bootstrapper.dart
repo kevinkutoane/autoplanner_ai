@@ -452,37 +452,60 @@ class AppBootstrapper {
     }
   }
 
-  /// Checks whether any non-empty encrypted Hive database files exist on disk.
-  /// Used to protect against catastrophic encryption key regeneration.
+  /// Test seam: overrides how the Hive data directory is resolved.
+  @visibleForTesting
+  static Future<String?> Function()? boxDirResolverForTesting;
+
+  /// Reports whether any non-empty Hive database file exists in the Hive
+  /// data directory (the same directory used by [openBoxSafe]).
+  ///
+  /// Every `*.hive` file is considered, so boxes added in the future
+  /// (e.g. memoryBox, aiLogsBox, aiQueueBox) are never silently omitted.
+  ///
+  /// Fail-safe contract: returns `true`/`false` only when the directory was
+  /// positively inspected. If the directory cannot be resolved, does not
+  /// exist, or any entry cannot be inspected, a [SecureStorageException] is
+  /// thrown so callers never assume a fresh installation.
   static Future<bool> hasExistingEncryptedBoxes([String? customDir]) async {
-    final dirPath = customDir ?? await _resolveBoxDir();
-    if (dirPath == null) return false;
-    const coreBoxes = [
-      'tasksbox.hive',
-      'tasksBox.hive',
-      'notesbox.hive',
-      'notesBox.hive',
-      'goalsbox.hive',
-      'goalsBox.hive',
-      'projectsbox.hive',
-      'projectsBox.hive',
-      'calendarbox.hive',
-      'calendarBox.hive',
-      'settingsbox.hive',
-      'settingsBox.hive',
-      'appeventsbox.hive',
-      'appEventsBox.hive',
-      'gamificationbox.hive',
-      'gamificationBox.hive',
-    ];
-    for (final filename in coreBoxes) {
-      final file = File('$dirPath/$filename');
-      if (await file.exists()) {
-        final len = await file.length();
-        if (len > 0) return true;
+    String? dirPath = customDir;
+    if (dirPath == null) {
+      final resolver = boxDirResolverForTesting ?? _resolveBoxDir;
+      try {
+        dirPath = await resolver();
+      } catch (_) {
+        dirPath = null;
       }
     }
-    return false;
+    if (dirPath == null || dirPath.isEmpty) {
+      throw const SecureStorageException(
+        'Cannot determine whether existing app data is present: the data '
+        'directory could not be resolved. Refusing to assume a fresh install.',
+      );
+    }
+
+    try {
+      final dir = Directory(dirPath);
+      if (!await dir.exists()) {
+        throw const SecureStorageException(
+          'Cannot determine whether existing app data is present: the data '
+          'directory does not exist or is inaccessible.',
+        );
+      }
+      await for (final entity in dir.list(followLinks: false)) {
+        if (entity is! File) continue;
+        if (!entity.path.toLowerCase().endsWith('.hive')) continue;
+        if (await entity.length() > 0) return true;
+      }
+      return false;
+    } on SecureStorageException {
+      rethrow;
+    } catch (e) {
+      throw SecureStorageException(
+        'Cannot determine whether existing app data is present: the data '
+        'directory could not be inspected. Refusing to assume a fresh install.',
+        cause: e,
+      );
+    }
   }
 }
 
