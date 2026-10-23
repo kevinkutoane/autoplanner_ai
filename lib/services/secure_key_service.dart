@@ -1,15 +1,65 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+/// Exception thrown when secure credential storage operations fail.
+/// Messages and exceptions are sanitized to ensure sensitive credential values are never exposed.
+class SecureStorageException implements Exception {
+  final String message;
+  final Object? cause;
+
+  const SecureStorageException(this.message, {this.cause});
+
+  @override
+  String toString() => 'SecureStorageException: $message';
+}
+
+/// Abstract contract for secure key storage operations.
+/// Allows injecting test doubles for deterministic failure testing.
+abstract class SecureStorageClient {
+  Future<String?> read({required String key});
+  Future<void> write({required String key, required String? value});
+  Future<void> delete({required String key});
+}
+
+/// Default implementation backed by [FlutterSecureStorage].
+class DefaultSecureStorageClient implements SecureStorageClient {
+  final FlutterSecureStorage _storage;
+
+  const DefaultSecureStorageClient([
+    this._storage = const FlutterSecureStorage(
+      aOptions: AndroidOptions(resetOnError: true),
+    ),
+  ]);
+
+  @override
+  Future<String?> read({required String key}) => _storage.read(key: key);
+
+  @override
+  Future<void> write({required String key, required String? value}) =>
+      _storage.write(key: key, value: value);
+
+  @override
+  Future<void> delete({required String key}) => _storage.delete(key: key);
+}
 
 /// Wrapper around [FlutterSecureStorage] for secrets that must never
 /// live in plain-text on disk (Gemini API key, Hive encryption key,
 /// Google OAuth tokens).
 class SecureKeyService {
-  static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(resetOnError: true),
-  );
+  static SecureStorageClient _storage = const DefaultSecureStorageClient();
+
+  @visibleForTesting
+  static void setStorageForTesting(SecureStorageClient storage) {
+    _storage = storage;
+  }
+
+  @visibleForTesting
+  static void resetStorageForTesting() {
+    _storage = const DefaultSecureStorageClient();
+  }
 
   static const _kGeminiKey = 'gemini_api_key';
   static const _kHiveKey = 'hive_encryption_key';
@@ -25,16 +75,65 @@ class SecureKeyService {
     }
   }
 
+  /// Persists [key] into secure storage and verifies persistence by reading it back.
+  /// Throws [SecureStorageException] if writing, reading, or verification fails.
+  /// Never exposes [key] in error messages.
   static Future<void> saveGeminiApiKey(String key) async {
     try {
       await _storage.write(key: _kGeminiKey, value: key);
-    } catch (_) {}
+    } catch (e) {
+      throw SecureStorageException(
+        'Failed to write Gemini API key to secure storage',
+        cause: e,
+      );
+    }
+
+    // Read-back verification
+    String? readBack;
+    try {
+      readBack = await _storage.read(key: _kGeminiKey);
+    } catch (e) {
+      throw SecureStorageException(
+        'Failed to read back Gemini API key from secure storage for verification',
+        cause: e,
+      );
+    }
+
+    if (readBack != key) {
+      throw const SecureStorageException(
+        'Verification failed: secure storage did not return the expected Gemini API key',
+      );
+    }
   }
 
+  /// Deletes the Gemini API key from secure storage and verifies deletion.
+  /// Throws [SecureStorageException] if deletion or read-back verification fails.
   static Future<void> deleteGeminiApiKey() async {
     try {
       await _storage.delete(key: _kGeminiKey);
-    } catch (_) {}
+    } catch (e) {
+      throw SecureStorageException(
+        'Failed to delete Gemini API key from secure storage',
+        cause: e,
+      );
+    }
+
+    // Verify deletion succeeded
+    String? readBack;
+    try {
+      readBack = await _storage.read(key: _kGeminiKey);
+    } catch (e) {
+      throw SecureStorageException(
+        'Failed to verify Gemini API key deletion from secure storage',
+        cause: e,
+      );
+    }
+
+    if (readBack != null && readBack.isNotEmpty) {
+      throw const SecureStorageException(
+        'Verification failed: Gemini API key still present in secure storage after deletion',
+      );
+    }
   }
 
   // ── Hive AES encryption key ─────────────────────────────────────────

@@ -128,5 +128,6 @@ class EnvConfig {
   }
 }
 
-/// Global singleton — initialized once in main.dart after dotenv.load()
-late final EnvConfig appConfig;
+/// Global singleton — initialized once in main.dart after dotenv.load().
+/// Permitted to be reassigned in test environments.
+late EnvConfig appConfig;

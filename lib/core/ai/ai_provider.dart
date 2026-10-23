@@ -52,3 +52,77 @@ class AIResponse {
     this.model = 'unknown',
   });
 }
+
+/// Base exception for all AI provider and runtime failures.
+abstract class AIException implements Exception {
+  final String message;
+  const AIException(this.message);
+
+  @override
+  String toString() => message;
+}
+
+/// Permanent configuration failure (e.g. missing Gemini API key, missing gateway URL,
+/// unconfigured authentication).
+/// Non-retryable: fails fast so the UI can explain the missing configuration.
+class AIConfigurationException extends AIException {
+  final String? code;
+  const AIConfigurationException(super.message, {this.code});
+}
+
+/// Permanent authentication/authorization failure (e.g. invalid API key, 401/403).
+/// Non-retryable: fails fast so the UI can prompt for re-authentication.
+class AIAuthenticationException extends AIException {
+  final int? statusCode;
+  const AIAuthenticationException(super.message, {this.statusCode});
+}
+
+/// Rate limit exceeded (e.g. HTTP 429 or quota limit).
+/// Retryable with bounded backoff.
+class AIRateLimitException extends AIException {
+  final Duration? retryAfter;
+  const AIRateLimitException(super.message, {this.retryAfter});
+}
+
+/// Transient network or server failure (e.g. timeout, connection reset, 502/503/504).
+/// Retryable with bounded backoff.
+class AITransientException extends AIException {
+  final int? statusCode;
+  const AITransientException(super.message, {this.statusCode});
+}
+
+/// An [AIProvider] representing an unconfigured or unavailable AI engine.
+///
+/// Throws [AIConfigurationException] on any invocation with a clear, user-facing
+/// explanation of why the provider cannot execute.
+class UnconfiguredAIProvider implements AIProvider {
+  final String reason;
+  final String? configurationHelp;
+
+  @override
+  final String modelName;
+
+  const UnconfiguredAIProvider({
+    required this.reason,
+    this.configurationHelp,
+    this.modelName = 'unconfigured-ai',
+  });
+
+  @override
+  Future<AIResponse> complete(String prompt, {AIInvocation? invocation}) async {
+    final help = configurationHelp != null ? ' ($configurationHelp)' : '';
+    throw AIConfigurationException('$reason$help');
+  }
+
+  @override
+  Stream<String> streamComplete(
+    String prompt, {
+    AIInvocation? invocation,
+  }) async* {
+    final help = configurationHelp != null ? ' ($configurationHelp)' : '';
+    throw AIConfigurationException('$reason$help');
+  }
+
+  @override
+  void dispose() {}
+}

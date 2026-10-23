@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../core/ai/ai_guard.dart';
 import '../core/ai/ai_invocation.dart';
 import '../core/ai/ai_provider.dart';
+import '../core/ai/cloud_ai_provider.dart';
 import '../core/ai/token_tracker.dart';
 import '../core/models/task_model.dart';
 import '../core/models/goal_model.dart';
@@ -137,6 +138,27 @@ class AIService {
 
   // ── Retry wrapper ────────────────────────────────────────────────────────
 
+  /// Determines if an exception represents a permanent configuration, authentication,
+  /// or validation failure that should never be retried.
+  bool _isNonRetryable(Object e) {
+    if (e is AIConfigurationException) return true;
+    if (e is AIAuthenticationException) return true;
+    if (e is AIDomainValidationException) return true;
+    if (e is ContentPolicyException) return true;
+    if (e is CallFrequencyException) return true;
+
+    if (e is CloudGatewayException) {
+      // 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 422 Unprocessable Entity
+      // are client/configuration errors and must not be retried.
+      // 429 (Rate Limit), 500, 502, 503, 504 and status 0 (network dropped) are eligible for bounded retries.
+      if (e.statusCode >= 400 && e.statusCode < 500 && e.statusCode != 429) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   /// Retries [fn] up to [maxAttempts] times with exponential back-off.
   /// Checks rate limit before each attempt.
   Future<T> _withRetry<T>(
@@ -153,15 +175,12 @@ class AIService {
         return await fn();
       } catch (e) {
         if (attempt == maxAttempts - 1) rethrow;
-        if (kDebugMode) {
-          debugPrint('AI retry ${attempt + 1}/$maxAttempts after $delay: $e');
-        }
 
-        // Fail fast on explicit domain validation errors (semantic invalidity, do not burn tokens)
-        if (e is AIDomainValidationException) {
+        // Fail fast on non-retryable configuration, auth, and policy errors
+        if (_isNonRetryable(e)) {
           if (kDebugMode) {
             debugPrint(
-              'Aborting retries due to AIDomainValidationException: $e',
+              'Aborting retries for non-retryable error: ${e.runtimeType}',
             );
           }
           rethrow;
@@ -172,10 +191,16 @@ class AIService {
         if (e is AIValidationException && attempt >= 1) {
           if (kDebugMode) {
             debugPrint(
-              'Aborting retries for AIValidationException after 2 attempts: $e',
+              'Aborting retries for AIValidationException after 2 attempts',
             );
           }
           rethrow;
+        }
+
+        if (kDebugMode) {
+          debugPrint(
+            'AI retry ${attempt + 1}/$maxAttempts after $delay for ${e.runtimeType}',
+          );
         }
 
         await Future.delayed(delay);
@@ -695,42 +720,37 @@ ${_sanitize(input)}
       context: {'suggestedStartTime': suggestedStartTime},
     );
 
-    try {
-      return await _withRetry(() async {
-        String fullText;
-        if (onChunk != null) {
-          final buffer = StringBuffer();
-          await for (final chunk in _provider.streamComplete(
-            prompt,
-            invocation: invocation,
-          )) {
-            buffer.write(chunk);
-            onChunk(buffer.toString());
-          }
-          fullText = buffer.toString();
-        } else {
-          final response = await _provider.complete(
-            prompt,
-            invocation: invocation,
-          );
-          fullText = response.text;
+    return await _withRetry(() async {
+      String fullText;
+      if (onChunk != null) {
+        final buffer = StringBuffer();
+        await for (final chunk in _provider.streamComplete(
+          prompt,
+          invocation: invocation,
+        )) {
+          buffer.write(chunk);
+          onChunk(buffer.toString());
         }
-
-        await _tracker.log(
-          action: 'brainDump',
-          response: AIResponse(
-            text: fullText,
-            promptTokens: (prompt.length / 4).ceil(),
-            completionTokens: (fullText.length / 4).ceil(),
-            model: _provider.modelName,
-          ),
+        fullText = buffer.toString();
+      } else {
+        final response = await _provider.complete(
+          prompt,
+          invocation: invocation,
         );
-        return _parseBrainDumpResult(fullText);
-      });
-    } catch (e) {
-      if (kDebugMode) debugPrint('brainDump failed after retries: $e');
-      return const BrainDumpResult(tasks: [], goals: [], memories: []);
-    }
+        fullText = response.text;
+      }
+
+      await _tracker.log(
+        action: 'brainDump',
+        response: AIResponse(
+          text: fullText,
+          promptTokens: (prompt.length / 4).ceil(),
+          completionTokens: (fullText.length / 4).ceil(),
+          model: _provider.modelName,
+        ),
+      );
+      return _parseBrainDumpResult(fullText);
+    });
   }
   // ── Behavioural pattern extraction ──────────────────────────────────────
 

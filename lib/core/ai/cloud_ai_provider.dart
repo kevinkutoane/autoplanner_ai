@@ -7,16 +7,15 @@ import 'ai_invocation.dart';
 import 'ai_provider.dart';
 
 /// Exception thrown when the AutoPlanner AI Gateway returns an error.
-class CloudGatewayException implements Exception {
+class CloudGatewayException extends AIException {
   final int statusCode;
-  final String message;
   final String? responseBody;
 
   const CloudGatewayException({
     required this.statusCode,
-    required this.message,
+    required String message,
     this.responseBody,
-  });
+  }) : super(message);
 
   @override
   String toString() {

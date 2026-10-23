@@ -54,15 +54,12 @@ void main() {
 
       expect(
         container.read(settingsProvider).aiConnectionMode,
-        'cloud_gateway',
-      );
-
-      await ctrl.updateAIConnectionMode('direct_gemini');
-      expect(
-        container.read(settingsProvider).aiConnectionMode,
         'direct_gemini',
       );
-      expect(box.get(AppSettings.kAiConnectionMode), 'direct_gemini');
+
+      await ctrl.updateAIConnectionMode('offline_mock');
+      expect(container.read(settingsProvider).aiConnectionMode, 'offline_mock');
+      expect(box.get(AppSettings.kAiConnectionMode), 'offline_mock');
 
       await ctrl.updateCloudGatewayUrl('http://192.168.1.100:8000');
       expect(
@@ -300,11 +297,8 @@ void main() {
 
       expect(find.text('AI Assistant Connection'), findsOneWidget);
       expect(find.text('Gemini Key'), findsOneWidget);
-      expect(find.text('Offline Mode'), findsOneWidget);
-      expect(
-        find.textContaining('Connected via Custom Gateway'),
-        findsOneWidget,
-      );
+      expect(find.text('Demo Mode'), findsOneWidget);
+      expect(find.textContaining('Custom Gateway'), findsOneWidget);
       expect(find.text('Automatic Schedule Catch-Up'), findsOneWidget);
 
       // Expand Advanced Settings section
