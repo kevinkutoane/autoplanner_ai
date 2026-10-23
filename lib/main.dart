@@ -34,7 +34,9 @@ void callbackDispatcher() {
             Hive.registerAdapter(CalendarEventAdapter());
           }
           final hiveKeyBytes =
-              await SecureKeyService.getOrCreateHiveEncryptionKey();
+              await SecureKeyService.getOrCreateHiveEncryptionKey(
+                hasExistingData: AppBootstrapper.hasExistingEncryptedBoxes,
+              );
           final hiveCipher = HiveAesCipher(hiveKeyBytes);
           if (!Hive.isBoxOpen('calendarBox')) {
             await AppBootstrapper.openBoxSafe<CalendarEvent>(
