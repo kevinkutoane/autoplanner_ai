@@ -310,5 +310,52 @@ void main() {
       expect(identical(box1, box2), isTrue);
       expect(box2.get('testKey'), 'value123');
     });
+
+    test('8. openSettingsBoxSafe with customDir fails safely and refuses to generate key when existing non-empty file is present', () async {
+      // 1. Create a separate temporary custom data directory
+      final customTempDir = await Directory.systemTemp.createTemp(
+        'custom_dir_safety_test_',
+      );
+      addTearDown(() async {
+        if (customTempDir.existsSync()) {
+          try {
+            await customTempDir.delete(recursive: true);
+          } catch (_) {}
+        }
+      });
+
+      // 2. Place a non-empty Hive database file inside the custom directory
+      final existingDbFile = File(
+        '${customTempDir.path}/some_existing_box.hive',
+      );
+      await existingDbFile.writeAsBytes(List<int>.generate(64, (i) => i));
+      expect(existingDbFile.existsSync(), isTrue);
+      final initialFileLength = existingDbFile.lengthSync();
+      expect(initialFileLength, greaterThan(0));
+
+      // 3. Confirm secure storage starts with NO stored Hive encryption key
+      expect(fakeStorage.values.containsKey('hive_encryption_key'), isFalse);
+
+      // 4. Calling openSettingsBoxSafe(customDir: customTempDir.path) must fail closed
+      expect(
+        () async => await AppBootstrapper.openSettingsBoxSafe(
+          customDir: customTempDir.path,
+        ),
+        throwsA(
+          isA<SecureStorageException>().having(
+            (e) => e.message,
+            'message',
+            contains('Refusing to generate new Hive encryption key'),
+          ),
+        ),
+      );
+
+      // 5. Confirm no replacement key was written to secure storage
+      expect(fakeStorage.values.containsKey('hive_encryption_key'), isFalse);
+
+      // 6. Confirm the existing database file remains intact and untouched
+      expect(existingDbFile.existsSync(), isTrue);
+      expect(existingDbFile.lengthSync(), initialFileLength);
+    });
   });
 }

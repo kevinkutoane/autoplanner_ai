@@ -525,7 +525,7 @@ class AppBootstrapper {
         cipher ??
         HiveAesCipher(
           await SecureKeyService.getOrCreateHiveEncryptionKey(
-            hasExistingData: hasExistingEncryptedBoxes,
+            hasExistingData: () => hasExistingEncryptedBoxes(customDir),
           ),
         );
     return await openBoxSafe<dynamic>(
