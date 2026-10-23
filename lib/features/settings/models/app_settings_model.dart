@@ -148,8 +148,8 @@ class AppSettings {
     this.userMotto = '',
     this.hapticsEnabled = true,
     this.confettiCelebrationsEnabled = true,
-    String aiConnectionMode = 'cloud_gateway',
-    this.cloudGatewayUrl = 'http://127.0.0.1:8000',
+    String aiConnectionMode = 'direct_gemini',
+    this.cloudGatewayUrl = '',
     this.autoRippleDrift = true,
     this.driftGraceMinutes = 10,
     this.hasDismissedStarterPlan = false,
@@ -192,8 +192,8 @@ class AppSettings {
     userMotto: '',
     hapticsEnabled: true,
     confettiCelebrationsEnabled: true,
-    aiConnectionMode: 'cloud_gateway',
-    cloudGatewayUrl: 'http://127.0.0.1:8000',
+    aiConnectionMode: 'direct_gemini',
+    cloudGatewayUrl: '',
     autoRippleDrift: true,
     driftGraceMinutes: 10,
   );
@@ -411,7 +411,9 @@ class AppSettings {
     kHapticsEnabled: hapticsEnabled,
     kConfettiCelebrationsEnabled: confettiCelebrationsEnabled,
     kAiConnectionMode: aiConnectionMode,
-    kGeminiApiKey: geminiApiKey,
+    // kGeminiApiKey is intentionally excluded from toMap() to guarantee
+    // that API keys are never serialized to ordinary Hive storage.
+    // SecureKeyService is the single authoritative storage for credentials.
     kCloudGatewayUrl: cloudGatewayUrl,
     kAutoRippleDrift: autoRippleDrift,
     kDriftGraceMinutes: driftGraceMinutes,
@@ -459,9 +461,8 @@ class AppSettings {
         (map[kConfettiCelebrationsEnabled] as bool?) ?? true,
     aiConnectionMode:
         (map[kAiConnectionMode] as String?) ??
-        ((map[kUseMockAI] as bool?) == true ? 'offline_mock' : 'cloud_gateway'),
-    cloudGatewayUrl:
-        (map[kCloudGatewayUrl] as String?) ?? 'http://127.0.0.1:8000',
+        ((map[kUseMockAI] as bool?) == true ? 'offline_mock' : 'direct_gemini'),
+    cloudGatewayUrl: (map[kCloudGatewayUrl] as String?) ?? '',
     autoRippleDrift: (map[kAutoRippleDrift] as bool?) ?? true,
     driftGraceMinutes: (map[kDriftGraceMinutes] as int?) ?? 10,
     hasDismissedStarterPlan: (map[kHasDismissedStarterPlan] as bool?) ?? false,

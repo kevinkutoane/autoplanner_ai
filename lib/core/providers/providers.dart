@@ -1,6 +1,7 @@
 // Centralized Riverpod providers for the entire app.
 // Single source of truth for all shared services and controllers.
 // Every feature imports from here — no more duplicate providers.
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/schedule_result.dart';
@@ -77,60 +78,89 @@ final settingsProvider = NotifierProvider<SettingsController, AppSettings>(
 
 final aiProviderProvider = Provider<AIProvider>((ref) {
   final settings = ref.watch(settingsProvider);
-  if (settings.isMockAI) {
+
+  // 1. Explicit offline mock/demo mode
+  if (settings.isMockAI || appConfig.useMockAI) {
     return MockAIProvider();
   }
 
-  // Determine available direct Gemini key (secure storage key or .env key)
+  // Determine available direct Gemini key (secure storage key or .env compile-time define)
   final key = settings.geminiApiKey.isNotEmpty
       ? settings.geminiApiKey
       : (appConfig.geminiApiKey.isNotEmpty ? appConfig.geminiApiKey : null);
 
-  // 1. Direct Gemini BYOK mode: explicit choice OR key provided on device
-  if (key != null && key.isNotEmpty) {
-    // If the user explicitly configured cloud_gateway with a non-default custom remote host,
-    // only route to CloudAIProvider if they explicitly set connection mode to cloud_gateway.
-    // Otherwise, BYOK key takes precedence.
-    if (settings.aiConnectionMode != 'cloud_gateway') {
-      return GeminiProvider(apiKey: key);
-    }
-  }
+  final mode = settings.aiConnectionMode;
 
-  // 2. Cloud AI Gateway mode (when explicitly configured)
-  if (settings.aiConnectionMode == 'cloud_gateway') {
-    final gatewayUrl = settings.cloudGatewayUrl.isNotEmpty
-        ? settings.cloudGatewayUrl
-        : (appConfig.aiGatewayUrl.isNotEmpty
-              ? appConfig.aiGatewayUrl
-              : 'http://127.0.0.1:8000');
-    final parsed = Uri.tryParse(gatewayUrl);
-    final host = parsed?.host.toLowerCase() ?? '';
-    final isLocalGateway =
-        settings.cloudGatewayUrl.isEmpty ||
-        host == 'localhost' ||
-        host == '127.0.0.1' ||
-        host == '10.0.2.2';
-
-    // If a personal key is available and the gateway points to localhost/emulator,
-    // use the personal key directly rather than hitting an unreachable local server.
-    if (key != null && key.isNotEmpty && isLocalGateway) {
-      return GeminiProvider(apiKey: key);
-    }
-
-    if (parsed != null && parsed.hasScheme) {
-      return CloudAIProvider(gatewayBaseUrl: parsed, clientVersion: '3.0.0+1');
-    }
+  // 2. Direct Gemini BYOK mode
+  if (mode == 'direct_gemini') {
     if (key != null && key.isNotEmpty) {
       return GeminiProvider(apiKey: key);
     }
-    return MockAIProvider();
+    // Fail fast with clear typed configuration error if no key is configured
+    return const UnconfiguredAIProvider(
+      reason: 'Gemini API key is not configured.',
+      configurationHelp: 'Please add your Google Gemini API key in Settings -> AI Engine, or switch to Demo mode.',
+    );
   }
 
-  // 3. Fallback: prefer direct Gemini if key available, else MockAIProvider
+  // 3. Cloud AI Gateway mode (when explicitly selected)
+  if (mode == 'cloud_gateway') {
+    // Prefer user-configured custom URL; fallback to environment-configured gateway URL
+    final effectiveGatewayUrl = settings.cloudGatewayUrl.isNotEmpty
+        ? settings.cloudGatewayUrl
+        : appConfig.aiGatewayUrl;
+
+    if (effectiveGatewayUrl.isEmpty) {
+      return const UnconfiguredAIProvider(
+        reason: 'AI Gateway URL is not configured.',
+        configurationHelp: 'Please specify a valid AI Gateway server URL in Settings -> AI Engine.',
+      );
+    }
+
+    final parsed = Uri.tryParse(effectiveGatewayUrl);
+    if (parsed == null || !parsed.hasScheme || !parsed.hasAuthority) {
+      return UnconfiguredAIProvider(
+        reason: 'Invalid AI Gateway URL: "$effectiveGatewayUrl".',
+        configurationHelp:
+            'Please verify the gateway address format in Settings.',
+      );
+    }
+
+    final host = parsed.host.toLowerCase();
+    final isLocalhost =
+        host == 'localhost' ||
+        host == '127.0.0.1' ||
+        host == '10.0.2.2' ||
+        host.startsWith('192.168.') ||
+        host.startsWith('10.') ||
+        host.startsWith('172.');
+
+    // Local development workflow: permitted in debug mode without client auth
+    if (kDebugMode && isLocalhost) {
+      return CloudAIProvider(gatewayBaseUrl: parsed, clientVersion: '3.0.0+1');
+    }
+
+    // Remote hosted gateway mode:
+    // Requires client authentication (identity token). Until a secure user-account/OAuth
+    // flow is implemented, hosted gateway mode fails safely with an explicit explanation.
+    return const UnconfiguredAIProvider(
+      reason: 'Hosted AI Gateway authentication is not configured.',
+      configurationHelp:
+          'Hosted gateway requires client authentication which is pending implementation. '
+          'Please use Direct Gemini mode with your own API key or explicit Demo mode.',
+    );
+  }
+
+  // 4. Default / Unrecognized mode fallback
   if (key != null && key.isNotEmpty) {
     return GeminiProvider(apiKey: key);
   }
-  return MockAIProvider();
+
+  return const UnconfiguredAIProvider(
+    reason: 'AI assistant is not configured.',
+    configurationHelp:
+        'Please configure a Gemini API key or select Demo mode in Settings.',
+  );
 });
 
 /// Autonomous schedule drift detection and ripple engine provider.

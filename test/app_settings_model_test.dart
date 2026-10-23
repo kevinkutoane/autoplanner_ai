@@ -87,12 +87,12 @@ void main() {
       expect(defaults.workDays, hasLength(7));
     });
 
-    test('aiConnectionMode defaults to cloud_gateway', () {
-      expect(defaults.aiConnectionMode, 'cloud_gateway');
+    test('aiConnectionMode defaults to direct_gemini', () {
+      expect(defaults.aiConnectionMode, 'direct_gemini');
     });
 
-    test('cloudGatewayUrl defaults to local gateway', () {
-      expect(defaults.cloudGatewayUrl, 'http://127.0.0.1:8000');
+    test('cloudGatewayUrl defaults to empty string', () {
+      expect(defaults.cloudGatewayUrl, '');
     });
 
     test('autoRippleDrift defaults to true', () {

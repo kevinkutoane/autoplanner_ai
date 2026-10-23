@@ -8,6 +8,7 @@ import 'package:autoplanner_ai/core/models/calendar_event_model.dart';
 import 'package:autoplanner_ai/features/planner/controllers/task_controller.dart';
 import 'package:autoplanner_ai/features/calendar/controllers/calendar_controller.dart';
 import 'package:autoplanner_ai/core/config/env_config.dart';
+import 'package:autoplanner_ai/features/settings/models/app_settings_model.dart';
 import 'package:autoplanner_ai/services/routine_service.dart';
 
 void main() {
@@ -22,6 +23,7 @@ void main() {
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('routine_test');
     Hive.init(tempDir.path);
+    await Hive.openBox<dynamic>(AppSettings.boxName);
   });
 
   tearDown(() async {

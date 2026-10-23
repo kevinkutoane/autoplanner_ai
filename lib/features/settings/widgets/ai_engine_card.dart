@@ -257,8 +257,8 @@ class _AIEngineCardState extends State<AIEngineCard> {
                 ),
                 _buildModeTab(
                   mode: 'offline_mock',
-                  title: 'Offline Mode',
-                  icon: Icons.offline_bolt_rounded,
+                  title: 'Demo Mode',
+                  icon: Icons.science_outlined,
                   selected: currentMode == 'offline_mock',
                   isDark: isDark,
                 ),
@@ -283,7 +283,9 @@ class _AIEngineCardState extends State<AIEngineCard> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Connected via Custom Gateway (${widget.settings.cloudGatewayUrl})',
+                      widget.settings.cloudGatewayUrl.isEmpty
+                          ? 'Gateway URL not set · Hosted auth pending'
+                          : 'Custom Gateway (${widget.settings.cloudGatewayUrl}) · Local dev only',
                       style: TextStyle(
                         fontSize: 11,
                         color: isDark ? Colors.white70 : Colors.black87,
@@ -896,7 +898,7 @@ class _AIEngineCardState extends State<AIEngineCard> {
                 Text(
                   widget.settings.geminiApiKey.isNotEmpty
                       ? '••••••••${widget.settings.geminiApiKey.length > 4 ? widget.settings.geminiApiKey.substring(widget.settings.geminiApiKey.length - 4) : ''} · Active (Gemini 1.5 Flash)'
-                      : 'Free key from Google AI Studio. Stored privately on your device.',
+                      : 'Key not configured. Tap Manage to add your free Gemini key from Google AI Studio.',
                   style: TextStyle(
                     fontSize: 10.5,
                     color: isDark ? Colors.white54 : Colors.black54,
@@ -927,11 +929,11 @@ class _AIEngineCardState extends State<AIEngineCard> {
       ),
       child: const Row(
         children: [
-          Icon(Icons.offline_pin_rounded, color: Colors.amber, size: 18),
+          Icon(Icons.science_outlined, color: Colors.amber, size: 18),
           SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Offline Mode active. Intelligent scheduling and day planning run on-device with no internet needed.',
+              'Demo Mode active. Uses sample canned responses for testing and UI evaluation. (No live generative AI or on-device LLM inference is performed).',
               style: TextStyle(fontSize: 11, height: 1.3),
             ),
           ),

@@ -44,14 +44,61 @@ class SettingsController extends Notifier<AppSettings> {
       if (_box.isNotEmpty) {
         state = AppSettings.fromMap(_box.toMap());
       }
-      // Load the user's Gemini API key from secure storage, with fallback to encrypted box.
-      final savedKey = await SecureKeyService.getGeminiApiKey();
-      if (savedKey != null && savedKey.isNotEmpty) {
-        state = state.copyWith(geminiApiKey: savedKey);
-        await _box.put(AppSettings.kGeminiApiKey, savedKey);
-      } else if (state.geminiApiKey.isNotEmpty) {
-        // Mirrored from hardware-encrypted Hive box — re-sync into secure storage
-        await SecureKeyService.saveGeminiApiKey(state.geminiApiKey);
+
+      // ── Credential Migration & Authoritative Storage ──
+      // SecureKeyService is the single authoritative store for the Gemini API key.
+      final secureKey = await SecureKeyService.getGeminiApiKey();
+      final legacyHiveKey = _box.get(AppSettings.kGeminiApiKey) as String?;
+
+      if (secureKey != null && secureKey.isNotEmpty) {
+        state = state.copyWith(geminiApiKey: secureKey);
+        // If an old legacy copy exists in Hive, safely remove it now that secure storage is active
+        if (legacyHiveKey != null) {
+          await _box.delete(AppSettings.kGeminiApiKey);
+        }
+      } else if (legacyHiveKey != null && legacyHiveKey.isNotEmpty) {
+        // Attempt migration of legacy key from Hive into SecureKeyService
+        try {
+          await SecureKeyService.saveGeminiApiKey(legacyHiveKey);
+          final verifiedKey = await SecureKeyService.getGeminiApiKey();
+          if (verifiedKey == legacyHiveKey) {
+            // Delete legacy copy ONLY after secure storage confirms receipt
+            await _box.delete(AppSettings.kGeminiApiKey);
+          }
+          state = state.copyWith(geminiApiKey: legacyHiveKey);
+        } catch (e) {
+          // If migration fails, keep legacy key in _box for recoverability; never delete it
+          if (kDebugMode) {
+            debugPrint(
+              'SettingsController: secure key migration encountered an error',
+            );
+          }
+          state = state.copyWith(geminiApiKey: legacyHiveKey);
+        }
+      }
+
+      // ── Legacy Settings Migration for AI Connection Mode & Gateway URL ──
+      // If a legacy user had cloud_gateway + default localhost:8000 saved, migrate them safely:
+      // 1. If user has a Gemini key -> migrate to direct_gemini
+      // 2. If user does NOT have a custom remote gateway URL -> migrate to direct_gemini
+      // Do NOT overwrite deliberately configured remote custom URLs (e.g. https://... or custom IP).
+      final isLegacyDefaultGateway =
+          state.cloudGatewayUrl == 'http://127.0.0.1:8000' ||
+          state.cloudGatewayUrl == 'http://localhost:8000';
+      if (isLegacyDefaultGateway) {
+        await _box.put(AppSettings.kCloudGatewayUrl, '');
+        final newMode = state.geminiApiKey.isNotEmpty
+            ? 'direct_gemini'
+            : (state.isMockAI ? 'offline_mock' : 'direct_gemini');
+        if (state.aiConnectionMode == 'cloud_gateway') {
+          await _box.put(AppSettings.kAiConnectionMode, newMode);
+          state = state.copyWith(
+            cloudGatewayUrl: '',
+            aiConnectionMode: newMode,
+          );
+        } else {
+          state = state.copyWith(cloudGatewayUrl: '');
+        }
       }
     } catch (e) {
       if (kDebugMode) debugPrint('SettingsController._init() failed: $e');
@@ -294,7 +341,8 @@ class SettingsController extends Notifier<AppSettings> {
       state = state.copyWith(geminiApiKey: '');
     } else {
       await SecureKeyService.saveGeminiApiKey(trimmed);
-      await _box.put(AppSettings.kGeminiApiKey, trimmed);
+      // Ensure key is NOT stored in the Hive box
+      await _box.delete(AppSettings.kGeminiApiKey);
       await _box.put(AppSettings.kAiConnectionMode, 'direct_gemini');
       state = state.copyWith(
         geminiApiKey: trimmed,

@@ -123,9 +123,11 @@ The **AI Coach** is a built-in guide that helps you reflect, stay motivated, and
 - *"How should I structure my Friday afternoon to end the week strong?"*
 - *"Review my schedule and suggest where I should place my high-focus work."*
 
-### Online vs. Offline AI Coach
-- **Online (With Gemini Key or Server)**: Provides contextual, dynamic coaching conversations using state-of-the-art language models.
-- **Offline**: If you are in airplane mode or don't have an API key, the coach instantly falls back to built-in productivity frameworks (the 2-minute rule, Eisenhower matrix, time-blocking strategies) without throwing any error messages.
+### AI Modes & Configuration
+- **Gemini Direct (Recommended)**: Connect your personal Google Gemini API key (stored securely and privately on your device) for generative AI planning, context-aware coaching, and natural language task parsing.
+- **Demo / Mock Mode**: A developer and preview mode returning canned template responses without requiring network access or API credentials. (Does not perform on-device LLM inference).
+- **Self-Hosted AI Gateway**: A server-side proxy mode intended for custom deployments and local development testing.
+
 
 ---
 

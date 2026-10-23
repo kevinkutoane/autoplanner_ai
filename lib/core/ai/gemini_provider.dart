@@ -19,9 +19,15 @@ class GeminiProvider implements AIProvider {
       'prompt asks for.';
 
   GeminiProvider({String? apiKey, this.modelName = 'gemini-1.5-flash'}) {
+    final effectiveKey = apiKey ?? appConfig.geminiApiKey;
+    if (effectiveKey.trim().isEmpty) {
+      throw const AIConfigurationException(
+        'Gemini API key is missing. Please configure a valid key.',
+      );
+    }
     _model = GenerativeModel(
       model: modelName,
-      apiKey: apiKey ?? appConfig.geminiApiKey,
+      apiKey: effectiveKey,
       systemInstruction: Content.system(_systemInstruction),
     );
   }
@@ -30,7 +36,32 @@ class GeminiProvider implements AIProvider {
   Future<AIResponse> complete(String prompt, {AIInvocation? invocation}) async {
     final stopwatch = Stopwatch()..start();
     final content = [Content.text(prompt)];
-    final response = await _model.generateContent(content);
+    GenerateContentResponse response;
+    try {
+      response = await _model.generateContent(content);
+    } on GenerativeAIException catch (e) {
+      stopwatch.stop();
+      final msg = e.message.toLowerCase();
+      if (msg.contains('api_key_invalid') ||
+          msg.contains('api key not valid') ||
+          msg.contains('permission_denied') ||
+          msg.contains('unregistered caller')) {
+        throw const AIAuthenticationException(
+          'Gemini authentication failed: invalid or unauthorized API key.',
+        );
+      }
+      if (msg.contains('resource_exhausted') ||
+          msg.contains('quota') ||
+          msg.contains('429')) {
+        throw const AIRateLimitException(
+          'Gemini quota or rate limit exceeded.',
+        );
+      }
+      rethrow;
+    } catch (_) {
+      stopwatch.stop();
+      rethrow;
+    }
     stopwatch.stop();
 
     final text = response.text ?? '';
