@@ -30,6 +30,7 @@ void callbackDispatcher() {
         try {
           // Background isolate: re-initialise Hive + services independently.
           await Hive.initFlutter();
+          AppBootstrapper.registerSettingsBoxOpener();
           if (!Hive.isAdapterRegistered(2)) {
             Hive.registerAdapter(CalendarEventAdapter());
           }
@@ -44,12 +45,7 @@ void callbackDispatcher() {
               hiveCipher,
             );
           }
-          if (!Hive.isBoxOpen('settingsBox')) {
-            await AppBootstrapper.openBoxSafe<dynamic>(
-              'settingsBox',
-              hiveCipher,
-            );
-          }
+          await AppBootstrapper.openSettingsBoxSafe(cipher: hiveCipher);
           final googleAuth = GoogleAuthService();
           await googleAuth.tryRestoreSession();
           if (googleAuth.isConnected) {
@@ -67,6 +63,7 @@ void callbackDispatcher() {
 /// App entry point. Delegated to [AppBootstrapper.init].
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  AppBootstrapper.registerSettingsBoxOpener();
 
   final container = await AppBootstrapper.init(
     callbackDispatcher: callbackDispatcher,
