@@ -14,35 +14,77 @@ import '../../../services/gamification_service.dart';
 /// Manages all user-adjustable settings with Hive persistence.
 /// The box stores individual key-value pairs — no type adapter required.
 class SettingsController extends Notifier<AppSettings> {
-  late Box _box;
-  final Completer<void> _initCompleter = Completer<void>();
+  /// Delegate to open [AppSettings.boxName] safely with encryption
+  /// when the box is not already open.
+  ///
+  /// Registered by [AppBootstrapper.registerSettingsBoxOpener] during startup.
+  static Future<Box<dynamic>> Function()? boxOpener;
+
+  @visibleForTesting
+  static void resetBoxOpenerForTesting() {
+    boxOpener = null;
+  }
+
+  Box<dynamic>? _rawBox;
+
+  /// Active Hive box for app settings.
+  ///
+  /// Throws [SecureStorageException] if the box is unavailable or closed,
+  /// failing closed rather than opening an unencrypted box.
+  Box<dynamic> get _box {
+    if (_rawBox != null && _rawBox!.isOpen) {
+      return _rawBox!;
+    }
+    if (Hive.isBoxOpen(AppSettings.boxName)) {
+      final box = Hive.box<dynamic>(AppSettings.boxName);
+      _rawBox = box;
+      return box;
+    }
+    throw const SecureStorageException(
+      'Settings box "${AppSettings.boxName}" is not open or available.',
+    );
+  }
+
+  Future<void>? _initFuture;
 
   @override
   AppSettings build() {
     // If settingsBox is already opened by AppBootstrapper, read stored settings immediately
     AppSettings initialSettings = AppSettings.defaults();
     if (Hive.isBoxOpen(AppSettings.boxName)) {
-      _box = Hive.box<dynamic>(AppSettings.boxName);
-      if (_box.isNotEmpty) {
-        initialSettings = AppSettings.fromMap(_box.toMap());
+      _rawBox = Hive.box<dynamic>(AppSettings.boxName);
+      if (_rawBox!.isNotEmpty) {
+        initialSettings = AppSettings.fromMap(_rawBox!.toMap());
       }
     }
 
     AppHaptics.enabled = initialSettings.hapticsEnabled;
-    _init();
+    _initFuture ??= _performInit();
     return initialSettings;
   }
 
-  Future<void> _init() async {
+  Future<Box<dynamic>> _resolveBox() async {
+    if (Hive.isBoxOpen(AppSettings.boxName)) {
+      return Hive.box<dynamic>(AppSettings.boxName);
+    }
+    final opener = boxOpener;
+    if (opener != null) {
+      return await opener();
+    }
+    throw const SecureStorageException(
+      'Settings box "${AppSettings.boxName}" is not open and no safe cipher-aware opener is registered.',
+    );
+  }
+
+  @visibleForTesting
+  Future<Box<dynamic>> resolveBoxForTesting() => _resolveBox();
+
+  Future<void> _performInit() async {
     try {
-      // Use Hive.box() to grab the already-opened encrypted box from main().
-      // Calling openBox<dynamic>() without a cipher would create an
-      // unencrypted instance if it ran before main()'s _openBoxSafe.
-      _box = Hive.isBoxOpen(AppSettings.boxName)
-          ? Hive.box<dynamic>(AppSettings.boxName)
-          : await Hive.openBox<dynamic>(AppSettings.boxName);
-      if (_box.isNotEmpty) {
-        state = AppSettings.fromMap(_box.toMap());
+      final resolvedBox = await _resolveBox();
+      _rawBox = resolvedBox;
+      if (resolvedBox.isNotEmpty) {
+        state = AppSettings.fromMap(resolvedBox.toMap());
       }
 
       // ── Credential Migration & Authoritative Storage ──
@@ -99,13 +141,14 @@ class SettingsController extends Notifier<AppSettings> {
       }
     } catch (e) {
       if (kDebugMode) debugPrint('SettingsController._init() failed: $e');
-    } finally {
-      if (!_initCompleter.isCompleted) _initCompleter.complete();
     }
   }
 
   /// Resolves when the box has been loaded and state is ready.
-  Future<void> ensureInitialized() => _initCompleter.future;
+  Future<void> ensureInitialized() {
+    _initFuture ??= _performInit();
+    return _initFuture!;
+  }
 
   // ── Profile ──────────────────────────────────────────────────────
 

@@ -27,6 +27,8 @@ import '../../services/notification_service.dart';
 import '../../services/google_auth_service.dart';
 import '../../services/calendar_sync_service.dart';
 import '../../services/app_monitor_service.dart';
+import '../../features/settings/models/app_settings_model.dart';
+import '../../features/settings/controllers/settings_controller.dart';
 
 /// Coordinates unified application initialization and returns the root
 /// [ProviderContainer] for the Riverpod dependency hierarchy.
@@ -46,6 +48,8 @@ class AppBootstrapper {
   /// 7. Create root [ProviderContainer] with observers and service overrides.
   /// 8. Initialize offline AI queue.
   static Future<ProviderContainer> init({Function? callbackDispatcher}) async {
+    registerSettingsBoxOpener();
+
     // 1. Environment (.env)
     try {
       await dotenv.load(fileName: '.env');
@@ -122,7 +126,7 @@ class AppBootstrapper {
       openBoxSafe<GoalItem>('goalsBox', hiveCipher),
       openBoxSafe<ProjectItem>('projectsBox', hiveCipher),
       openBoxSafe<CalendarEvent>('calendarBox', hiveCipher),
-      openBoxSafe<dynamic>('settingsBox', hiveCipher),
+      openSettingsBoxSafe(cipher: hiveCipher),
       openBoxSafe<AppEvent>('appEventsBox', hiveCipher),
       openBoxSafe<dynamic>('gamificationBox', hiveCipher),
     ]);
@@ -506,6 +510,35 @@ class AppBootstrapper {
         cause: e,
       );
     }
+  }
+
+  /// Safely opens the settings box using the application's Hive AES cipher.
+  /// If the box is already open, returns the existing open instance.
+  static Future<Box<dynamic>> openSettingsBoxSafe({
+    HiveAesCipher? cipher,
+    String? customDir,
+  }) async {
+    if (Hive.isBoxOpen(AppSettings.boxName)) {
+      return Hive.box<dynamic>(AppSettings.boxName);
+    }
+    final resolvedCipher =
+        cipher ??
+        HiveAesCipher(
+          await SecureKeyService.getOrCreateHiveEncryptionKey(
+            hasExistingData: () => hasExistingEncryptedBoxes(customDir),
+          ),
+        );
+    return await openBoxSafe<dynamic>(
+      AppSettings.boxName,
+      resolvedCipher,
+      customDir: customDir,
+    );
+  }
+
+  /// Registers [openSettingsBoxSafe] as the safe cipher-aware box opener
+  /// delegate for [SettingsController].
+  static void registerSettingsBoxOpener() {
+    SettingsController.boxOpener ??= openSettingsBoxSafe;
   }
 }
 
