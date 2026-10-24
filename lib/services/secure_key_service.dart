@@ -66,13 +66,17 @@ class SecureKeyService {
   static const _kHiveKey = 'hive_encryption_key';
   static const _kGoogleTokens = 'google_oauth_tokens';
 
-  // ── Gemini API key ──────────────────────────────────────────────────
-
+  /// Returns the stored Gemini API key, or null if no key is configured.
+  /// Throws [SecureStorageException] if reading from secure storage fails.
   static Future<String?> getGeminiApiKey() async {
     try {
       return await _storage.read(key: _kGeminiKey);
-    } catch (_) {
-      return null;
+    } catch (e) {
+      if (e is SecureStorageException) rethrow;
+      throw SecureStorageException(
+        'Failed to read Gemini API key from secure storage',
+        cause: e,
+      );
     }
   }
 

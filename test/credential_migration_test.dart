@@ -15,19 +15,25 @@ class FakeFailingSecureStorageClient implements SecureStorageClient {
   bool failWrite;
   bool failRead;
   bool failDelete;
+  bool failReadAfterWrite;
   String? readOverride;
+  int writeCount = 0;
 
   FakeFailingSecureStorageClient({
     Map<String, String>? initialValues,
     this.failWrite = false,
     this.failRead = false,
     this.failDelete = false,
+    this.failReadAfterWrite = false,
     this.readOverride,
   }) : values = initialValues != null ? Map.from(initialValues) : {};
 
   @override
   Future<String?> read({required String key}) async {
     if (failRead) throw Exception('Simulated secure storage read failure');
+    if (failReadAfterWrite && writeCount > 0) {
+      throw Exception('Simulated read-back verification failure after write');
+    }
     if (readOverride != null) return readOverride;
     return values[key];
   }
@@ -35,6 +41,7 @@ class FakeFailingSecureStorageClient implements SecureStorageClient {
   @override
   Future<void> write({required String key, required String? value}) async {
     if (failWrite) throw Exception('Simulated secure storage write failure');
+    writeCount++;
     if (value == null) {
       values.remove(key);
     } else {
@@ -357,6 +364,105 @@ void main() {
       expect(box.get(AppSettings.kGeminiApiKey), isNull);
       // Controller state has migrated key
       expect(ctrl2.state.geminiApiKey, 'legacy-survivor-key-999');
+    });
+
+    test('P1.6: Exception during read-back verification step after saving a key preserves legacy credential and fails', () async {
+      final box = await Hive.openBox<dynamic>(AppSettings.boxName);
+      await box.put(AppSettings.kGeminiApiKey, 'legacy-preserve-me-123');
+
+      final fakeStorage = FakeFailingSecureStorageClient(
+        failReadAfterWrite: true,
+      );
+      SecureKeyService.setStorageForTesting(fakeStorage);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final ctrl = container.read(settingsProvider.notifier);
+      await ctrl.ensureInitialized();
+
+      // Read-back verification throws during update
+      expect(
+        () => ctrl.updateGeminiApiKey('new-key-verification-throws'),
+        throwsA(
+          isA<SecureStorageException>().having(
+            (e) => e.message,
+            'message',
+            contains('Failed to read back Gemini API key'),
+          ),
+        ),
+      );
+
+      // 1. Legacy Hive credential is not deleted
+      expect(box.get(AppSettings.kGeminiApiKey), 'legacy-preserve-me-123');
+      // 2. Controller state does NOT claim new key was saved
+      expect(ctrl.state.geminiApiKey, isNot('new-key-verification-throws'));
+    });
+
+    test('P1.7: Initial secure-storage read failure while legacy Hive credential exists does not overwrite secure storage', () async {
+      final box = await Hive.openBox<dynamic>(AppSettings.boxName);
+      await box.put(AppSettings.kGeminiApiKey, 'stale-legacy-hive-key-456');
+
+      final fakeStorage = FakeFailingSecureStorageClient(
+        initialValues: {'gemini_api_key': 'newer-existing-secure-key-789'},
+        failRead: true,
+      );
+      SecureKeyService.setStorageForTesting(fakeStorage);
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final ctrl = container.read(settingsProvider.notifier);
+      await ctrl.ensureInitialized();
+
+      // 1. Secure storage was NOT overwritten by legacy Hive migration
+      expect(fakeStorage.writeCount, equals(0));
+      expect(
+        fakeStorage.values['gemini_api_key'],
+        'newer-existing-secure-key-789',
+      );
+
+      // 2. Legacy Hive copy is preserved in Hive box for recoverability
+      expect(box.get(AppSettings.kGeminiApiKey), 'stale-legacy-hive-key-456');
+
+      // 3. Controller state uses legacy key as session fallback
+      expect(ctrl.state.geminiApiKey, 'stale-legacy-hive-key-456');
+    });
+
+    test('P1.8: Recovery after initial secure-storage read failure restores newer secure key without replacement by stale Hive key', () async {
+      final box = await Hive.openBox<dynamic>(AppSettings.boxName);
+      await box.put(AppSettings.kGeminiApiKey, 'stale-legacy-hive-key-456');
+
+      final fakeStorage = FakeFailingSecureStorageClient(
+        initialValues: {'gemini_api_key': 'newer-existing-secure-key-789'},
+        failRead: true,
+      );
+      SecureKeyService.setStorageForTesting(fakeStorage);
+
+      // Launch 1: Read fails
+      final container1 = ProviderContainer();
+      final ctrl1 = container1.read(settingsProvider.notifier);
+      await ctrl1.ensureInitialized();
+      container1.dispose();
+
+      // Launch 2: Secure storage recovers
+      fakeStorage.failRead = false;
+
+      final container2 = ProviderContainer();
+      addTearDown(container2.dispose);
+
+      final ctrl2 = container2.read(settingsProvider.notifier);
+      await ctrl2.ensureInitialized();
+
+      // 1. Controller state authoritative key is the newer secure key
+      expect(ctrl2.state.geminiApiKey, 'newer-existing-secure-key-789');
+
+      // 2. Secure storage was NEVER overwritten with stale legacy key
+      expect(
+        await SecureKeyService.getGeminiApiKey(),
+        'newer-existing-secure-key-789',
+      );
+      expect(fakeStorage.writeCount, equals(0));
     });
   });
 }

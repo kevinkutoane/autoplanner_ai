@@ -89,17 +89,37 @@ class SettingsController extends Notifier<AppSettings> {
 
       // ── Credential Migration & Authoritative Storage ──
       // SecureKeyService is the single authoritative store for the Gemini API key.
-      final secureKey = await SecureKeyService.getGeminiApiKey();
+      String? secureKey;
+      bool secureReadSucceeded = false;
+      try {
+        secureKey = await SecureKeyService.getGeminiApiKey();
+        secureReadSucceeded = true;
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint(
+            'SettingsController: secure key read encountered an error: $e',
+          );
+        }
+      }
+
       final legacyHiveKey = _box.get(AppSettings.kGeminiApiKey) as String?;
 
-      if (secureKey != null && secureKey.isNotEmpty) {
+      if (!secureReadSucceeded) {
+        // Secure storage state cannot be reliably determined (e.g. transient Keystore error).
+        // DO NOT start migration or overwrite secure storage with a stale legacy Hive key.
+        // If a legacy key exists in Hive, preserve it in memory and in Hive for recoverability.
+        if (legacyHiveKey != null && legacyHiveKey.isNotEmpty) {
+          state = state.copyWith(geminiApiKey: legacyHiveKey);
+        }
+      } else if (secureKey != null && secureKey.isNotEmpty) {
         state = state.copyWith(geminiApiKey: secureKey);
         // If an old legacy copy exists in Hive and matches secure storage, safely clean it up
         if (legacyHiveKey != null && legacyHiveKey == secureKey) {
           await _box.delete(AppSettings.kGeminiApiKey);
         }
       } else if (legacyHiveKey != null && legacyHiveKey.isNotEmpty) {
-        // Attempt migration of legacy key from Hive into SecureKeyService
+        // Secure read succeeded and returned null/empty: secure storage is genuinely unconfigured.
+        // Safe to migrate legacy key from Hive into SecureKeyService.
         try {
           await SecureKeyService.saveGeminiApiKey(legacyHiveKey);
           // Delete legacy copy ONLY after secure storage confirms receipt and verification
