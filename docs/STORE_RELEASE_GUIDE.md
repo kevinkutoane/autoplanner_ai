@@ -71,28 +71,52 @@ storeFile=../upload-keystore.jks
 
 AutoPlanner is already configured for production release:
 - **`android/app/proguard-rules.pro`**: Configured to preserve Hive type adapters, Flutter plugins, and Riverpod state controllers while obfuscating release code.
-- **`android/app/build.gradle`**:
-  - `minSdkVersion`: 24 (Android 7.0+)
-  - `targetSdkVersion`: 34 (Android 14 — required by Google Play)
-  - `compileSdkVersion`: 34
+- **`android/app/build.gradle.kts`**:
+  - `minSdk` / `targetSdk`: managed by the Flutter SDK (Flutter 3.47.2), which keeps `targetSdk` at the level Google Play currently requires
+  - `compileSdk`: 37
   - R8 shrinkResources and minifyEnabled enabled for minimal app download size.
+  - Building a release app bundle **fails** if `android/key.properties` is missing, so a debug-signed bundle can never be produced by accident.
 
 ---
 
 ## 5. Step 4: Build the Release Android App Bundle (AAB)
 
-Run the release build command:
+### Recommended: release from CI
+
+Pushing a version tag runs `.github/workflows/release.yml`, which analyzes, tests, signs and builds the AAB and APK with production configuration. Configure these once under **GitHub → Settings → Secrets and variables → Actions**:
+
+| Name | Kind | Required | Value |
+|---|---|---|---|
+| `KEYSTORE_BASE64` | Secret | Yes | `base64 -w0 android/upload-keystore.jks` (PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("android\upload-keystore.jks"))`) |
+| `KEY_STORE_PASSWORD` | Secret | Yes | Keystore password |
+| `KEY_ALIAS` | Secret | Yes | e.g. `upload` |
+| `KEY_PASSWORD` | Secret | Yes | Key password |
+| `SENTRY_DSN` | Secret | No | Enables crash reporting |
+| `GOOGLE_SERVER_CLIENT_ID` | Variable | For Calendar sync | Web OAuth client ID |
+| `GEMINI_MODEL` | Variable | No | Overrides the default Gemini model if Google retires it |
+| `ENABLE_IOS_RELEASE` | Variable | No | Set to `true` once iOS signing is configured |
+
+Then bump `version:` in `pubspec.yaml` (the build number after `+` must increase for every Play upload), commit, and tag:
 
 ```powershell
-# 1. Clean previous build artifacts
-flutter clean
-
-# 2. Get dependencies
-flutter pub get
-
-# 3. Build release Android App Bundle
-flutter build appbundle --release
+git tag v3.0.0
+git push origin v3.0.0
 ```
+
+Download `android-release-aab` from the workflow run's artifacts. Keep `android-debug-symbols` too — you need it to read obfuscated stack traces.
+
+> Never pass `GEMINI_API_KEY` to a release build: compiled-in keys can be extracted from the app. Users enter their own key in Settings.
+
+### Local build
+
+```powershell
+flutter clean
+flutter pub get
+flutter build appbundle --release --dart-define=ENV=prod `
+  --obfuscate --split-debug-info=build/debug-info-android
+```
+
+Release builds do not bundle a `.env` file. Configuration comes from `--dart-define` (or `--dart-define-from-file`); without `ENV=prod` the app runs as a `[DEV]` build.
 
 When completed, your release bundle will be located at:
 ```
@@ -133,15 +157,23 @@ Verify that the file size is optimized (typically ~25–35 MB before Google Play
 
 Google Play requires accurate Data Safety disclosures:
 
-| Category | Collected? | Shared? | Purpose | Details |
-|---|---|---|---|---|
-| **Personal Info (Name, Email)** | Optional (Local) | No | App functionality | Stored locally in Hive; only used if Google Calendar sync is linked |
-| **Calendar Events** | Yes (Read/Write) | No | App functionality | Synced locally to display work schedule alongside Google Calendar |
-| **Audio Recordings** | Processed in-memory | No | App functionality | Transcribed locally via speech-to-text; audio files are not uploaded to third-party ad networks |
-| **Storage / Files** | Optional | No | Backup & Restore | Used solely when you export or import JSON backups |
-| **Financial / Health** | No | No | N/A | None collected |
+Play's definitions: data is **collected** when it is transmitted off the device, and **shared** when it goes to a third party. Data that only ever stays on the device does not need to be declared. Data sent to a service provider that processes it on your behalf counts as collected, not shared. AI requests go **directly from the device to Google** with the user's own API key, so declare them as collected. Do **not** mark them "processed ephemerally": Google may retain free-tier Gemini API content. Answers to give:
 
-- **Privacy Policy**: Link to your public Privacy Policy URL (e.g. hosted on GitHub Pages or your website).
+| Data type (Play category) | Collected | Shared | Optional | Purpose | Why |
+|---|---|---|---|---|---|
+| **App activity → Other user-generated content** (tasks, notes, goals, coach chat, dictated text) | Yes | No | Yes | App functionality | Sent to Google Gemini when the user runs an AI feature |
+| **Calendar → Calendar events** | Yes | No | Yes | App functionality | Read/written via the Google Calendar API when sync is connected; stored only on device |
+| **Personal info → Email address** | Yes | No | Yes | App functionality | Google Sign-In for Calendar sync |
+| **App info and performance → Crash logs, Diagnostics** | Yes, if `SENTRY_DSN` is set | No | No | Analytics (crash reporting) | Sentry crash reports |
+| **Audio** | No | — | — | — | Speech is converted to text by the OS recognizer; the app never receives or uploads audio |
+
+Also answer:
+- **Is data encrypted in transit?** Yes (HTTPS only; cleartext traffic is disabled).
+- **Can users request deletion?** Yes — all data is on-device (uninstall / clear storage); calendar access is revocable in Settings and the Google account.
+- **Account creation**: the app has no accounts, so the account-deletion URL requirement does not apply.
+
+- **Privacy Policy**: `docs/PRIVACY_POLICY.md`. Fill in the `[CONTACT EMAIL]` and `[EFFECTIVE DATE]` placeholders, then publish it at a public URL. The simplest option is GitHub Pages: **Settings → Pages → Deploy from branch → `main` / `/docs`**, which serves it at `https://kevinkutoane.github.io/autoplanner_ai/PRIVACY_POLICY`. Put the same URL in the Play listing and in the Google Cloud OAuth consent screen.
+- **Google Calendar OAuth verification**: the app requests the `https://www.googleapis.com/auth/calendar` scope, which Google classifies as **sensitive**. Until the OAuth consent screen is verified by Google, Calendar sign-in shows an "unverified app" warning and is capped at 100 users. Submit for verification (privacy policy URL, app home page, scope justification and a demo video) well before production rollout.
 - **Target Audience**: 18+ (Productivity / Business).
 - **Ads**: Declare **No, my app does not contain ads**.
 
@@ -172,9 +204,14 @@ Google Play requires accurate Data Safety disclosures:
 
 ## 9. Pre-Launch Checklist & Pitfall Avoidance
 
-- [x] Version bumped to `3.0.0+1` in `pubspec.yaml`.
-- [x] All 633 unit and widget tests passing (`flutter test`).
-- [x] Zero analyzer errors or warnings (`flutter analyze`).
+- [x] Version set in `pubspec.yaml`; build number increased for every Play upload.
+- [x] All unit and widget tests passing (`flutter test`; 732 as of October 2026).
+- [x] Zero analyzer issues (`flutter analyze lib test --fatal-infos`).
+- [x] `USE_EXACT_ALARM` removed (Play restricts it to alarm/calendar apps); reminders fall back to inexact alarms when exact alarms are not granted.
+- [ ] Privacy policy published and linked in Play Console and the OAuth consent screen.
+- [ ] Direct Gemini mode verified on a physical device with a real API key.
+- [ ] Data Safety form completed per Step 6.
+- [ ] Release secrets configured in GitHub (see Step 4).
 - [x] ProGuard keep rules verified in `android/app/proguard-rules.pro`.
 - [x] Graceful offline fallback verified in AI Coach (no raw debug error strings).
 - [x] Dead buttons eliminated (no developer placeholders or unlinked tiles).
@@ -207,6 +244,6 @@ Enter flow state with customizable Pomodoro timers, relaxing ambient sounds (Rai
 🧠 AI PRODUCTIVITY COACH
 Get immediate, encouraging guidance to structure your day, break down ambitious goals, and defeat procrastination.
 
-🛡️ 100% PRIVATE & OFFLINE READY
-Your data stays encrypted on your device. Works completely offline whenever you need it.
+🛡️ PRIVATE BY DESIGN & OFFLINE READY
+Your data is stored encrypted on your device, with no accounts and no ads. AI features use your own Google Gemini key; the built-in offline planner works without one.
 ```
