@@ -147,7 +147,7 @@ void main() {
         final provider = container.read(aiProviderProvider);
         expect(provider, isA<GeminiProvider>());
         final gemini = provider as GeminiProvider;
-        expect(gemini.modelName, 'gemini-1.5-flash');
+        expect(gemini.modelName, GeminiProvider.defaultModel);
       },
     );
   });

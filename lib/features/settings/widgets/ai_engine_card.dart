@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../core/ai/gemini_provider.dart';
 import '../../../core/theme/ui_kit.dart';
 import '../controllers/settings_controller.dart';
 import '../models/app_settings_model.dart';
@@ -897,7 +898,7 @@ class _AIEngineCardState extends State<AIEngineCard> {
                 ),
                 Text(
                   widget.settings.geminiApiKey.isNotEmpty
-                      ? '••••••••${widget.settings.geminiApiKey.length > 4 ? widget.settings.geminiApiKey.substring(widget.settings.geminiApiKey.length - 4) : ''} · Active (Gemini 1.5 Flash)'
+                      ? '••••••••${widget.settings.geminiApiKey.length > 4 ? widget.settings.geminiApiKey.substring(widget.settings.geminiApiKey.length - 4) : ''} · Active (${GeminiProvider.defaultModel})'
                       : 'Key not configured. Tap Manage to add your free Gemini key from Google AI Studio.',
                   style: TextStyle(
                     fontSize: 10.5,

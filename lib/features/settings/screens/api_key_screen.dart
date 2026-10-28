@@ -425,10 +425,7 @@ class _ApiKeyScreenState extends ConsumerState<ApiKeyScreen> {
       _testResult = null;
     });
     try {
-      final testProvider = GeminiProvider(
-        apiKey: testKey,
-        modelName: 'gemini-1.5-flash',
-      );
+      final testProvider = GeminiProvider(apiKey: testKey);
       final res = await testProvider.complete('Ping');
       if (mounted) {
         setState(() {

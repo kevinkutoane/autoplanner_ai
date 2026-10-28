@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/ai/gemini_provider.dart';
 import '../../../core/theme/ui_kit.dart';
 import '../../../core/providers/providers.dart';
 import '../../../services/backup_service.dart';
@@ -720,7 +721,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               icon: Icons.info_outlined,
                               title: 'Version',
                               subtitle:
-                                  'Gemini 1.5 Flash · Local AES-256 Storage',
+                                  '${GeminiProvider.defaultModel} · Local AES-256 Storage',
                               trailing: Text(
                                 '3.0.0+1',
                                 style: TextStyle(
