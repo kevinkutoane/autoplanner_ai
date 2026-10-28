@@ -53,6 +53,17 @@ android {
                 // Fall back to debug keys for local `flutter run --release` builds.
                 signingConfigs.getByName("debug")
             }
+            // Play rejects debug-signed bundles; refuse to build one.
+            if (!useReleaseKeys) {
+                gradle.taskGraph.whenReady {
+                    if (allTasks.any { it.name == "bundleRelease" }) {
+                        throw GradleException(
+                            "android/key.properties is missing: cannot sign the release app bundle. " +
+                                "See android/key.properties.example."
+                        )
+                    }
+                }
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
