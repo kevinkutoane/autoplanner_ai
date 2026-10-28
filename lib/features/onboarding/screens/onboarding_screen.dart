@@ -388,7 +388,7 @@ class _ApiKeyPageState extends ConsumerState<_ApiKeyPage>
                 ),
                 const SizedBox(height: 14),
                 const Text(
-                  'AutoPlanner uses Google Gemini AI to organize your thoughts and build smart schedules.\n\nYou can connect your free Google Gemini key now, or tap Skip to use AutoPlanner\'s built-in offline smart planner anytime.\n\nFree tier: No credit card needed. Your key never leaves your phone.',
+                  'AutoPlanner uses Google Gemini AI to organize your thoughts and build smart schedules.\n\nYou can connect your free Google Gemini key now, or tap Skip to use AutoPlanner\'s built-in offline smart planner anytime.\n\nFree tier: No credit card needed. Your key is stored only on this phone and is sent only to Google.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white60,
@@ -512,7 +512,7 @@ class _ApiKeyPageState extends ConsumerState<_ApiKeyPage>
                               const SizedBox(width: 6),
                               const Expanded(
                                 child: Text(
-                                  'Stored in your device keychain — never leaves your phone.',
+                                  'Stored in your device keychain — sent only to Google.',
                                   style: TextStyle(
                                     color: Colors.white38,
                                     fontSize: 12,
