@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
@@ -15,7 +14,6 @@ import 'package:autoplanner_ai/core/models/note_model.dart';
 import 'package:autoplanner_ai/core/models/task_model.dart';
 import 'package:autoplanner_ai/core/providers/providers.dart';
 import 'package:autoplanner_ai/features/memory/controllers/memory_controller.dart';
-import 'package:autoplanner_ai/features/notes/controllers/note_controller.dart';
 import 'package:autoplanner_ai/features/planner/controllers/task_controller.dart';
 import 'package:autoplanner_ai/features/settings/controllers/settings_controller.dart';
 import 'package:autoplanner_ai/features/settings/models/app_settings_model.dart';
