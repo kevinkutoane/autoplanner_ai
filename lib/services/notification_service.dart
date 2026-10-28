@@ -8,6 +8,7 @@ import '../core/models/task_model.dart';
 import '../core/models/note_model.dart';
 import '../core/models/goal_model.dart';
 import '../features/settings/models/app_settings_model.dart';
+import 'notification_id_generator.dart';
 
 /// Wraps flutter_local_notifications.
 /// Call [init] once at app startup (after Hive, before runApp).
@@ -22,6 +23,101 @@ class NotificationService {
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _ready = false;
   bool _exactAllowed = true;
+
+  @visibleForTesting
+  bool get isReady => _ready;
+
+  @visibleForTesting
+  set isReadyForTesting(bool value) => _ready = value;
+
+  @visibleForTesting
+  Future<void> Function(
+    int id,
+    String? title,
+    String? body,
+    NotificationDetails? details,
+  )?
+  onShowForTesting;
+
+  @visibleForTesting
+  Future<void> Function(
+    int id,
+    String? title,
+    String? body,
+    tz.TZDateTime scheduledDate,
+    NotificationDetails? details,
+    AndroidScheduleMode mode,
+    DateTimeComponents? matchDateTimeComponents,
+  )?
+  onZonedScheduleForTesting;
+
+  @visibleForTesting
+  Future<void> Function(int id)? onCancelForTesting;
+
+  @visibleForTesting
+  void resetTestSeams() {
+    onShowForTesting = null;
+    onZonedScheduleForTesting = null;
+    onCancelForTesting = null;
+  }
+
+  Future<void> _showNotification({
+    required int id,
+    String? title,
+    String? body,
+    required NotificationDetails notificationDetails,
+  }) async {
+    if (onShowForTesting != null) {
+      await onShowForTesting!(id, title, body, notificationDetails);
+      return;
+    }
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: notificationDetails,
+    );
+  }
+
+  Future<void> _zonedScheduleNotification({
+    required int id,
+    String? title,
+    String? body,
+    required tz.TZDateTime scheduledDate,
+    required NotificationDetails notificationDetails,
+    required AndroidScheduleMode androidScheduleMode,
+    DateTimeComponents? matchDateTimeComponents,
+  }) async {
+    if (onZonedScheduleForTesting != null) {
+      await onZonedScheduleForTesting!(
+        id,
+        title,
+        body,
+        scheduledDate,
+        notificationDetails,
+        androidScheduleMode,
+        matchDateTimeComponents,
+      );
+      return;
+    }
+    await _plugin.zonedSchedule(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: scheduledDate,
+      notificationDetails: notificationDetails,
+      androidScheduleMode: androidScheduleMode,
+      matchDateTimeComponents: matchDateTimeComponents,
+    );
+  }
+
+  Future<void> _cancelNotification(int id) async {
+    if (onCancelForTesting != null) {
+      await onCancelForTesting!(id);
+      return;
+    }
+    await _plugin.cancel(id: id);
+  }
 
   /// Exact alarms when the OS permits them, otherwise inexact (still delivered).
   AndroidScheduleMode get _mode => _exactAllowed
@@ -44,18 +140,15 @@ class NotificationService {
   static const _briefingChannelName = 'Morning Briefing';
   static const _briefingChannelDesc =
       'Daily morning notification to start your day';
-  static const _briefingNotificationId = 9000;
+  static const _briefingNotificationId = NotificationIdGenerator.briefingId;
 
   static const _shutdownChannelId = 'autoplanner_rituals';
   static const _shutdownChannelName = 'Daily Rituals & Shutdown';
   static const _shutdownChannelDesc =
       'Daily morning kickoff and evening shutdown rituals';
-  static const _shutdownNotificationId = 9001;
+  static const _shutdownNotificationId = NotificationIdGenerator.shutdownId;
 
-  static const _streakNotificationId = 9002;
-
-  // Offset applied to goal notification IDs to avoid collision with task IDs.
-  static const _goalIdOffset = 1000000;
+  static const _streakNotificationId = NotificationIdGenerator.streakShieldId;
 
   Future<void> init() async {
     tz.initializeTimeZones();
@@ -153,7 +246,7 @@ class NotificationService {
     );
     if (reminderTime.isBefore(DateTime.now())) return;
 
-    final id = task.id.hashCode;
+    final id = NotificationIdGenerator.taskReminder(task.id);
     final tzTime = tz.TZDateTime.from(reminderTime, tz.local);
 
     final isUrgent = task.priority == 3;
@@ -163,7 +256,9 @@ class NotificationService {
     final importance = isUrgent ? Importance.max : Importance.high;
     final priority = isUrgent ? Priority.max : Priority.high;
 
-    Future<void> schedule(AndroidScheduleMode mode) => _plugin.zonedSchedule(
+    Future<void> schedule(
+      AndroidScheduleMode mode,
+    ) => _zonedScheduleNotification(
       id: id,
       title: isUrgent ? '🚨  ${task.title}' : '⏰  ${task.title}',
       body:
@@ -208,8 +303,8 @@ class NotificationService {
   Future<bool> showTestNotification() async {
     if (!_ready) return false;
     try {
-      await _plugin.show(
-        id: 9099,
+      await _showNotification(
+        id: NotificationIdGenerator.testNotificationId,
         title: '✅  Notifications are working',
         body: 'AutoPlanner AI reminders will appear like this.',
         notificationDetails: const NotificationDetails(
@@ -232,10 +327,25 @@ class NotificationService {
   }
 
   /// Cancels any pending timed reminder for [taskId].
+  ///
+  /// Also cancels legacy ID for backward compatibility with tasks scheduled prior to Phase 1B.4.
   Future<void> cancelTaskReminder(String taskId) async {
     if (!_ready) return;
-    await _plugin.cancel(id: taskId.hashCode);
-    await _plugin.cancel(id: 'task_start_$taskId'.hashCode);
+    await _cancelNotification(NotificationIdGenerator.taskReminder(taskId));
+    await _cancelNotification(
+      NotificationIdGenerator.legacyTaskReminder(taskId),
+    );
+  }
+
+  /// Cancels any active immediate urgent alert for [taskId].
+  ///
+  /// Also cancels legacy ID for backward compatibility where urgent alerts shared taskId.hashCode.
+  Future<void> cancelTaskUrgentAlert(String taskId) async {
+    if (!_ready) return;
+    await _cancelNotification(NotificationIdGenerator.taskUrgent(taskId));
+    await _cancelNotification(
+      NotificationIdGenerator.legacyTaskReminder(taskId),
+    );
   }
 
   // ── Urgent alerts (tasks & notes) ────────────────────────────────────────
@@ -243,17 +353,25 @@ class NotificationService {
   /// Fires an immediate (non-timed) max-importance alert.
   /// Used for priority=3 tasks and isUrgent notes at creation/update time.
   ///
-  /// [notifId] must be unique per entity — use [id.hashCode] with an offset
-  /// for different entity types if IDs could collide.
+  /// [id] identifies the entity. If prefixed with 'note_', it generates a
+  /// note urgent alert ID; otherwise, it generates a task urgent alert ID.
+  /// Uses domain partitioning to guarantee urgent alerts never overwrite or
+  /// evict scheduled timed reminders for the same entity.
   Future<void> scheduleUrgentAlert({
     required String id,
     required String title,
     required String body,
   }) async {
     if (!_ready) return;
+    final isNote = id.startsWith('note_');
+    final rawId = isNote ? id.substring(5) : id;
+    final notifId = isNote
+        ? NotificationIdGenerator.noteUrgent(rawId)
+        : NotificationIdGenerator.taskUrgent(rawId);
+
     try {
-      await _plugin.show(
-        id: id.hashCode,
+      await _showNotification(
+        id: notifId,
         title: '🚨  $title',
         body: body,
         notificationDetails: const NotificationDetails(
@@ -285,11 +403,11 @@ class NotificationService {
     if (at == null || at.isBefore(DateTime.now())) return;
 
     final tzTime = tz.TZDateTime.from(at, tz.local);
-    // Use a hash offset to avoid collision between note IDs and task IDs.
-    final id = ('note_${note.id}').hashCode;
+    // Use partitioned domain to avoid collision between note IDs and task IDs.
+    final id = NotificationIdGenerator.noteReminder(note.id);
 
     try {
-      await _plugin.zonedSchedule(
+      await _zonedScheduleNotification(
         id: id,
         title: '📝  ${note.title}',
         body: 'You set a reminder for this note.',
@@ -315,9 +433,24 @@ class NotificationService {
   }
 
   /// Cancels any pending reminder for [noteId].
+  ///
+  /// Also cancels active note urgent alerts and legacy note reminder IDs.
   Future<void> cancelNoteReminder(String noteId) async {
     if (!_ready) return;
-    await _plugin.cancel(id: 'note_$noteId'.hashCode);
+    await _cancelNotification(NotificationIdGenerator.noteReminder(noteId));
+    await _cancelNotification(NotificationIdGenerator.noteUrgent(noteId));
+    await _cancelNotification(
+      NotificationIdGenerator.legacyNoteReminder(noteId),
+    );
+  }
+
+  /// Cancels any active immediate urgent alert for [noteId].
+  Future<void> cancelNoteUrgentAlert(String noteId) async {
+    if (!_ready) return;
+    await _cancelNotification(NotificationIdGenerator.noteUrgent(noteId));
+    await _cancelNotification(
+      NotificationIdGenerator.legacyNoteReminder(noteId),
+    );
   }
 
   // ── Goals ────────────────────────────────────────────────────────────────
@@ -331,11 +464,11 @@ class NotificationService {
     final alertTime = deadline.subtract(const Duration(hours: 24));
     if (alertTime.isBefore(DateTime.now())) return;
 
-    final id = goal.id.hashCode + _goalIdOffset;
+    final id = NotificationIdGenerator.goalDeadline(goal.id);
     final tzTime = tz.TZDateTime.from(alertTime, tz.local);
 
     try {
-      await _plugin.zonedSchedule(
+      await _zonedScheduleNotification(
         id: id,
         title: '🎯  Goal deadline tomorrow',
         body: '"${goal.title}" is due tomorrow.',
@@ -361,9 +494,14 @@ class NotificationService {
   }
 
   /// Cancels any pending deadline reminder for [goalId].
+  ///
+  /// Also cancels legacy goal deadline IDs for backward compatibility.
   Future<void> cancelGoalDeadlineReminder(String goalId) async {
     if (!_ready) return;
-    await _plugin.cancel(id: goalId.hashCode + _goalIdOffset);
+    await _cancelNotification(NotificationIdGenerator.goalDeadline(goalId));
+    await _cancelNotification(
+      NotificationIdGenerator.legacyGoalDeadline(goalId),
+    );
   }
 
   // ── Permissions ──────────────────────────────────────────────────────────
@@ -410,7 +548,7 @@ class NotificationService {
         scheduled = scheduled.add(const Duration(days: 1));
       }
 
-      await _plugin.zonedSchedule(
+      await _zonedScheduleNotification(
         id: _briefingNotificationId,
         title: '☀️  Good morning!',
         body: body,
@@ -437,7 +575,7 @@ class NotificationService {
   /// Cancels the daily morning briefing notification.
   Future<void> cancelMorningBriefing() async {
     if (!_ready) return;
-    await _plugin.cancel(id: _briefingNotificationId);
+    await _cancelNotification(_briefingNotificationId);
   }
 
   // ── Evening shutdown ritual ──────────────────────────────────────────────
@@ -463,7 +601,7 @@ class NotificationService {
         scheduled = scheduled.add(const Duration(days: 1));
       }
 
-      await _plugin.zonedSchedule(
+      await _zonedScheduleNotification(
         id: _shutdownNotificationId,
         title: '🌙  Evening Shutdown',
         body: body,
@@ -490,7 +628,7 @@ class NotificationService {
   /// Cancels evening shutdown reminder.
   Future<void> cancelEveningShutdown() async {
     if (!_ready) return;
-    await _plugin.cancel(id: _shutdownNotificationId);
+    await _cancelNotification(_shutdownNotificationId);
   }
 
   // ── Streak Shield reminder ───────────────────────────────────────────────
@@ -516,7 +654,7 @@ class NotificationService {
         scheduled = scheduled.add(const Duration(days: 1));
       }
 
-      await _plugin.zonedSchedule(
+      await _zonedScheduleNotification(
         id: _streakNotificationId,
         title: '🛡️  Streak Shield: Keep your streak alive!',
         body:
@@ -546,6 +684,6 @@ class NotificationService {
   /// Cancels the streak shield reminder.
   Future<void> cancelStreakShield() async {
     if (!_ready) return;
-    await _plugin.cancel(id: _streakNotificationId);
+    await _cancelNotification(_streakNotificationId);
   }
 }
