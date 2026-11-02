@@ -19,21 +19,33 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.1'
+          flutter-version: '3.47.2'
           channel: stable
           cache: true
 
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Analyze
+        run: flutter analyze lib test --fatal-infos
+
+      - name: Run tests
+        run: flutter test
+
       - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release.jks
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::KEYSTORE_BASE64 secret is not set; cannot sign the release."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
 
       - name: Create key.properties
         run: |
@@ -44,15 +56,34 @@ jobs:
           keyPassword=${{ secrets.KEY_PASSWORD }}
           EOF
 
+      # Production config is compiled in; no .env ships in release builds.
+      # GEMINI_API_KEY is deliberately NOT passed: it would be extractable
+      # from the binary. Users supply their own key in Settings.
+      - name: Write build defines
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          GOOGLE_SERVER_CLIENT_ID: ${{ vars.GOOGLE_SERVER_CLIENT_ID }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+        run: |
+          {
+            echo "ENV=prod"
+            [ -n "$SENTRY_DSN" ] && echo "SENTRY_DSN=$SENTRY_DSN"
+            [ -n "$GOOGLE_SERVER_CLIENT_ID" ] && echo "GOOGLE_SERVER_CLIENT_ID=$GOOGLE_SERVER_CLIENT_ID"
+            [ -n "$GEMINI_MODEL" ] && echo "GEMINI_MODEL=$GEMINI_MODEL"
+            true
+          } > "$RUNNER_TEMP/release-defines.env"
+
       - name: Build App Bundle (AAB)
         run: |
           flutter build appbundle --release \
+            --dart-define-from-file="$RUNNER_TEMP/release-defines.env" \
             --obfuscate \
             --split-debug-info=build/debug-info-android
 
       - name: Build APK (for direct distribution)
         run: |
           flutter build apk --release \
+            --dart-define-from-file="$RUNNER_TEMP/release-defines.env" \
             --obfuscate \
             --split-debug-info=build/debug-info-android
 
@@ -75,8 +106,12 @@ jobs:
           path: build/debug-info-android/
 
   # ── iOS release IPA ────────────────────────────────────────────────────────
+  # Disabled until signing is set up (team ID in ios/ExportOptions.plist,
+  # certificates in secrets). Enable with repository variable
+  # ENABLE_IOS_RELEASE=true.
   ios:
     name: iOS Release
+    if: vars.ENABLE_IOS_RELEASE == 'true'
     runs-on: macos-latest
 
     steps:
@@ -86,7 +121,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.1'
+          flutter-version: '3.47.2'
           channel: stable
           cache: true
 

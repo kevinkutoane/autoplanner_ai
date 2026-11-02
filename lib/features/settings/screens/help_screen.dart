@@ -462,13 +462,14 @@ class HelpScreen extends StatelessWidget {
                         _FeatureTile(
                           icon: Icons.shield_rounded,
                           color: const Color(0xFF1DE9B6),
-                          title: '100% On-Device Privacy & AES-256',
+                          title: 'Local-First Privacy & AES-256',
                           summary: 'Encrypted Hive database, Secure Enclave keys & zero cloud lock-in',
                           detail:
                               'All your tasks, memories, notes, and habits are stored locally on your device in an '
                               'AES-256 encrypted Hive database. Your Gemini API key is stored in hardware-backed '
-                              'Secure Enclave / Keystore. Only AI prompt requests leave your device, and you can export '
-                              'full encrypted JSON backups anytime.',
+                              'Secure Enclave / Keystore. Only AI requests leave your device: the text you ask the '
+                              'AI to work on is sent to Google Gemini. You can export a full JSON backup anytime; '
+                              'the backup file is not encrypted, so store it somewhere safe.',
                           isDark: isDark,
                         ),
                       ],
