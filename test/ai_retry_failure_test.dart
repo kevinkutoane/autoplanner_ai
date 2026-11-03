@@ -1,6 +1,7 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:autoplanner_ai/core/ai/ai_guard.dart';
 import 'package:autoplanner_ai/core/ai/ai_invocation.dart';
 import 'package:autoplanner_ai/core/ai/ai_provider.dart';
 import 'package:autoplanner_ai/core/ai/cloud_ai_provider.dart';
@@ -173,6 +174,53 @@ void main() {
         () => service.parseTasks('Buy groceries'),
         throwsA(isA<CloudGatewayException>()),
       );
+    });
+  });
+
+  group('Quota exhaustion retry policy', () {
+    setUp(AIGuard.instance.resetFrequencyWindow);
+
+    test('quota exhausted for hours fails fast without retrying', () async {
+      final provider = _MockCallableAIProvider((prompt, count) async {
+        throw const AIRateLimitException(
+          'Gemini quota or rate limit exceeded.',
+          retryAfter: Duration(hours: 5),
+        );
+      });
+      final service = AIService(provider: provider, tracker: TokenTracker());
+
+      await expectLater(
+        service.chatWithCoach('How do I plan my day?', const []),
+        throwsA(isA<AIRateLimitException>()),
+      );
+      expect(provider.callCount, equals(1));
+    });
+
+    test('short rate limit is still retried', () async {
+      final provider = _MockCallableAIProvider((prompt, count) async {
+        if (count == 1) {
+          throw const AIRateLimitException(
+            'Gemini quota or rate limit exceeded.',
+            retryAfter: Duration(seconds: 2),
+          );
+        }
+        return const AIResponse(
+          text: 'Start with your hardest task.',
+          promptTokens: 1,
+          completionTokens: 1,
+          latencyMs: 1,
+          model: 'mock-callable',
+        );
+      });
+      final service = AIService(provider: provider, tracker: TokenTracker());
+
+      final reply = await service.chatWithCoach(
+        'How do I plan my day?',
+        const [],
+      );
+
+      expect(reply, isNotEmpty);
+      expect(provider.callCount, equals(2));
     });
   });
 }

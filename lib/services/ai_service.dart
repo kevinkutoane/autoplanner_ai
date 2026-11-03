@@ -146,6 +146,12 @@ class AIService {
     if (e is AIDomainValidationException) return true;
     if (e is ContentPolicyException) return true;
     if (e is CallFrequencyException) return true;
+    // Quota exhausted for hours (e.g. the free daily limit): retrying in
+    // seconds only burns more requests.
+    if (e is AIRateLimitException &&
+        (e.retryAfter ?? Duration.zero) >= const Duration(minutes: 1)) {
+      return true;
+    }
 
     if (e is CloudGatewayException) {
       // 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 422 Unprocessable Entity
