@@ -66,7 +66,7 @@ This document provides a comprehensive blueprint of the system architecture, com
 │  • AIValidator        → Enforces JSON schemas, duration clamps (15-480m), priority ranges (0-3)        │
 │  • TokenTracker       → Daily token usage caps, in-memory caching, latency recording                    │
 │  • OfflineAIQueue     → Encrypted persistent queue with exponential backoff for offline resilience      │
-│  • GeminiProvider     → Google Gemini 2.5 Flash API connector (streaming + complete)                    │
+│  • GeminiProvider     → Gemini 3.5 Flash-Lite, 3.8 Flash fallback (streaming + complete, 30s timeout)   │
 │  • MockAIProvider     → Deterministic offline simulation for tests and token-free development           │
 └────────────────────────────────────────────────────┬────────────────────────────────────────────────────┘
                                                      │ AES-256 Encrypted Read/Write

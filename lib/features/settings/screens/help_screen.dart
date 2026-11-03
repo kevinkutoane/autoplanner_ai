@@ -542,7 +542,10 @@ class HelpScreen extends StatelessWidget {
                             a:
                                 'Tokens are the unit Gemini uses to measure text — roughly 1 token '
                                 'per word. Every AI call sends and receives tokens. Google\'s free tier '
-                                'gives you a daily quota. The in-app daily token limit (Settings → AI Settings) '
+                                'gives you a daily quota per model, reset at midnight Pacific time. '
+                                'AutoPlanner uses Gemini Flash-Lite, which has the most free capacity, '
+                                'and switches to Gemini Flash if Flash-Lite is busy or out of quota. '
+                                'The in-app daily token limit (Settings → AI Settings) '
                                 'is a safeguard you control — it pauses AI calls once you hit the cap '
                                 'so you don\'t accidentally exhaust your quota in one session.',
                             isDark: isDark,

@@ -2,7 +2,7 @@
 
 > **AI-powered daily planner for Android & iOS** — turn a stream-of-consciousness brain dump into a fully scheduled, priority-scored day in seconds.
 
-**Version:** 2.3.1 · **Flutter SDK:** `^3.47.2` · **Dart SDK:** `^3.13.0` · **AI Model:** Gemini 2.5 Flash
+**Version:** 3.0.0 · **Flutter SDK:** `^3.47.2` · **Dart SDK:** `^3.13.0` · **AI Model:** Gemini 3.5 Flash-Lite (fallback: 3.8 Flash)
 
 ---
 
@@ -147,7 +147,7 @@ When the app comes to the foreground the scheduler checks for overdue tasks (mis
 | State | Riverpod (`NotifierProvider`, `Provider`, root `ProviderContainer`) |
 | Persistence | Hive — AES-256 encrypted via OS keychain key with safe corruption recovery |
 | Startup | `AppBootstrapper` unified initialization orchestrator |
-| AI | Google Gemini 2.5 Flash (`google_generative_ai`) with streaming support |
+| AI | Google Gemini 3.5 Flash-Lite, falling back to 3.8 Flash when busy or out of quota (`google_generative_ai`), with streaming support |
 | Scheduling | Custom pure-Dart greedy slot-packer (`SchedulerService` with `clock` abstraction) |
 | Calendar Sync | Google Calendar REST API v3 (`syncToken` incremental sync + OAuth) |
 | Background | `workmanager` periodic tasks (Android/iOS) |

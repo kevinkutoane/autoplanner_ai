@@ -93,7 +93,8 @@ Pushing a version tag runs `.github/workflows/release.yml`, which analyzes, test
 | `KEY_PASSWORD` | Secret | Yes | Key password |
 | `SENTRY_DSN` | Secret | No | Enables crash reporting |
 | `GOOGLE_SERVER_CLIENT_ID` | Variable | For Calendar sync | Web OAuth client ID |
-| `GEMINI_MODEL` | Variable | No | Overrides the default Gemini model if Google retires it |
+| `GEMINI_MODEL` | Variable | No | Overrides the primary Gemini model (default `gemini-3.5-flash-lite`), e.g. if Google retires it |
+| `GEMINI_FALLBACK_MODEL` | Variable | No | Model tried when the primary is overloaded or out of quota (default `gemini-3.8-flash`; empty string disables) |
 | `ENABLE_IOS_RELEASE` | Variable | No | Set to `true` once iOS signing is configured |
 
 Then bump `version:` in `pubspec.yaml` (the build number after `+` must increase for every Play upload), commit, and tag:

@@ -132,7 +132,7 @@ Explore the technical and architectural documentation:
 | **State** | Riverpod (`NotifierProvider`, `Provider`, root `ProviderContainer`) |
 | **Persistence** | Hive — AES-256 encrypted via OS keychain key with safe corruption recovery |
 | **Startup** | `AppBootstrapper` unified initialization orchestrator |
-| **AI** | Google Gemini 2.5 Flash (`google_generative_ai`) with streaming support |
+| **AI** | Google Gemini 3.5 Flash-Lite, falling back to 3.8 Flash when busy or out of quota (`google_generative_ai`), with streaming support |
 | **Scheduling** | Pure-Dart deterministic constraint solver & DAG packer (`SchedulerService` with `clock`) |
 | **Calendar Sync** | Google Calendar REST API v3 (`syncToken` incremental sync + OAuth) |
 | **Background** | `workmanager` periodic tasks (Android/iOS) |

@@ -61,7 +61,7 @@ The AI boundary never directly writes to the database or mutates schedule state 
 │  ┌────────────────────────▼─────────────────────────┐  │
 │  │ Prompt Engineering & Model Orchestration Layer   │  │
 │  │ - Server-owned prompt templates & schemas        │  │
-│  │ - Model routing (Gemini 1.5 Flash vs. Pro)       │  │
+│  │ - Model routing (Gemini Flash-Lite vs. Flash)    │  │
 │  │ - Safety filters & Content guardrails            │  │
 │  │ - Fallback provider failover (Claude, OpenAI)    │  │
 │  └────────────────────────┬─────────────────────────┘  │
@@ -131,7 +131,7 @@ The invocation contract cleanly decouples client intent from the underlying lang
   "text": "[{\"id\":\"task-1\",\"title\":\"Design review\",\"estimatedMinutes\":60,\"priority\":2,\"tags\":[\"work\"]}]",
   "promptTokens": 412,
   "completionTokens": 84,
-  "model": "gemini-1.5-pro",
+  "model": "gemini-3.8-flash",
   "requestId": "c62b9a7b-3ef1-4b77-a5dc-72e7d7a12b01"
 }
 ```

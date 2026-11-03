@@ -1119,9 +1119,7 @@ class _AddTaskDialogState extends State<_AddTaskDialog>
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = e is RateLimitException
-            ? 'Daily AI limit reached. Try again tomorrow.'
-            : 'AI failed — please try again.';
+        _error = _aiLimitMessage(e) ?? 'AI failed — please try again.';
       });
     }
   }
@@ -1795,9 +1793,7 @@ class _PlanMyDaySheetState extends ConsumerState<_PlanMyDaySheet> {
       if (!mounted) return;
       setState(() {
         _state = _PlanState.idle;
-        _error = e is RateLimitException
-            ? 'Daily AI limit reached. Try again tomorrow.'
-            : 'Planning failed — please try again.';
+        _error = _aiLimitMessage(e) ?? 'Planning failed — please try again.';
       });
     }
   }
@@ -3775,4 +3771,17 @@ class _ScheduleRationaleSheet extends StatelessWidget {
       ),
     );
   }
+}
+
+/// User-facing text for the two AI limits: the in-app daily token cap, and
+/// Google's own quota on the user's Gemini key.
+String? _aiLimitMessage(Object e) {
+  if (e is RateLimitException) {
+    return 'Daily AI limit reached. Try again tomorrow.';
+  }
+  if (e is AIRateLimitException) {
+    return "Your Gemini key has reached Google's usage limit. "
+        'Free-tier limits reset daily — try again later.';
+  }
+  return null;
 }
