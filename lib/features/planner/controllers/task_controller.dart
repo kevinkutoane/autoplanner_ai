@@ -97,6 +97,7 @@ class TaskController extends Notifier<List<TaskItem>> {
     _refreshState();
     _calendarCtrl.removeTaskEvent(id);
     _notifications.cancelTaskReminder(id);
+    _notifications.cancelTaskUrgentAlert(id);
   }
 
   void updateTask(TaskItem task) {
@@ -119,6 +120,7 @@ class TaskController extends Notifier<List<TaskItem>> {
     if (oldTask != null && !oldTask.isCompleted && task.isCompleted) {
       _createTaskMemory(task, 'completed');
       _notifications.cancelTaskReminder(task.id);
+      _notifications.cancelTaskUrgentAlert(task.id);
       ref
           .read(gamificationServiceProvider.notifier)
           .awardTaskCompletion(task, actualMinutes: task.actualDurationMinutes);
@@ -137,6 +139,8 @@ class TaskController extends Notifier<List<TaskItem>> {
           title: task.title,
           body: 'Task marked as Urgent.',
         );
+      } else if (wasUrgent && task.priority < 3) {
+        _notifications.cancelTaskUrgentAlert(task.id);
       }
     }
   }

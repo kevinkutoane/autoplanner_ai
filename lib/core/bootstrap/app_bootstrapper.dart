@@ -50,15 +50,13 @@ class AppBootstrapper {
   static Future<ProviderContainer> init({Function? callbackDispatcher}) async {
     registerSettingsBoxOpener();
 
-    // 1. Environment (.env)
+    // 1. Environment (.env). Release builds ship no .env and are configured
+    // via --dart-define; start dotenv empty so EnvConfig still reads those.
     try {
       await dotenv.load(fileName: '.env');
-    } catch (_) {
-      try {
-        await dotenv.load(fileName: '.env.example');
-      } catch (e) {
-        if (kDebugMode) debugPrint('.env load failed: $e');
-      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('.env not loaded, using dart-defines: $e');
+      dotenv.loadFromString(envString: '', isOptional: true);
     }
 
     try {
