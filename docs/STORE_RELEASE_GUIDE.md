@@ -169,7 +169,12 @@ Play's definitions: data is **collected** when it is transmitted off the device,
 
 Also answer:
 - **Is data encrypted in transit?** Yes (HTTPS only; cleartext traffic is disabled).
-- **Can users request deletion?** Yes — all data is on-device (uninstall / clear storage); calendar access is revocable in Settings and the Google account.
+- **Can users request deletion?** Answer **Yes**, but only if you will actually handle requests sent to the privacy policy's contact email. Data held in each place is deleted differently:
+  - **On-device data** (tasks, notes, goals, memories, calendar copies, settings, API key): uninstalling or clearing app storage deletes it. Calendar access can be revoked in Settings or in the Google account.
+  - **Crash reports in Sentry**: uninstalling does **not** delete them. You hold them, so deletion is by request to the contact email: delete the matching events in Sentry. Otherwise they expire at the end of the Sentry project's retention period.
+  - **Content sent to Gemini**: uninstalling does **not** delete it. It goes to Google under the user's own API key and you never have access to it, so you cannot delete it. Google's Gemini API terms govern how long it is kept and how it can be deleted. Point users to Google, and don't promise deletion of this data.
+
+  If you won't operate a deletion request process, answer **No** instead. The on-device controls above still apply.
 - **Account creation**: the app has no accounts, so the account-deletion URL requirement does not apply.
 
 - **Privacy Policy**: `docs/PRIVACY_POLICY.md`. Fill in the `[CONTACT EMAIL]` and `[EFFECTIVE DATE]` placeholders, then publish it at a public URL. The simplest option is GitHub Pages: **Settings → Pages → Deploy from branch → `main` / `/docs`**, which serves it at `https://kevinkutoane.github.io/autoplanner_ai/PRIVACY_POLICY`. Put the same URL in the Play listing and in the Google Cloud OAuth consent screen.

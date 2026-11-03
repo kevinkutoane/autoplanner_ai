@@ -100,10 +100,20 @@ All are optional and can be changed in your device settings.
 
 ## Deleting your data
 
-All app data lives on your device. To delete it, uninstall the app or clear
-its storage in your device settings. To delete data sent to Google through AI
-features, see your Google account's data controls. To remove calendar access,
-disconnect in Settings or revoke access in your Google account.
+- **Data on your device**: uninstall the app or clear its storage in your
+  device settings. This deletes everything stored on the device. It does not
+  delete data that has already been sent elsewhere, listed below.
+- **Crash reports**: email [CONTACT EMAIL] to ask for crash reports from your
+  device to be deleted. Otherwise they are deleted automatically when the
+  crash-reporting retention period ends.
+- **Content sent to Google Gemini**: this is sent under your own API key and
+  is held by Google, not by AutoPlanner AI, so we cannot access or delete it.
+  How long it is kept, and whether it can be deleted, is governed by the
+  [Gemini API Additional Terms of Service](https://ai.google.dev/gemini-api/terms)
+  and the [Google Privacy Policy](https://policies.google.com/privacy).
+- **Google Calendar access**: disconnect in Settings, or revoke access at
+  [myaccount.google.com/permissions](https://myaccount.google.com/permissions).
+  Your events stay in Google Calendar; only the app's access is removed.
 
 ## Children
 
